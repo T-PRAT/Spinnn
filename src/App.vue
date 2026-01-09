@@ -2,7 +2,6 @@
 import { watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import AppHeader from './components/layout/AppHeader.vue';
-import StepIndicator from './components/layout/StepIndicator.vue';
 import { useAppState } from './composables/useAppState';
 import { useTheme } from './composables/useTheme';
 
@@ -25,10 +24,6 @@ watch(() => route.name, (routeName) => {
 <template>
   <div class="min-h-screen bg-background text-foreground font-sans">
     <AppHeader />
-    <StepIndicator
-      v-if="route.name !== 'settings'"
-      :current-step="appState.currentStep.value"
-    />
     <main class="container mx-auto px-6 py-8">
       <router-view />
     </main>

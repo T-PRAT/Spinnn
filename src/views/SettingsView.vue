@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAppState } from '../composables/useAppState';
 import { useTheme } from '../composables/useTheme';
+import IntervalsSettings from '../components/IntervalsSettings.vue';
 
 const router = useRouter();
 const appState = useAppState();
@@ -10,15 +11,38 @@ const theme = useTheme();
 
 const localFtp = ref(200);
 const showTooltip = ref(false);
+const localZones = ref({});
 
 onMounted(() => {
   localFtp.value = appState.ftp.value;
+  localZones.value = JSON.parse(JSON.stringify(appState.powerZones.value));
 });
 
 function saveFtp() {
   if (localFtp.value > 0) {
     appState.setFtp(localFtp.value);
   }
+}
+
+function saveZones() {
+  appState.setPowerZones(localZones.value);
+}
+
+function resetZones() {
+  appState.resetPowerZones();
+  localZones.value = JSON.parse(JSON.stringify(appState.powerZones.value));
+}
+
+function getZoneColor(key) {
+  const colors = {
+    z1: '#22c55e', // green
+    z2: '#3b82f6', // blue
+    z3: '#f59e0b', // orange
+    z4: '#ef4444', // red
+    z5: '#8b5cf6', // purple
+    z6: '#ec4899'  // pink
+  };
+  return colors[key] || '#6b7280';
 }
 
 function goBack() {
@@ -118,6 +142,71 @@ function goBack() {
           </p>
         </div>
       </div>
+    </div>
+
+    <!-- Power Zones Configuration -->
+    <div class="bg-card rounded-lg p-6 shadow border border-border">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-foreground">Zones de puissance</h3>
+        <button
+          @click="resetZones"
+          class="text-sm text-muted-foreground hover:text-foreground underline"
+        >
+          Réinitialiser
+        </button>
+      </div>
+      <p class="text-sm text-muted-foreground mb-4">
+        Configurez vos zones de puissance en pourcentage de votre FTP ({{ appState.ftp.value }}W)
+      </p>
+
+      <div class="space-y-2">
+        <div
+          v-for="(zone, key) in localZones"
+          :key="key"
+          class="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/20 transition-colors"
+        >
+          <div
+            class="w-1 h-10 rounded-full"
+            :style="{ backgroundColor: getZoneColor(key) }"
+          ></div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-foreground">{{ zone.name }}</div>
+            <div class="text-xs text-muted-foreground">
+              {{ Math.round(zone.min * appState.ftp.value / 100) }}W - {{ Math.round(zone.max * appState.ftp.value / 100) }}W
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              type="number"
+              v-model.number="zone.min"
+              min="0"
+              max="200"
+              class="w-14 px-2 py-1 text-xs text-center bg-background border border-input rounded focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+            <span class="text-xs text-muted-foreground">-</span>
+            <input
+              type="number"
+              v-model.number="zone.max"
+              min="0"
+              max="200"
+              class="w-14 px-2 py-1 text-xs text-center bg-background border border-input rounded focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+            <span class="text-xs text-muted-foreground">%</span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        @click="saveZones"
+        class="mt-4 w-full px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
+      >
+        Enregistrer les zones
+      </button>
+    </div>
+
+    <!-- Intervals.icu Integration -->
+    <div class="bg-card rounded-lg p-6 shadow border border-border">
+      <IntervalsSettings />
     </div>
   </div>
 </template>

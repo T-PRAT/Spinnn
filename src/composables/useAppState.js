@@ -7,10 +7,31 @@ const ftp = ref(200);
 const devicesConnected = ref(false);
 const mockModeActive = ref(false);
 
-// Load FTP from localStorage on module init
+// Default power zones (as % of FTP)
+const defaultZones = {
+  z1: { min: 0, max: 55, name: 'Z1 - Récupération active' },
+  z2: { min: 56, max: 75, name: 'Z2 - Endurance' },
+  z3: { min: 76, max: 90, name: 'Z3 - Tempo' },
+  z4: { min: 91, max: 105, name: 'Z4 - Seuil' },
+  z5: { min: 106, max: 120, name: 'Z5 - VO2max' },
+  z6: { min: 121, max: 150, name: 'Z6 - Anaérobie' }
+};
+
+const powerZones = ref({ ...defaultZones });
+
+// Load FTP and zones from localStorage on module init
 const storedFtp = localStorage.getItem('spinnn_ftp');
 if (storedFtp) {
   ftp.value = parseInt(storedFtp, 10);
+}
+
+const storedZones = localStorage.getItem('spinnn_power_zones');
+if (storedZones) {
+  try {
+    powerZones.value = JSON.parse(storedZones);
+  } catch (e) {
+    console.error('Failed to parse stored zones:', e);
+  }
 }
 
 export function useAppState() {
@@ -34,6 +55,16 @@ export function useAppState() {
   function setFtp(value) {
     ftp.value = value;
     localStorage.setItem('spinnn_ftp', value.toString());
+  }
+
+  function setPowerZones(zones) {
+    powerZones.value = zones;
+    localStorage.setItem('spinnn_power_zones', JSON.stringify(zones));
+  }
+
+  function resetPowerZones() {
+    powerZones.value = { ...defaultZones };
+    localStorage.setItem('spinnn_power_zones', JSON.stringify(defaultZones));
   }
 
   function goToStep(step) {
@@ -61,6 +92,7 @@ export function useAppState() {
     currentStep: readonly(currentStep),
     selectedWorkout: readonly(selectedWorkout),
     ftp: readonly(ftp),
+    powerZones: readonly(powerZones),
     devicesConnected: readonly(devicesConnected),
     mockModeActive: readonly(mockModeActive),
     canStartWorkout,
@@ -68,6 +100,8 @@ export function useAppState() {
     setDevicesConnected,
     setMockModeActive,
     setFtp,
+    setPowerZones,
+    resetPowerZones,
     goToStep,
     startWorkout,
     finishWorkout,
