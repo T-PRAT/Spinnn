@@ -41,18 +41,8 @@ function getDifficultyColor(difficulty) {
             : 'border-border hover:border-primary/50 hover:bg-accent/50'
         ]"
       >
-        <WorkoutPreviewChart :ftp="appState.ftp.value" :workout="workout" :compact="true">
-          <template #badge>
-            <span
-              :class="['px-2 py-1 rounded text-xs font-medium', getDifficultyColor(workout.difficulty)]"
-            >
-              {{ workout.difficulty }}
-            </span>
-          </template>
-          <template #info>
-            <span>{{ workout.intervals.length }} intervals</span>
-          </template>
-        </WorkoutPreviewChart>
+        <WorkoutPreviewChart :ftp="appState.ftp.value" :workout="workout" :compact="true" />
+
       </div>
     </div>
   </div>

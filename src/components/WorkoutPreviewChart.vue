@@ -183,16 +183,18 @@ function getIntervalColor(type, power) {
   <div :class="compact ? 'space-y-1' : 'space-y-2'">
     <div v-if="!compact" class="flex items-center justify-between">
       <div class="flex-1 min-w-0">
-        <h4 class="text-sm font-medium text-foreground truncate">{{ workout?.name }}</h4>
+        <h4 class="text-base font-semibold text-foreground truncate">{{ workout?.name }}</h4>
       </div>
-      <div class="text-xs text-muted-foreground ml-2">
+      <div class="px-3 py-1 bg-muted/50 rounded text-sm font-medium text-foreground ml-2">
         {{ formatDuration(workout?.duration || 0) }}
       </div>
     </div>
     <div v-else class="mb-1">
       <div class="flex items-center justify-between gap-2">
         <h4 class="text-sm font-medium text-foreground truncate">{{ workout?.name }}</h4>
-        <slot name="badge"></slot>
+        <span class="px-3 py-1 bg-muted/50 rounded text-xs font-medium text-foreground">
+          {{ formatDuration(workout?.duration || 0) }}
+        </span>
       </div>
     </div>
     <div class="relative">
@@ -219,10 +221,6 @@ function getIntervalColor(type, power) {
           </div>
         </div>
       </div>
-    </div>
-    <div v-if="compact" class="flex items-center justify-between text-xs text-muted-foreground">
-      <span>{{ formatDuration(workout?.duration || 0) }}</span>
-      <slot name="info"></slot>
     </div>
   </div>
 </template>

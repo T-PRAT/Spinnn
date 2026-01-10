@@ -69,7 +69,11 @@ watch(
     </div>
 
     <div v-if="!intervals.isConnected.value" class="p-4 bg-muted/50 rounded-lg border border-border">
-      <p class="text-sm text-muted-foreground text-center">Connectez-vous à Intervals.icu dans les paramètres pour voir votre entrainement du jour</p>
+      <p class="text-sm text-muted-foreground text-center">
+        Connectez-vous à Intervals.icu dans les
+        <router-link to="/settings#intervals-icu" class="text-primary hover:underline">paramètres</router-link>
+        pour voir votre entrainement du jour
+      </p>
     </div>
 
     <div v-else-if="isLoading" class="p-4 bg-muted/50 rounded-lg border border-border">
@@ -91,9 +95,8 @@ watch(
       <button @click="loadTodayWorkouts" class="mt-2 text-sm text-primary hover:underline">Réessayer</button>
     </div>
 
-    <div v-else-if="todayWorkouts.length === 0" class="p-4 bg-muted/50 rounded-lg border border-border flex items-center justify-center gap-2">
-      <img src="/intervals.png" alt="Intervals.icu" class="w-6 h-6" />
-      <span class="text-sm text-muted-foreground text-center">Intervals.icu</span>
+    <div v-else-if="todayWorkouts.length === 0" class="p-4 bg-muted/50 rounded-lg border border-border flex items-center justify-center">
+      <span class="text-sm text-muted-foreground text-center">Pas d'entraînement aujourd'hui</span>
     </div>
 
     <div v-else class="space-y-2">

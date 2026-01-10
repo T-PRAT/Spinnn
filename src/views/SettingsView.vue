@@ -1,11 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, nextTick } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useAppState } from '../composables/useAppState';
 import { useTheme } from '../composables/useTheme';
 import IntervalsSettings from '../components/IntervalsSettings.vue';
 
 const router = useRouter();
+const route = useRoute();
 const appState = useAppState();
 const theme = useTheme();
 
@@ -16,6 +17,16 @@ const localZones = ref({});
 onMounted(() => {
   localFtp.value = appState.ftp.value;
   localZones.value = JSON.parse(JSON.stringify(appState.powerZones.value));
+
+  // Scroll to section if hash is present
+  nextTick(() => {
+    if (route.hash) {
+      const element = document.querySelector(route.hash);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  });
 });
 
 function saveFtp() {
@@ -205,7 +216,7 @@ function goBack() {
     </div>
 
     <!-- Intervals.icu Integration -->
-    <div class="bg-card rounded-lg p-6 shadow border border-border">
+    <div id="intervals-icu" class="bg-card rounded-lg p-6 shadow border border-border">
       <IntervalsSettings />
     </div>
   </div>

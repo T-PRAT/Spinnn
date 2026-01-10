@@ -138,7 +138,7 @@ function startWorkout() {
         <div class="border-t border-border pt-6">
           <h2 class="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <img src="/intervals.png" alt="Intervals.icu" class="w-6 h-6 rounded-lg" />
-            Intervals.icu
+            Intervals.icu <span class="text-sm font-normal text-muted-foreground">(entrainement du jour)</span>
           </h2>
           <IntervalsTodayWorkout @workout-selected="handleWorkoutSelected" />
         </div>
