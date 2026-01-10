@@ -14,7 +14,8 @@ const defaultZones = {
   z3: { min: 76, max: 90, name: 'Z3 - Tempo' },
   z4: { min: 91, max: 105, name: 'Z4 - Seuil' },
   z5: { min: 106, max: 120, name: 'Z5 - VO2max' },
-  z6: { min: 121, max: 150, name: 'Z6 - Anaérobie' }
+  z6: { min: 121, max: 150, name: 'Z6 - Anaérobie' },
+  z7: { min: 151, max: 200, name: 'Z7 - Neuromusculaire' }
 };
 
 const powerZones = ref({ ...defaultZones });
@@ -90,7 +91,7 @@ export function useAppState() {
 
   return {
     currentStep: readonly(currentStep),
-    selectedWorkout: readonly(selectedWorkout),
+    selectedWorkout, // Not readonly to allow restoration from session
     ftp: readonly(ftp),
     powerZones: readonly(powerZones),
     devicesConnected: readonly(devicesConnected),

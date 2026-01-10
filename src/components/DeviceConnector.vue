@@ -3,34 +3,18 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useBluetoothHRM } from '../composables/useBluetoothHRM';
 import { useBluetoothTrainer } from '../composables/useBluetoothTrainer';
 import { useMockDevices } from '../composables/useMockDevices';
+import { isBluetoothAvailable } from '../utils/web-ble.js';
 
 const hrm = useBluetoothHRM();
 const trainer = useBluetoothTrainer();
 const mockDevices = useMockDevices();
 
 const bluetoothSupported = ref(false);
-const bluetoothMessage = ref('');
 const useMockMode = ref(false);
 
 onMounted(() => {
-  checkBluetoothSupport();
+  bluetoothSupported.value = isBluetoothAvailable();
 });
-
-function checkBluetoothSupport() {
-  if (!navigator.bluetooth) {
-    bluetoothSupported.value = false;
-    bluetoothMessage.value = 'Web Bluetooth API is not available in this browser.';
-    return;
-  }
-
-  if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-    bluetoothSupported.value = false;
-    bluetoothMessage.value = 'Web Bluetooth requires HTTPS or localhost.';
-    return;
-  }
-
-  bluetoothSupported.value = !!navigator.bluetooth;
-}
 
 function enableMockMode() {
   useMockMode.value = true;
@@ -56,6 +40,14 @@ async function disconnectHRM() {
 
 async function disconnectTrainer() {
   await trainer.disconnect();
+}
+
+async function reconnectHRM() {
+  await hrm.reconnect();
+}
+
+async function reconnectTrainer() {
+  await trainer.reconnect();
 }
 
 const emit = defineEmits(['data-update', 'device-status-change']);
@@ -94,47 +86,31 @@ setInterval(emitDataUpdate, 100);
 
 <template>
   <div class="space-y-4">
+    <!-- Bluetooth not supported -->
     <div v-if="!bluetoothSupported" class="p-4 bg-chart-1/10 border border-chart-1/30 rounded-lg">
-      <p class="text-chart-1 text-sm font-medium mb-2">
-        Bluetooth Non Disponible
-      </p>
-      <p class="text-chart-1/80 text-xs mb-3">
-        {{ bluetoothMessage }}
-      </p>
-      <div class="space-y-2">
-        <p class="text-chart-1 text-xs font-semibold">Sur Linux Chrome, activez Web Bluetooth:</p>
-        <ol class="text-chart-1/80 text-xs list-decimal list-inside space-y-1 ml-2">
-          <li>Ouvrez <code class="bg-chart-1/20 px-1 py-0.5 rounded">chrome://flags/#enable-web-bluetooth</code></li>
-          <li>Activez l'option</li>
-          <li>Redemarrez Chrome</li>
-        </ol>
-      </div>
+      <p class="text-chart-1 text-sm font-medium">Bluetooth non disponible</p>
+      <p class="text-chart-1/80 text-xs mt-1">Utilisez Chrome/Edge en HTTPS ou localhost</p>
     </div>
 
-    <div v-else-if="!useMockMode" class="p-4 bg-chart-3/10 border border-chart-3/30 rounded-lg">
-      <p class="text-chart-3 text-sm flex items-center gap-2">
-        <span class="font-medium">Web Bluetooth est pret!</span> Cliquez sur les boutons ci-dessous pour connecter vos appareils.
-      </p>
-    </div>
-
-    <div v-if="bluetoothSupported === true" class="p-3 bg-muted rounded-lg">
+    <!-- Mock mode toggle -->
+    <div class="p-3 bg-muted rounded-lg">
       <div class="flex items-center justify-between">
         <p class="text-foreground text-xs font-medium">
-          {{ useMockMode ? 'Mode Mock Actif - Donnees simulees' : 'Mode Dev/Test Disponible' }}
+          {{ useMockMode ? 'Mode simulation actif' : 'Mode simulation' }}
         </p>
         <button
           v-if="!useMockMode"
           @click="enableMockMode"
           class="px-3 py-1.5 bg-accent text-accent-foreground rounded-lg hover:bg-accent/80 transition-colors text-xs font-medium"
         >
-          Activer Mode Mock
+          Activer
         </button>
         <button
           v-else
           @click="disableMockMode"
           class="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors text-xs font-medium"
         >
-          Desactiver Mode Mock
+          Desactiver
         </button>
       </div>
     </div>
@@ -168,6 +144,23 @@ setInterval(emitDataUpdate, 100);
           </button>
         </div>
 
+        <div v-else-if="hrm.isReconnecting.value" class="space-y-2">
+          <p class="text-sm text-muted-foreground">Reconnexion en cours...</p>
+          <div class="flex items-center gap-2 text-chart-2 text-sm">
+            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Tentative de reconnexion auto</span>
+          </div>
+          <button
+            @click="hrm.cancelReconnect()"
+            class="w-full px-3 py-1.5 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors text-sm"
+          >
+            Annuler la reconnexion
+          </button>
+        </div>
+
         <div v-else>
           <button
             @click="connectHRM"
@@ -176,6 +169,15 @@ setInterval(emitDataUpdate, 100);
           >
             {{ hrm.isConnecting.value ? 'Connexion...' : 'Connecter Cardio' }}
           </button>
+          <div v-if="hrm.connectable?.deviceId" class="mt-2">
+            <button
+              @click="reconnectHRM"
+              :disabled="hrm.isConnecting.value"
+              class="w-full px-3 py-1.5 bg-chart-2 text-chart-2-foreground rounded-lg hover:bg-chart-2/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              Reconnecter au dernier appareil
+            </button>
+          </div>
           <p v-if="hrm.error.value" class="text-xs text-destructive mt-2">{{ hrm.error.value }}</p>
         </div>
       </div>
@@ -221,6 +223,23 @@ setInterval(emitDataUpdate, 100);
           </button>
         </div>
 
+        <div v-else-if="trainer.isReconnecting.value" class="space-y-2">
+          <p class="text-sm text-muted-foreground">Reconnexion en cours...</p>
+          <div class="flex items-center gap-2 text-chart-2 text-sm">
+            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Tentative de reconnexion auto</span>
+          </div>
+          <button
+            @click="trainer.cancelReconnect()"
+            class="w-full px-3 py-1.5 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors text-sm"
+          >
+            Annuler la reconnexion
+          </button>
+        </div>
+
         <div v-else>
           <button
             @click="connectTrainer"
@@ -229,6 +248,15 @@ setInterval(emitDataUpdate, 100);
           >
             {{ trainer.isConnecting.value ? 'Connexion...' : 'Connecter Trainer' }}
           </button>
+          <div v-if="trainer.connectable?.deviceId" class="mt-2">
+            <button
+              @click="reconnectTrainer"
+              :disabled="trainer.isConnecting.value"
+              class="w-full px-3 py-1.5 bg-chart-2 text-chart-2-foreground rounded-lg hover:bg-chart-2/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              Reconnecter au dernier appareil
+            </button>
+          </div>
           <p v-if="trainer.error.value" class="text-xs text-destructive mt-2">{{ trainer.error.value }}</p>
         </div>
       </div>

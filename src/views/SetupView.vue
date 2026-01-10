@@ -1,9 +1,8 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import WorkoutSelector from "../components/WorkoutSelector.vue";
 import DeviceConnector from "../components/DeviceConnector.vue";
-import BluetoothDebug from "../components/BluetoothDebug.vue";
 import WorkoutPreviewChart from "../components/WorkoutPreviewChart.vue";
 import IntervalsTodayWorkout from "../components/IntervalsTodayWorkout.vue";
 import { useAppState } from "../composables/useAppState";
@@ -15,6 +14,12 @@ const session = useWorkoutSession();
 
 const isDeviceReady = ref(false);
 const fileInput = ref(null);
+const hasPendingWorkout = ref(false);
+
+// Check for existing workout on mount
+onMounted(() => {
+  hasPendingWorkout.value = session.isActive.value;
+});
 
 function handleWorkoutSelected(workout) {
   appState.setWorkout(workout);
@@ -101,21 +106,79 @@ function handleDeviceStatusChange(status) {
 function handleDataUpdate() {}
 
 const canStart = computed(() => {
-  return appState.selectedWorkout.value !== null && isDeviceReady.value;
+  // Can start if devices are ready AND (new workout selected OR pending workout exists)
+  const hasWorkout = appState.selectedWorkout.value !== null || hasPendingWorkout.value;
+  return hasWorkout && isDeviceReady.value;
+});
+
+const canResume = computed(() => {
+  // Can resume if there's a pending workout AND devices are ready
+  return hasPendingWorkout.value && isDeviceReady.value;
 });
 
 function startWorkout() {
-  if (canStart.value) {
-    session.start(appState.selectedWorkout.value, appState.ftp.value);
+  // If there's a pending workout, we can resume even if devices aren't "ready" yet
+  // because the workout was already in progress
+  if (hasPendingWorkout.value) {
+    // Restore the workout in appState
+    appState.setWorkout(session.workout.value);
     appState.startWorkout();
     router.push({ name: "workout" });
+    return;
   }
+
+  // For new workouts, require devices to be ready
+  if (!isDeviceReady.value) return;
+
+  // Start new workout
+  session.start(appState.selectedWorkout.value, appState.ftp.value);
+  appState.startWorkout();
+  router.push({ name: "workout" });
+}
+
+function dismissPendingWorkout() {
+  session.reset();
+  hasPendingWorkout.value = false;
 }
 </script>
 
 <template>
   <div class="max-w-6xl mx-auto space-y-6">
-    <BluetoothDebug />
+    <!-- Pending workout banner -->
+    <div
+      v-if="hasPendingWorkout"
+      class="bg-primary/10 border border-primary/30 rounded-lg p-4 space-y-3"
+    >
+      <div class="flex items-start justify-between">
+        <div class="flex-1">
+          <h3 class="text-lg font-semibold text-primary mb-1">Entraînement en cours</h3>
+          <p class="text-sm text-foreground mb-2">
+            <strong>{{ session.workout.value?.name }}</strong>
+          </p>
+          <p class="text-sm text-muted-foreground">
+            Progression: {{ session.formattedElapsedTime.value }} / {{ session.formattedWorkoutDuration.value }}
+            • {{ Math.round((session.elapsedSeconds.value / session.workout.value.duration) * 100) }}% terminé
+          </p>
+        </div>
+        <button
+          @click="dismissPendingWorkout"
+          class="text-muted-foreground hover:text-destructive transition-colors p-1"
+          title="Ignorer et recommencer"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="flex gap-3">
+        <button
+          @click="startWorkout"
+          class="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-semibold transition-colors"
+        >
+          Reprendre l'entraînement
+        </button>
+      </div>
+    </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="bg-card rounded-lg p-6 shadow border border-border">

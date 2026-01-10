@@ -12,11 +12,83 @@ const isPaused = ref(false);
 let intervalId = null;
 let lastDistance = 0;
 
+// Storage key for workout persistence
+const WORKOUT_STORAGE_KEY = 'spinnn_active_workout';
+
+// Load saved workout state on module init
+function loadWorkoutState() {
+  const savedState = localStorage.getItem(WORKOUT_STORAGE_KEY);
+  if (savedState) {
+    try {
+      const parsed = JSON.parse(savedState);
+      // Check if the saved workout is less than 24 hours old
+      const savedTime = new Date(parsed.savedAt);
+      const now = new Date();
+      const hoursDiff = (now - savedTime) / (1000 * 60 * 60);
+
+      if (hoursDiff < 24 && parsed.isActive) {
+        workout.value = parsed.workout;
+        elapsedSeconds.value = parsed.elapsedSeconds;
+        dataPoints.value = parsed.dataPoints || [];
+        ftp.value = parsed.ftp;
+        isPaused.value = true; // Always resume in paused state
+        isActive.value = true;
+        startTime.value = new Date(parsed.startTime);
+        lastDistance = parsed.lastDistance || 0;
+
+        return true;
+      } else {
+        // Clear old workout state
+        localStorage.removeItem(WORKOUT_STORAGE_KEY);
+      }
+    } catch (e) {
+      console.error('Failed to load workout state:', e);
+      localStorage.removeItem(WORKOUT_STORAGE_KEY);
+    }
+  }
+  return false;
+}
+
+// Save current workout state
+function saveWorkoutState() {
+  if (!isActive.value || !workout.value) {
+    localStorage.removeItem(WORKOUT_STORAGE_KEY);
+    return;
+  }
+
+  const state = {
+    isActive: isActive.value,
+    startTime: startTime.value.toISOString(),
+    elapsedSeconds: elapsedSeconds.value,
+    dataPoints: dataPoints.value,
+    workout: workout.value,
+    ftp: ftp.value,
+    isPaused: isPaused.value,
+    lastDistance: lastDistance,
+    savedAt: new Date().toISOString()
+  };
+
+  localStorage.setItem(WORKOUT_STORAGE_KEY, JSON.stringify(state));
+}
+
+// Clear saved workout state
+function clearWorkoutState() {
+  localStorage.removeItem(WORKOUT_STORAGE_KEY);
+}
+
+// Auto-load saved state on module init (when app starts)
+let hasLoadedState = false;
+
 export function useWorkoutSession() {
+  // Try to load saved state on first use
+  if (!hasLoadedState) {
+    hasLoadedState = true;
+    loadWorkoutState();
+  }
 
   function start(selectedWorkout, userFtp) {
     if (isActive.value) return;
-    
+
     workout.value = selectedWorkout;
     ftp.value = userFtp;
     startTime.value = new Date();
@@ -24,7 +96,9 @@ export function useWorkoutSession() {
     dataPoints.value = [];
     lastDistance = 0;
     isActive.value = true;
-    
+
+    saveWorkoutState();
+
     intervalId = setInterval(() => {
       elapsedSeconds.value++;
     }, 1000);
@@ -32,8 +106,10 @@ export function useWorkoutSession() {
 
   function stop() {
     if (!isActive.value) return;
-    
+
     isActive.value = false;
+    clearWorkoutState();
+
     if (intervalId) {
       clearInterval(intervalId);
       intervalId = null;
@@ -53,6 +129,8 @@ export function useWorkoutSession() {
   function pause() {
     if (!isActive.value || isPaused.value) return;
     isPaused.value = true;
+    saveWorkoutState();
+
     if (intervalId) {
       clearInterval(intervalId);
       intervalId = null;
@@ -62,6 +140,8 @@ export function useWorkoutSession() {
   function resume() {
     if (!isActive.value || !isPaused.value) return;
     isPaused.value = false;
+    saveWorkoutState();
+
     intervalId = setInterval(() => {
       elapsedSeconds.value++;
     }, 1000);
@@ -69,10 +149,10 @@ export function useWorkoutSession() {
 
   function recordDataPoint(data) {
     if (!isActive.value) return;
-    
+
     const distanceIncrement = data.speed > 0 ? data.speed * 1 : 0;
     lastDistance += distanceIncrement;
-    
+
     dataPoints.value.push({
       timestamp: elapsedSeconds.value,
       power: data.power || 0,
@@ -81,6 +161,11 @@ export function useWorkoutSession() {
       speed: data.speed || 0,
       distance: Math.round(lastDistance)
     });
+
+    // Save state every 10 data points (every 10 seconds)
+    if (dataPoints.value.length % 10 === 0) {
+      saveWorkoutState();
+    }
   }
 
   const formattedElapsedTime = computed(() => {
@@ -127,6 +212,8 @@ export function useWorkoutSession() {
     reset,
     pause,
     resume,
-    recordDataPoint
+    recordDataPoint,
+    loadWorkoutState,
+    clearWorkoutState
   };
 }

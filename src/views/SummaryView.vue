@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useAppState } from '../composables/useAppState';
 import { useWorkoutSession } from '../composables/useWorkoutSession';
 import { formatDuration } from '../data/sampleWorkouts';
+import { createFitFile } from '../utils/fitExporter';
 
 const router = useRouter();
 const appState = useAppState();
@@ -89,7 +90,31 @@ function downloadCSV() {
 }
 
 function downloadFIT() {
-  alert('Export FIT bientot disponible !');
+  const sessionData = session.sessionData.value;
+  const lastPoint = sessionData.dataPoints[sessionData.dataPoints.length - 1];
+
+  const fitStats = {
+    durationSeconds: session.elapsedSeconds.value,
+    distanceMeters: lastPoint?.distance || 0,
+    avgPower: stats.value.avgPower,
+    maxPower: stats.value.maxPower,
+    avgHeartRate: stats.value.avgHeartRate,
+    maxHeartRate: stats.value.maxHeartRate,
+    avgCadence: stats.value.avgCadence,
+    normalizedPower: stats.value.normalizedPower,
+  };
+
+  const fitData = createFitFile(sessionData, fitStats);
+
+  const blob = new Blob([fitData], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const date = new Date().toISOString().split('T')[0];
+  const workoutName = appState.selectedWorkout.value?.name?.replace(/\s+/g, '_') || 'workout';
+  a.download = `spinnn_${date}_${workoutName}.fit`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function startNewWorkout() {

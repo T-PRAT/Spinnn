@@ -46,12 +46,13 @@ function resetZones() {
 
 function getZoneColor(key) {
   const colors = {
-    z1: '#22c55e', // green
-    z2: '#3b82f6', // blue
-    z3: '#f59e0b', // orange
-    z4: '#ef4444', // red
-    z5: '#8b5cf6', // purple
-    z6: '#ec4899'  // pink
+    z1: 'var(--zone-z1)',
+    z2: 'var(--zone-z2)',
+    z3: 'var(--zone-z3)',
+    z4: 'var(--zone-z4)',
+    z5: 'var(--zone-z5)',
+    z6: 'var(--zone-z6)',
+    z7: 'var(--zone-z7)'
   };
   return colors[key] || '#6b7280';
 }

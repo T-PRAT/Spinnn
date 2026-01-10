@@ -76,9 +76,33 @@ function initChart() {
 
   const totalDuration = props.workout.duration;
   xScale = d3.scaleLinear().domain([0, totalDuration]).range([0, width]);
+
+  // Calculate max power from workout intervals to avoid capping
+  let maxPowerInWorkout = props.ftp * 1.5; // default fallback
+  const intervals = Array.isArray(props.workout.intervals) ? props.workout.intervals : Object.values(props.workout.intervals);
+  intervals.forEach((interval) => {
+    let maxPowerInInterval = 0;
+
+    // For ramp intervals, check both powerStart and powerEnd
+    if (interval.powerStart !== undefined && interval.powerEnd !== undefined) {
+      maxPowerInInterval = Math.max(interval.powerStart, interval.powerEnd);
+    } else {
+      // For steady intervals, use powerEnd or power
+      maxPowerInInterval = interval.powerEnd || interval.power || 0;
+    }
+
+    const powerInWatts = maxPowerInInterval * props.ftp;
+    if (powerInWatts > maxPowerInWorkout) {
+      maxPowerInWorkout = powerInWatts;
+    }
+  });
+
+  // Add 10% headroom above max power
+  const maxPowerScale = maxPowerInWorkout * 1.1;
+
   yScalePower = d3
     .scaleLinear()
-    .domain([0, props.ftp * 1.5])
+    .domain([0, maxPowerScale])
     .range([height, 0]);
 
   // Draw workout profile
@@ -98,25 +122,47 @@ function drawWorkoutProfile() {
     const endX = xScale(currentTime + interval.duration);
 
     let power = interval.power;
-    if (power === undefined && interval.powerStart !== undefined && interval.powerEnd !== undefined) {
+    let isRamp = false;
+
+    // Check if this is a ramp interval
+    if (interval.powerStart !== undefined && interval.powerEnd !== undefined) {
       power = (interval.powerStart + interval.powerEnd) / 2;
+      isRamp = true;
     }
     const targetPower = (power || 0.5) * props.ftp;
 
-    const rect = svg
-      .append("rect")
-      .attr("x", startX)
-      .attr("y", yScalePower(targetPower))
-      .attr("width", Math.max(0, endX - startX))
-      .attr("height", Math.max(0, height - yScalePower(targetPower)))
-      .attr("fill", getIntervalColor(interval.type, power))
-      .attr("opacity", 0.6)
-      .attr("stroke", getIntervalColor(interval.type, power))
-      .attr("stroke-width", 0.5);
+    let shape;
+    if (isRamp) {
+      // Draw ramp as a polygon/trapezoid
+      const powerStartWatts = interval.powerStart * props.ftp;
+      const powerEndWatts = interval.powerEnd * props.ftp;
+      const startY = yScalePower(powerStartWatts);
+      const endY = yScalePower(powerEndWatts);
+
+      shape = svg
+        .append("polygon")
+        .attr("points", `${startX},${startY} ${endX},${endY} ${endX},${height} ${startX},${height}`)
+        .attr("fill", getIntervalColor(interval.type, power))
+        .attr("opacity", 0.6)
+        .attr("stroke", getIntervalColor(interval.type, power))
+        .attr("stroke-width", 0.5);
+    } else {
+      // Draw rectangle for steady power intervals
+      shape = svg
+        .append("rect")
+        .attr("x", startX)
+        .attr("y", yScalePower(targetPower))
+        .attr("width", Math.max(0, endX - startX))
+        .attr("height", Math.max(0, height - yScalePower(targetPower)))
+        .attr("fill", getIntervalColor(interval.type, power))
+        .attr("opacity", 0.6)
+        .attr("stroke", getIntervalColor(interval.type, power))
+        .attr("stroke-width", 0.5);
+    }
 
     // Only add tooltips if not in compact mode
     if (!props.compact) {
-      rect
+      shape
         .attr("cursor", "pointer")
         .on("mouseenter", function (event) {
           d3.select(this).attr("opacity", 0.9);
@@ -170,12 +216,15 @@ function getIntervalColor(type, power) {
   const zones = appState.powerZones.value;
 
   // Determine zone based on configured power percentages
-  if (powerPercent <= zones.z1.max) return "#22c55e"; // green
-  if (powerPercent <= zones.z2.max) return "#3b82f6"; // blue
-  if (powerPercent <= zones.z3.max) return "#f59e0b"; // orange
-  if (powerPercent <= zones.z4.max) return "#ef4444"; // red
-  if (powerPercent <= zones.z5.max) return "#8b5cf6"; // purple
-  return "#ec4899"; // pink (Z6)
+  // Get CSS variable values from computed style
+  const computedStyle = getComputedStyle(document.documentElement);
+  if (powerPercent <= zones.z1.max) return computedStyle.getPropertyValue('--zone-z1').trim();
+  if (powerPercent <= zones.z2.max) return computedStyle.getPropertyValue('--zone-z2').trim();
+  if (powerPercent <= zones.z3.max) return computedStyle.getPropertyValue('--zone-z3').trim();
+  if (powerPercent <= zones.z4.max) return computedStyle.getPropertyValue('--zone-z4').trim();
+  if (powerPercent <= zones.z5.max) return computedStyle.getPropertyValue('--zone-z5').trim();
+  if (powerPercent <= zones.z6.max) return computedStyle.getPropertyValue('--zone-z6').trim();
+  return computedStyle.getPropertyValue('--zone-z7').trim();
 }
 </script>
 
