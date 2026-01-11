@@ -89,19 +89,12 @@ export function useIntervalsIcu() {
     const intervals = [];
     let totalDuration = 0;
 
-    console.log('=== Converting Intervals.icu workout ===');
-    console.log('Workout:', intervalsWorkout.name);
-    console.log('Steps:', intervalsWorkout.workout?.steps);
-
     // Parse workout steps if available
     if (intervalsWorkout.workout?.steps) {
       intervalsWorkout.workout.steps.forEach((step, index) => {
-        console.log(`\nStep ${index}:`, step);
-
         // Handle repeat steps (contains sub-steps)
         if (step.steps && Array.isArray(step.steps)) {
           const repeat = step.reps || step.repeat || 1;
-          console.log(`This is a REPEAT block, repeating ${repeat} times`);
 
           for (let r = 0; r < repeat; r++) {
             step.steps.forEach(subStep => {
@@ -123,7 +116,7 @@ export function useIntervalsIcu() {
       });
     }
 
-    const result = {
+    return {
       id: `intervals-${intervalsWorkout.id}`,
       name: intervalsWorkout.name || 'Workout from Intervals.icu',
       description: intervalsWorkout.description || 'Imported from Intervals.icu',
@@ -132,15 +125,6 @@ export function useIntervalsIcu() {
       intervals: [...intervals], // Ensure it's a real array
       source: 'intervals.icu'
     };
-
-    console.log('=== Final converted workout ===');
-    console.log('Total duration:', totalDuration);
-    console.log('Intervals count:', intervals.length);
-    console.log('Is intervals array?', Array.isArray(intervals));
-    console.log('Is result.intervals array?', Array.isArray(result.intervals));
-    console.log('Full workout:', result);
-
-    return result;
   }
 
   function processStep(step) {
@@ -175,8 +159,6 @@ export function useIntervalsIcu() {
     if (power && power > 2) power = power / 100;
     if (powerLow && powerLow > 2) powerLow = powerLow / 100;
     if (powerHigh && powerHigh > 2) powerHigh = powerHigh / 100;
-
-    console.log(`Power: ${power}, Low: ${powerLow}, High: ${powerHigh}`);
 
     // Determine interval type
     const stepType = step.type || (step.ramp ? 'RAMP' : 'STEADY');
@@ -213,7 +195,6 @@ export function useIntervalsIcu() {
       intervalData.power = 0.7;
     }
 
-    console.log('Converted interval:', intervalData);
     return intervalData;
   }
 

@@ -1,7 +1,7 @@
 <script setup>
 import { watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import AppHeader from './components/layout/AppHeader.vue';
+import Sidebar from './components/Sidebar.vue';
 import { useAppState } from './composables/useAppState';
 import { useTheme } from './composables/useTheme';
 
@@ -22,9 +22,9 @@ watch(() => route.name, (routeName) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground font-sans">
-    <AppHeader />
-    <main class="container mx-auto px-6 py-8">
+  <div class="min-h-screen bg-background text-foreground font-sans flex overflow-x-hidden">
+    <Sidebar />
+    <main class="flex-1 p-2 md:p-6 overflow-y-auto">
       <router-view />
     </main>
   </div>

@@ -1,20 +1,26 @@
 export function parseHeartRateMeasurement(dataView) {
   const flags = dataView.getUint8(0);
   const heartRateFormat = flags & 0x01;
-  
+
   let heartRate;
   if (heartRateFormat === 0) {
     heartRate = dataView.getUint8(1);
   } else {
     heartRate = dataView.getUint16(1, true);
   }
-  
+
+  // Bits 1-2: Sensor Contact Status
+  // 0 or 1 = Not supported
+  // 2 = Supported, but contact is not detected
+  // 3 = Supported and contact is detected
   const sensorContactStatus = (flags & 0x06) >> 1;
+  const sensorContactSupported = sensorContactStatus >= 2;
   const isContactDetected = sensorContactStatus === 3;
-  
+
   return {
     heartRate,
-    isContactDetected
+    isContactDetected,
+    sensorContactSupported
   };
 }
 

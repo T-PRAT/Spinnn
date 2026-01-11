@@ -130,6 +130,9 @@ function startWorkout() {
   // For new workouts, require devices to be ready
   if (!isDeviceReady.value) return;
 
+  // Clear any saved workout state before starting a new workout
+  session.clearWorkoutState();
+
   // Start new workout
   session.start(appState.selectedWorkout.value, appState.ftp.value);
   appState.startWorkout();
@@ -143,11 +146,11 @@ function dismissPendingWorkout() {
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto space-y-6">
+  <div class="max-w-6xl mx-auto space-y-3 md:space-y-6">
     <!-- Pending workout banner -->
     <div
       v-if="hasPendingWorkout"
-      class="bg-primary/10 border border-primary/30 rounded-lg p-4 space-y-3"
+      class="bg-primary/10 border border-primary/30 rounded-lg p-3 md:p-4 space-y-2 md:space-y-3"
     >
       <div class="flex items-start justify-between">
         <div class="flex-1">
@@ -180,11 +183,11 @@ function dismissPendingWorkout() {
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="bg-card rounded-lg p-6 shadow border border-border">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
+      <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border">
         <WorkoutSelector @workout-selected="handleWorkoutSelected" />
       </div>
-      <div class="bg-card rounded-lg p-6 shadow border border-border space-y-6">
+      <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border space-y-4 md:space-y-6">
         <div>
           <h2 class="text-xl font-bold text-foreground mb-4">Importer un fichier</h2>
           <label class="block">
@@ -208,16 +211,16 @@ function dismissPendingWorkout() {
       </div>
     </div>
 
-    <div v-if="appState.selectedWorkout.value" class="bg-card rounded-lg p-4 shadow border border-border">
+    <div v-if="appState.selectedWorkout.value" class="bg-card rounded-lg p-3 md:p-4 shadow border border-border">
       <h3 class="text-sm font-medium text-muted-foreground mb-2">Apercu de l'entrainement</h3>
       <WorkoutPreviewChart :ftp="appState.ftp.value" :workout="appState.selectedWorkout.value" :tall="true" />
     </div>
 
-    <div class="bg-card rounded-lg p-6 shadow border border-border">
+    <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border">
       <DeviceConnector @device-status-change="handleDeviceStatusChange" @data-update="handleDataUpdate" />
     </div>
 
-    <div class="flex justify-center pt-6">
+    <div class="flex justify-center pt-3 md:pt-6">
       <button
         @click="startWorkout"
         :disabled="!canStart"

@@ -125,37 +125,37 @@ function startNewWorkout() {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto space-y-6">
-    <div class="text-center mb-8">
+  <div class="max-w-4xl mx-auto space-y-3 md:space-y-6">
+    <div class="text-center mb-4 md:mb-8">
       <h2 class="text-3xl font-bold text-foreground tracking-tight">Entrainement termine !</h2>
       <p class="text-muted-foreground mt-2">{{ appState.selectedWorkout.value?.name }}</p>
     </div>
 
-    <div v-if="stats" class="space-y-6">
+    <div v-if="stats" class="space-y-3 md:space-y-6">
       <!-- Main stats -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-card rounded-lg p-6 shadow border border-border text-center">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+        <div class="bg-card rounded-lg p-3 md:p-6 shadow border border-border text-center">
           <div class="text-sm text-muted-foreground mb-2">Duree</div>
           <div class="text-3xl font-bold text-foreground">{{ stats.duration }}</div>
         </div>
-        <div class="bg-card rounded-lg p-6 shadow border border-border text-center">
+        <div class="bg-card rounded-lg p-3 md:p-6 shadow border border-border text-center">
           <div class="text-sm text-muted-foreground mb-2">Distance</div>
           <div class="text-3xl font-bold text-primary">{{ stats.distance }}<span class="text-sm">km</span></div>
         </div>
-        <div class="bg-card rounded-lg p-6 shadow border border-border text-center">
+        <div class="bg-card rounded-lg p-3 md:p-6 shadow border border-border text-center">
           <div class="text-sm text-muted-foreground mb-2">Puissance moy.</div>
           <div class="text-3xl font-bold text-chart-1">{{ stats.avgPower }}<span class="text-sm">W</span></div>
         </div>
-        <div class="bg-card rounded-lg p-6 shadow border border-border text-center">
+        <div class="bg-card rounded-lg p-3 md:p-6 shadow border border-border text-center">
           <div class="text-sm text-muted-foreground mb-2">FC moyenne</div>
           <div class="text-3xl font-bold text-destructive">{{ stats.avgHeartRate }}<span class="text-sm">bpm</span></div>
         </div>
       </div>
 
       <!-- Detailed stats -->
-      <div class="bg-card rounded-lg p-6 shadow border border-border">
-        <h3 class="text-lg font-semibold text-foreground mb-4">Statistiques detaillees</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+      <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border">
+        <h3 class="text-lg font-semibold text-foreground mb-3 md:mb-4">Statistiques detaillees</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
           <div>
             <div class="text-sm text-muted-foreground">Puissance max</div>
             <div class="text-xl font-semibold text-foreground">{{ stats.maxPower }}W</div>
@@ -184,9 +184,9 @@ function startNewWorkout() {
       </div>
 
       <!-- Export buttons -->
-      <div class="bg-card rounded-lg p-6 shadow border border-border">
-        <h3 class="text-lg font-semibold text-foreground mb-4">Exporter les donnees</h3>
-        <div class="flex gap-4">
+      <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border">
+        <h3 class="text-lg font-semibold text-foreground mb-3 md:mb-4">Exporter les donnees</h3>
+        <div class="flex flex-col md:flex-row gap-3 md:gap-4">
           <button
             @click="downloadCSV"
             class="flex-1 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
@@ -209,7 +209,7 @@ function startNewWorkout() {
       </div>
 
       <!-- Restart button -->
-      <div class="flex justify-center pt-4">
+      <div class="flex justify-center pt-2 md:pt-4">
         <button
           @click="startNewWorkout"
           class="px-8 py-4 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg font-semibold transition-colors flex items-center gap-2"

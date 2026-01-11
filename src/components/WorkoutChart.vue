@@ -20,7 +20,19 @@ let yScaleHR = null;
 
 const margin = { top: 10, right: 40, bottom: 30, left: 50 };
 let width = 800;
-const height = 500;
+let height = 500;
+
+// Fonction pour obtenir la hauteur responsive
+function getResponsiveHeight() {
+  if (window.innerWidth < 768) { // mobile
+    // Mode paysage: hauteur encore plus réduite
+    if (window.innerHeight < window.innerWidth) {
+      return 120; // hauteur minimale en mode paysage
+    }
+    return 180; // hauteur très réduite sur mobile portrait pour laisser place aux contrôles
+  }
+  return 500; // hauteur normale sur desktop
+}
 
 onMounted(() => {
   initChart();
@@ -66,6 +78,7 @@ function initChart() {
 
   const containerWidth = chartRef.value.clientWidth;
   width = containerWidth - margin.left - margin.right;
+  height = getResponsiveHeight();
 
   svg = d3
     .select(chartRef.value)

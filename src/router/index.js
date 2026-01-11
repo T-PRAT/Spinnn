@@ -3,6 +3,7 @@ import SetupView from '../views/SetupView.vue';
 import WorkoutView from '../views/WorkoutView.vue';
 import SummaryView from '../views/SummaryView.vue';
 import SettingsView from '../views/SettingsView.vue';
+import HistoryView from '../views/HistoryView.vue';
 
 const routes = [
   {
@@ -24,6 +25,11 @@ const routes = [
     path: '/settings',
     name: 'settings',
     component: SettingsView
+  },
+  {
+    path: '/history',
+    name: 'history',
+    component: HistoryView
   }
 ];
 

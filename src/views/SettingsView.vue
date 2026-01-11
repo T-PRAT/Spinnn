@@ -1,11 +1,10 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useAppState } from '../composables/useAppState';
 import { useTheme } from '../composables/useTheme';
 import IntervalsSettings from '../components/IntervalsSettings.vue';
 
-const router = useRouter();
 const route = useRoute();
 const appState = useAppState();
 const theme = useTheme();
@@ -56,23 +55,11 @@ function getZoneColor(key) {
   };
   return colors[key] || '#6b7280';
 }
-
-function goBack() {
-  router.back();
-}
 </script>
 
 <template>
   <div class="max-w-2xl mx-auto space-y-6">
-    <div class="flex items-center gap-4 mb-8">
-      <button
-        @click="goBack"
-        class="p-2 hover:bg-accent rounded-lg transition-colors"
-      >
-        <svg class="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
+    <div class="mb-8">
       <h2 class="text-2xl font-bold text-foreground tracking-tight">Parametres</h2>
     </div>
 

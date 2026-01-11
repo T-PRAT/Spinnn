@@ -56,11 +56,6 @@ watch(
 function initChart() {
   if (!chartRef.value || !props.workout) return;
 
-  console.log("=== WorkoutPreviewChart initChart ===");
-  console.log("Workout:", props.workout);
-  console.log("Intervals:", props.workout.intervals);
-  console.log("FTP:", props.ftp);
-
   d3.select(chartRef.value).selectAll("*").remove();
 
   const containerWidth = chartRef.value.clientWidth;
@@ -83,11 +78,9 @@ function initChart() {
   intervals.forEach((interval) => {
     let maxPowerInInterval = 0;
 
-    // For ramp intervals, check both powerStart and powerEnd
     if (interval.powerStart !== undefined && interval.powerEnd !== undefined) {
       maxPowerInInterval = Math.max(interval.powerStart, interval.powerEnd);
     } else {
-      // For steady intervals, use powerEnd or power
       maxPowerInInterval = interval.powerEnd || interval.power || 0;
     }
 
@@ -100,10 +93,7 @@ function initChart() {
   // Add 10% headroom above max power
   const maxPowerScale = maxPowerInWorkout * 1.1;
 
-  yScalePower = d3
-    .scaleLinear()
-    .domain([0, maxPowerScale])
-    .range([height, 0]);
+  yScalePower = d3.scaleLinear().domain([0, maxPowerScale]).range([height, 0]);
 
   // Draw workout profile
   drawWorkoutProfile();
@@ -114,8 +104,6 @@ function drawWorkoutProfile() {
 
   // Ensure intervals is an array
   const intervals = Array.isArray(props.workout.intervals) ? props.workout.intervals : Object.values(props.workout.intervals);
-
-  console.log("Drawing intervals:", intervals);
 
   intervals.forEach((interval, index) => {
     const startX = xScale(currentTime);
@@ -218,13 +206,13 @@ function getIntervalColor(type, power) {
   // Determine zone based on configured power percentages
   // Get CSS variable values from computed style
   const computedStyle = getComputedStyle(document.documentElement);
-  if (powerPercent <= zones.z1.max) return computedStyle.getPropertyValue('--zone-z1').trim();
-  if (powerPercent <= zones.z2.max) return computedStyle.getPropertyValue('--zone-z2').trim();
-  if (powerPercent <= zones.z3.max) return computedStyle.getPropertyValue('--zone-z3').trim();
-  if (powerPercent <= zones.z4.max) return computedStyle.getPropertyValue('--zone-z4').trim();
-  if (powerPercent <= zones.z5.max) return computedStyle.getPropertyValue('--zone-z5').trim();
-  if (powerPercent <= zones.z6.max) return computedStyle.getPropertyValue('--zone-z6').trim();
-  return computedStyle.getPropertyValue('--zone-z7').trim();
+  if (powerPercent <= zones.z1.max) return computedStyle.getPropertyValue("--zone-z1").trim();
+  if (powerPercent <= zones.z2.max) return computedStyle.getPropertyValue("--zone-z2").trim();
+  if (powerPercent <= zones.z3.max) return computedStyle.getPropertyValue("--zone-z3").trim();
+  if (powerPercent <= zones.z4.max) return computedStyle.getPropertyValue("--zone-z4").trim();
+  if (powerPercent <= zones.z5.max) return computedStyle.getPropertyValue("--zone-z5").trim();
+  if (powerPercent <= zones.z6.max) return computedStyle.getPropertyValue("--zone-z6").trim();
+  return computedStyle.getPropertyValue("--zone-z7").trim();
 }
 </script>
 

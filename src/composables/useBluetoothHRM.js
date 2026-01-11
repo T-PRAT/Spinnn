@@ -95,9 +95,15 @@ export function useBluetoothHRM() {
    * Handle heart rate measurement data
    */
   function handleHeartRateData(dataView) {
-    const { heartRate: hr, isContactDetected } = parseHeartRateMeasurement(dataView);
+    const { heartRate: hr, isContactDetected, sensorContactSupported } = parseHeartRateMeasurement(dataView);
 
-    if (isContactDetected) {
+    // Accept data if:
+    // 1. Contact is detected (sensorContactSupported && isContactDetected)
+    // 2. OR sensor doesn't support contact detection (!sensorContactSupported)
+    // 3. AND heart rate value is valid (> 0)
+    const shouldAccept = hr > 0 && (!sensorContactSupported || isContactDetected);
+
+    if (shouldAccept) {
       heartRate.value = hr;
 
       // Dispatch to event system for other components
