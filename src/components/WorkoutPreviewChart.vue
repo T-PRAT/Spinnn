@@ -24,7 +24,7 @@ let svg = null;
 let xScale = null;
 let yScalePower = null;
 
-const margin = { top: 2, right: 2, bottom: 2, left: 2 };
+const margin = { top: 0, right: 0, bottom: 0, left: 0 };
 let width = 800;
 const height = props.tall ? 60 : 40;
 
@@ -217,25 +217,24 @@ function getIntervalColor(type, power) {
 </script>
 
 <template>
-  <div :class="compact ? 'space-y-1' : 'space-y-2'">
-    <div v-if="!compact" class="flex items-center justify-between">
-      <div class="flex-1 min-w-0">
-        <h4 class="text-base font-semibold text-foreground truncate">{{ workout?.name }}</h4>
-      </div>
-      <div class="px-3 py-1 bg-muted/50 rounded text-sm font-medium text-foreground ml-2">
+  <div class="flex items-center gap-2">
+    <!-- Info à gauche -->
+    <div v-if="!compact" class="shrink-0 w-32">
+      <h4 class="text-sm font-semibold text-foreground leading-tight">{{ workout?.name }}</h4>
+      <div class="text-xs text-muted-foreground mt-1">
         {{ formatDuration(workout?.duration || 0) }}
       </div>
     </div>
-    <div v-else class="mb-1">
-      <div class="flex items-center justify-between gap-2">
-        <h4 class="text-sm font-medium text-foreground truncate">{{ workout?.name }}</h4>
-        <span class="px-3 py-1 bg-muted/50 rounded text-xs font-medium text-foreground">
-          {{ formatDuration(workout?.duration || 0) }}
-        </span>
+    <div v-else class="shrink-0 w-28">
+      <h4 class="text-xs font-semibold text-foreground leading-tight">{{ workout?.name }}</h4>
+      <div class="text-[10px] text-muted-foreground mt-0.5">
+        {{ formatDuration(workout?.duration || 0) }}
       </div>
     </div>
-    <div class="relative">
-      <div ref="chartRef" class="w-full rounded"></div>
+
+    <!-- Graphique à droite -->
+    <div class="flex-1 relative">
+      <div ref="chartRef" class="w-full"></div>
 
       <div
         v-if="!compact && tooltip.show && tooltip.interval"

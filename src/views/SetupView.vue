@@ -7,14 +7,18 @@ import WorkoutPreviewChart from "../components/WorkoutPreviewChart.vue";
 import IntervalsTodayWorkout from "../components/IntervalsTodayWorkout.vue";
 import { useAppState } from "../composables/useAppState";
 import { useWorkoutSession } from "../composables/useWorkoutSession";
+import { useIntervalsIcu } from "../composables/useIntervalsIcu";
 
 const router = useRouter();
 const appState = useAppState();
 const session = useWorkoutSession();
+const intervals = useIntervalsIcu();
 
 const isDeviceReady = ref(false);
 const fileInput = ref(null);
 const hasPendingWorkout = ref(false);
+const deviceConnector = ref(null);
+const intervalsWorkoutRef = ref(null);
 
 // Check for existing workout on mount
 onMounted(() => {
@@ -148,10 +152,7 @@ function dismissPendingWorkout() {
 <template>
   <div class="max-w-6xl mx-auto space-y-3 md:space-y-6">
     <!-- Pending workout banner -->
-    <div
-      v-if="hasPendingWorkout"
-      class="bg-primary/10 border border-primary/30 rounded-lg p-3 md:p-4 space-y-2 md:space-y-3"
-    >
+    <div v-if="hasPendingWorkout" class="bg-primary/10 border border-primary/30 rounded-lg p-3 md:p-4 space-y-2 md:space-y-3">
       <div class="flex items-start justify-between">
         <div class="flex-1">
           <h3 class="text-lg font-semibold text-primary mb-1">Entraînement en cours</h3>
@@ -159,8 +160,8 @@ function dismissPendingWorkout() {
             <strong>{{ session.workout.value?.name }}</strong>
           </p>
           <p class="text-sm text-muted-foreground">
-            Progression: {{ session.formattedElapsedTime.value }} / {{ session.formattedWorkoutDuration.value }}
-            • {{ Math.round((session.elapsedSeconds.value / session.workout.value.duration) * 100) }}% terminé
+            Progression: {{ session.formattedElapsedTime.value }} / {{ session.formattedWorkoutDuration.value }} •
+            {{ Math.round((session.elapsedSeconds.value / session.workout.value.duration) * 100) }}% terminé
           </p>
         </div>
         <button
@@ -202,11 +203,29 @@ function dismissPendingWorkout() {
         </div>
 
         <div class="border-t border-border pt-6">
-          <h2 class="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-            <img src="/intervals.png" alt="Intervals.icu" class="w-6 h-6 rounded-lg" />
-            Intervals.icu <span class="text-sm font-normal text-muted-foreground">(entrainement du jour)</span>
-          </h2>
-          <IntervalsTodayWorkout @workout-selected="handleWorkoutSelected" />
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-foreground flex items-center gap-2">
+              <img src="/intervals.png" alt="Intervals.icu" class="w-6 h-6 rounded-lg" />
+              Intervals.icu <span class="text-sm font-normal text-muted-foreground">(entrainement du jour)</span>
+            </h2>
+            <button
+              v-if="intervals.isConnected"
+              @click="intervalsWorkoutRef?.loadTodayWorkouts()"
+              :disabled="intervalsWorkoutRef?.isLoading"
+              class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            >
+              <svg :class="['w-4 h-4', { 'animate-spin': intervalsWorkoutRef?.isLoading }]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Rafraichir
+            </button>
+          </div>
+          <IntervalsTodayWorkout ref="intervalsWorkoutRef" @workout-selected="handleWorkoutSelected" />
         </div>
       </div>
     </div>
@@ -217,36 +236,56 @@ function dismissPendingWorkout() {
     </div>
 
     <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border">
-      <DeviceConnector @device-status-change="handleDeviceStatusChange" @data-update="handleDataUpdate" />
-    </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Colonne gauche: Device Connector -->
+        <div>
+          <DeviceConnector ref="deviceConnector" @device-status-change="handleDeviceStatusChange" @data-update="handleDataUpdate" />
+        </div>
 
-    <div class="flex justify-center pt-3 md:pt-6">
-      <button
-        @click="startWorkout"
-        :disabled="!canStart"
-        :class="[
-          'px-8 py-4 rounded-lg text-lg font-bold transition-all transform',
-          canStart
-            ? 'bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 shadow-lg'
-            : 'bg-muted text-muted-foreground cursor-not-allowed',
-        ]"
-      >
-        <span class="flex items-center gap-3">
-          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          Demarrer l'entrainement
-        </span>
-      </button>
-    </div>
+        <!-- Colonne droite: Bouton démarrer + mode simulation -->
+        <div class="flex flex-col justify-center items-center space-y-3">
+          <!-- Indicateur mode simulation (petit texte) -->
+          <div v-if="deviceConnector?.useMockMode?.value" class="text-xs text-muted-foreground">Mode simulation actif</div>
 
-    <div v-if="!canStart" class="text-center">
-      <p v-if="!appState.selectedWorkout.value" class="text-chart-1 text-sm font-medium">Selectionnez un entrainement ci-dessus</p>
-      <p v-else-if="!isDeviceReady" class="text-chart-1 text-sm font-medium">Connectez vos capteurs ou activez le mode simulation</p>
+          <!-- Bouton démarrer -->
+          <button
+            @click="startWorkout"
+            :disabled="!canStart"
+            :class="[
+              'w-full px-8 py-4 rounded-lg text-lg font-bold transition-all transform',
+              canStart
+                ? 'bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 shadow-lg'
+                : 'bg-muted text-muted-foreground cursor-not-allowed',
+            ]"
+          >
+            <span class="flex items-center justify-center gap-3">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Demarrer l'entrainement
+            </span>
+          </button>
+
+          <!-- Messages d'erreur -->
+          <div v-if="!canStart" class="text-center space-y-2">
+            <p v-if="!appState.selectedWorkout.value" class="text-chart-1 text-xs font-medium">Selectionnez un entrainement ci-dessus</p>
+            <div v-else-if="!isDeviceReady" class="space-y-2">
+              <p class="text-chart-1 text-xs font-medium">Connectez vos capteurs ou activez le mode simulation</p>
+              <button
+                v-if="!deviceConnector?.useMockMode?.value"
+                @click="deviceConnector?.enableMockMode()"
+                class="px-3 py-1 bg-accent text-accent-foreground rounded text-xs font-medium hover:bg-accent/80 transition-colors"
+              >
+                Activer la simulation
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

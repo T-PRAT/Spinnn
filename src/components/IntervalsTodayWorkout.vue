@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, watch } from "vue";
 import { useIntervalsIcu } from "../composables/useIntervalsIcu";
 import { useAppState } from "../composables/useAppState";
 import { formatDuration } from "../data/sampleWorkouts";
@@ -36,38 +36,23 @@ function selectWorkout(workout) {
   emit("workout-selected", workout);
 }
 
-onMounted(() => {
-  loadTodayWorkouts();
-});
-
 watch(
   () => intervals.isConnected.value,
   () => {
     loadTodayWorkouts();
-  }
+  },
+  { immediate: true }
 );
+
+// Expose loadTodayWorkouts to parent component
+defineExpose({
+  loadTodayWorkouts,
+  isLoading,
+});
 </script>
 
 <template>
   <div class="space-y-3">
-    <div v-if="intervals.isConnected.value" class="flex justify-end">
-      <button
-        @click="loadTodayWorkouts"
-        :disabled="isLoading"
-        class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-      >
-        <svg :class="['w-4 h-4', { 'animate-spin': isLoading }]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-          />
-        </svg>
-        Rafraichir
-      </button>
-    </div>
-
     <div v-if="!intervals.isConnected.value" class="p-4 bg-muted/50 rounded-lg border border-border">
       <p class="text-sm text-muted-foreground text-center">
         Connectez-vous à Intervals.icu dans les

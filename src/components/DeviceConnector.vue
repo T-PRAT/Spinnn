@@ -52,6 +52,12 @@ async function reconnectTrainer() {
 
 const emit = defineEmits(['data-update', 'device-status-change']);
 
+defineExpose({
+  useMockMode,
+  enableMockMode,
+  disableMockMode
+});
+
 const isConnected = computed(() => {
   return hrm.isConnected.value || trainer.isConnected.value;
 });
@@ -92,29 +98,6 @@ setInterval(emitDataUpdate, 100);
       <p class="text-chart-1/80 text-xs mt-1">Utilisez Chrome/Edge en HTTPS ou localhost</p>
     </div>
 
-    <!-- Mock mode toggle -->
-    <div class="p-3 bg-muted rounded-lg">
-      <div class="flex items-center justify-between">
-        <p class="text-foreground text-xs font-medium">
-          {{ useMockMode ? 'Mode simulation actif' : 'Mode simulation' }}
-        </p>
-        <button
-          v-if="!useMockMode"
-          @click="enableMockMode"
-          class="px-3 py-1.5 bg-accent text-accent-foreground rounded-lg hover:bg-accent/80 transition-colors text-xs font-medium"
-        >
-          Activer
-        </button>
-        <button
-          v-else
-          @click="disableMockMode"
-          class="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors text-xs font-medium"
-        >
-          Desactiver
-        </button>
-      </div>
-    </div>
-
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="p-4 border border-border rounded-lg bg-card">
         <div class="flex items-center justify-between mb-3">
@@ -126,7 +109,7 @@ setInterval(emitDataUpdate, 100);
           </h3>
           <div
             :class="[
-              'w-3 h-3 rounded-full',
+              'w-4 h-4 rounded-full',
               hrm.isConnected.value || useMockMode ? 'bg-chart-3' : 'bg-muted'
             ]"
           ></div>
@@ -192,7 +175,7 @@ setInterval(emitDataUpdate, 100);
           </h3>
           <div
             :class="[
-              'w-3 h-3 rounded-full',
+              'w-4 h-4 rounded-full',
               trainer.isConnected.value || useMockMode ? 'bg-chart-3' : 'bg-muted'
             ]"
           ></div>

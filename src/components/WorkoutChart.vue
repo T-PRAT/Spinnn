@@ -18,7 +18,7 @@ let xScale = null;
 let yScalePower = null;
 let yScaleHR = null;
 
-const margin = { top: 10, right: 40, bottom: 30, left: 50 };
+const margin = { top: 0, right: 40, bottom: 30, left: 50 };
 let width = 800;
 let height = 500;
 

@@ -1,151 +1,177 @@
-export const sampleWorkouts = [
+export const workoutCategories = [
   {
-    id: 'easy-endurance',
-    name: 'Easy Endurance',
-    description: '30 min steady endurance ride at 65% FTP',
-    duration: 1800,
-    difficulty: 'Easy',
-    intervals: [
+    id: 'endurance',
+    name: 'Endurance',
+    icon: '🚴',
+    workouts: [
       {
-        type: 'warmup',
-        duration: 300,
-        powerStart: 0.5,
-        powerEnd: 0.65
+        id: 'endurance-easy',
+        name: 'Sortie facile',
+        description: '45min @ 65% FTP - Recuperation active',
+        duration: 2700,
+        difficulty: 'Easy',
+        intervals: [
+          { type: 'warmup', duration: 300, powerStart: 0.5, powerEnd: 0.65 },
+          { type: 'steady', duration: 2100, power: 0.65 },
+          { type: 'cooldown', duration: 300, powerStart: 0.65, powerEnd: 0.5 }
+        ]
       },
       {
-        type: 'steady',
-        duration: 1200,
-        power: 0.65
+        id: 'endurance-moderate',
+        name: 'Endurance classique',
+        description: '60min @ 70% FTP - Base aerobique',
+        duration: 3600,
+        difficulty: 'Easy',
+        intervals: [
+          { type: 'warmup', duration: 600, powerStart: 0.5, powerEnd: 0.7 },
+          { type: 'steady', duration: 2400, power: 0.7 },
+          { type: 'cooldown', duration: 600, powerStart: 0.7, powerEnd: 0.5 }
+        ]
       },
       {
-        type: 'cooldown',
-        duration: 300,
-        powerStart: 0.65,
-        powerEnd: 0.5
+        id: 'endurance-long',
+        name: 'Sortie longue',
+        description: '90min @ 68% FTP - Endurance fondamentale',
+        duration: 5400,
+        difficulty: 'Moderate',
+        intervals: [
+          { type: 'warmup', duration: 600, powerStart: 0.5, powerEnd: 0.68 },
+          { type: 'steady', duration: 4200, power: 0.68 },
+          { type: 'cooldown', duration: 600, powerStart: 0.68, powerEnd: 0.5 }
+        ]
       }
     ]
   },
   {
-    id: 'sweet-spot',
-    name: 'Sweet Spot Intervals',
-    description: '3x10min @ 88% FTP with 5min recovery',
-    duration: 2700,
-    difficulty: 'Moderate',
-    intervals: [
+    id: 'tempo',
+    name: 'Tempo',
+    icon: '⚡',
+    workouts: [
       {
-        type: 'warmup',
-        duration: 600,
-        powerStart: 0.5,
-        powerEnd: 0.7
+        id: 'tempo-sweet-spot',
+        name: 'Sweet Spot',
+        description: '3x10min @ 88% FTP - Seuil inferieur',
+        duration: 2700,
+        difficulty: 'Moderate',
+        intervals: [
+          { type: 'warmup', duration: 600, powerStart: 0.5, powerEnd: 0.7 },
+          { type: 'work', duration: 600, power: 0.88, name: 'Interval 1' },
+          { type: 'recovery', duration: 300, power: 0.6 },
+          { type: 'work', duration: 600, power: 0.88, name: 'Interval 2' },
+          { type: 'recovery', duration: 300, power: 0.6 },
+          { type: 'work', duration: 600, power: 0.88, name: 'Interval 3' },
+          { type: 'cooldown', duration: 300, powerStart: 0.7, powerEnd: 0.5 }
+        ]
       },
       {
-        type: 'work',
-        duration: 600,
-        power: 0.88,
-        name: 'Interval 1'
+        id: 'tempo-threshold',
+        name: 'Seuil continu',
+        description: '2x20min @ 95% FTP - Travail au seuil',
+        duration: 3300,
+        difficulty: 'Hard',
+        intervals: [
+          { type: 'warmup', duration: 600, powerStart: 0.5, powerEnd: 0.8 },
+          { type: 'work', duration: 1200, power: 0.95, name: 'Bloc 1' },
+          { type: 'recovery', duration: 300, power: 0.6 },
+          { type: 'work', duration: 1200, power: 0.95, name: 'Bloc 2' },
+          { type: 'cooldown', duration: 600, powerStart: 0.8, powerEnd: 0.5 }
+        ]
       },
       {
-        type: 'recovery',
-        duration: 300,
-        power: 0.6
-      },
-      {
-        type: 'work',
-        duration: 600,
-        power: 0.88,
-        name: 'Interval 2'
-      },
-      {
-        type: 'recovery',
-        duration: 300,
-        power: 0.6
-      },
-      {
-        type: 'work',
-        duration: 600,
-        power: 0.88,
-        name: 'Interval 3'
-      },
-      {
-        type: 'cooldown',
-        duration: 300,
-        powerStart: 0.7,
-        powerEnd: 0.5
+        id: 'tempo-pyramid',
+        name: 'Pyramide tempo',
+        description: '8-12-8min @ 90% FTP - Progression pyramidale',
+        duration: 3000,
+        difficulty: 'Moderate',
+        intervals: [
+          { type: 'warmup', duration: 600, powerStart: 0.5, powerEnd: 0.75 },
+          { type: 'work', duration: 480, power: 0.90, name: 'Montee' },
+          { type: 'recovery', duration: 240, power: 0.6 },
+          { type: 'work', duration: 720, power: 0.90, name: 'Plateau' },
+          { type: 'recovery', duration: 240, power: 0.6 },
+          { type: 'work', duration: 480, power: 0.90, name: 'Descente' },
+          { type: 'cooldown', duration: 240, powerStart: 0.75, powerEnd: 0.5 }
+        ]
       }
     ]
   },
   {
-    id: 'vo2-max',
-    name: 'VO2 Max Blaster',
-    description: '5x3min @ 120% FTP with 3min recovery',
-    duration: 2400,
-    difficulty: 'Hard',
-    intervals: [
+    id: 'vo2max',
+    name: 'VO2 Max',
+    icon: '🔥',
+    workouts: [
       {
-        type: 'warmup',
-        duration: 600,
-        powerStart: 0.5,
-        powerEnd: 0.7
+        id: 'vo2-classic',
+        name: 'VO2 classique',
+        description: '5x3min @ 120% FTP - Intensite maximale',
+        duration: 2400,
+        difficulty: 'Hard',
+        intervals: [
+          { type: 'warmup', duration: 600, powerStart: 0.5, powerEnd: 0.7 },
+          { type: 'work', duration: 180, power: 1.2, name: 'Interval 1' },
+          { type: 'recovery', duration: 180, power: 0.5 },
+          { type: 'work', duration: 180, power: 1.2, name: 'Interval 2' },
+          { type: 'recovery', duration: 180, power: 0.5 },
+          { type: 'work', duration: 180, power: 1.2, name: 'Interval 3' },
+          { type: 'recovery', duration: 180, power: 0.5 },
+          { type: 'work', duration: 180, power: 1.2, name: 'Interval 4' },
+          { type: 'recovery', duration: 180, power: 0.5 },
+          { type: 'work', duration: 180, power: 1.2, name: 'Interval 5' },
+          { type: 'cooldown', duration: 300, powerStart: 0.7, powerEnd: 0.5 }
+        ]
       },
       {
-        type: 'work',
-        duration: 180,
-        power: 1.2,
-        name: 'Interval 1'
+        id: 'vo2-short',
+        name: 'VO2 court',
+        description: '8x2min @ 125% FTP - Intervalles courts',
+        duration: 2700,
+        difficulty: 'Hard',
+        intervals: [
+          { type: 'warmup', duration: 600, powerStart: 0.5, powerEnd: 0.7 },
+          { type: 'work', duration: 120, power: 1.25, name: 'Rep 1' },
+          { type: 'recovery', duration: 120, power: 0.5 },
+          { type: 'work', duration: 120, power: 1.25, name: 'Rep 2' },
+          { type: 'recovery', duration: 120, power: 0.5 },
+          { type: 'work', duration: 120, power: 1.25, name: 'Rep 3' },
+          { type: 'recovery', duration: 120, power: 0.5 },
+          { type: 'work', duration: 120, power: 1.25, name: 'Rep 4' },
+          { type: 'recovery', duration: 120, power: 0.5 },
+          { type: 'work', duration: 120, power: 1.25, name: 'Rep 5' },
+          { type: 'recovery', duration: 120, power: 0.5 },
+          { type: 'work', duration: 120, power: 1.25, name: 'Rep 6' },
+          { type: 'recovery', duration: 120, power: 0.5 },
+          { type: 'work', duration: 120, power: 1.25, name: 'Rep 7' },
+          { type: 'recovery', duration: 120, power: 0.5 },
+          { type: 'work', duration: 120, power: 1.25, name: 'Rep 8' },
+          { type: 'cooldown', duration: 300, powerStart: 0.7, powerEnd: 0.5 }
+        ]
       },
       {
-        type: 'recovery',
-        duration: 180,
-        power: 0.5
-      },
-      {
-        type: 'work',
-        duration: 180,
-        power: 1.2,
-        name: 'Interval 2'
-      },
-      {
-        type: 'recovery',
-        duration: 180,
-        power: 0.5
-      },
-      {
-        type: 'work',
-        duration: 180,
-        power: 1.2,
-        name: 'Interval 3'
-      },
-      {
-        type: 'recovery',
-        duration: 180,
-        power: 0.5
-      },
-      {
-        type: 'work',
-        duration: 180,
-        power: 1.2,
-        name: 'Interval 4'
-      },
-      {
-        type: 'recovery',
-        duration: 180,
-        power: 0.5
-      },
-      {
-        type: 'work',
-        duration: 180,
-        power: 1.2,
-        name: 'Interval 5'
-      },
-      {
-        type: 'cooldown',
-        duration: 300,
-        powerStart: 0.7,
-        powerEnd: 0.5
+        id: 'vo2-long',
+        name: 'VO2 long',
+        description: '4x4min @ 115% FTP - Intervalles prolonges',
+        duration: 2700,
+        difficulty: 'Hard',
+        intervals: [
+          { type: 'warmup', duration: 600, powerStart: 0.5, powerEnd: 0.7 },
+          { type: 'work', duration: 240, power: 1.15, name: 'Bloc 1' },
+          { type: 'recovery', duration: 240, power: 0.5 },
+          { type: 'work', duration: 240, power: 1.15, name: 'Bloc 2' },
+          { type: 'recovery', duration: 240, power: 0.5 },
+          { type: 'work', duration: 240, power: 1.15, name: 'Bloc 3' },
+          { type: 'recovery', duration: 240, power: 0.5 },
+          { type: 'work', duration: 240, power: 1.15, name: 'Bloc 4' },
+          { type: 'cooldown', duration: 300, powerStart: 0.7, powerEnd: 0.5 }
+        ]
       }
     ]
   }
 ];
+
+// Flatten all workouts for backward compatibility
+export const sampleWorkouts = workoutCategories.flatMap(category =>
+  category.workouts.map(workout => ({ ...workout, category: category.id }))
+);
 
 export function formatDuration(seconds) {
   const mins = Math.floor(seconds / 60);

@@ -3,11 +3,13 @@ import { ref, onMounted, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAppState } from '../composables/useAppState';
 import { useTheme } from '../composables/useTheme';
+import { useAudioSettings } from '../composables/useAudioSettings';
 import IntervalsSettings from '../components/IntervalsSettings.vue';
 
 const route = useRoute();
 const appState = useAppState();
 const theme = useTheme();
+const audioSettings = useAudioSettings();
 
 const localFtp = ref(200);
 const showTooltip = ref(false);
@@ -55,6 +57,20 @@ function getZoneColor(key) {
   };
   return colors[key] || '#6b7280';
 }
+
+function selectSound(soundId) {
+  audioSettings.setSelectedSound(soundId);
+  // Auto-disable if "none" is selected
+  if (soundId === 'none') {
+    audioSettings.setIntervalSoundEnabled(false);
+  } else if (!audioSettings.intervalSoundEnabled.value) {
+    audioSettings.setIntervalSoundEnabled(true);
+  }
+}
+
+function testSound(soundId) {
+  audioSettings.testSound(soundId);
+}
 </script>
 
 <template>
@@ -85,6 +101,57 @@ function getZoneColor(key) {
             ]"
           />
         </button>
+      </div>
+    </div>
+
+    <!-- Audio Settings -->
+    <div class="bg-card rounded-lg p-6 shadow border border-border">
+      <h3 class="text-lg font-semibold text-foreground mb-4">Sons d'intervalle</h3>
+      <p class="text-sm text-muted-foreground mb-4">
+        Choisissez un son qui sera joue au debut de chaque nouvel intervalle pendant l'entrainement
+      </p>
+
+      <div class="space-y-2">
+        <div
+          v-for="sound in audioSettings.availableSounds"
+          :key="sound.id"
+          @click="selectSound(sound.id)"
+          :class="[
+            'flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all',
+            audioSettings.selectedSound.value === sound.id
+              ? 'border-primary bg-primary/5'
+              : 'border-border hover:border-primary/50 hover:bg-muted/20'
+          ]"
+        >
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <div
+                :class="[
+                  'w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all',
+                  audioSettings.selectedSound.value === sound.id
+                    ? 'border-primary bg-primary'
+                    : 'border-muted-foreground'
+                ]"
+              >
+                <div
+                  v-if="audioSettings.selectedSound.value === sound.id"
+                  class="w-2 h-2 rounded-full bg-primary-foreground"
+                ></div>
+              </div>
+              <div>
+                <div class="text-sm font-medium text-foreground">{{ sound.name }}</div>
+                <div class="text-xs text-muted-foreground">{{ sound.description }}</div>
+              </div>
+            </div>
+          </div>
+          <button
+            v-if="sound.id !== 'none'"
+            @click.stop="testSound(sound.id)"
+            class="ml-3 px-3 py-1 text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded transition-colors"
+          >
+            Tester
+          </button>
+        </div>
       </div>
     </div>
 

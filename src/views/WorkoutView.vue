@@ -7,6 +7,7 @@ import { useWorkoutSession } from "../composables/useWorkoutSession";
 import { useBluetoothHRM } from "../composables/useBluetoothHRM";
 import { useBluetoothTrainer } from "../composables/useBluetoothTrainer";
 import { useMockDevices } from "../composables/useMockDevices";
+import { useAudioSettings } from "../composables/useAudioSettings";
 
 const router = useRouter();
 const appState = useAppState();
@@ -14,9 +15,11 @@ const session = useWorkoutSession();
 const hrm = useBluetoothHRM();
 const trainer = useBluetoothTrainer();
 const mockDevices = useMockDevices();
+const audioSettings = useAudioSettings();
 
 const showStopConfirmation = ref(false);
 const showReconnectMenu = ref(false);
+const currentIntervalIndex = ref(-1);
 let dataInterval = null;
 
 onMounted(() => {
@@ -151,6 +154,70 @@ async function reconnectHRM() {
 async function reconnectTrainer() {
   await trainer.connect();
 }
+
+// Helper function to flatten intervals (including nested repeat blocks)
+function flattenIntervals(intervals) {
+  const flattened = [];
+
+  function processIntervals(intervalList) {
+    intervalList.forEach(interval => {
+      if (interval.type === 'repeat' && interval.intervals) {
+        // Process repeat block
+        for (let i = 0; i < (interval.repeat || 1); i++) {
+          processIntervals(interval.intervals);
+        }
+      } else {
+        // Regular interval
+        flattened.push(interval);
+      }
+    });
+  }
+
+  processIntervals(intervals);
+  return flattened;
+}
+
+// Calculate current interval index based on elapsed time
+function getCurrentIntervalIndex(elapsedSeconds, workout) {
+  if (!workout || !workout.intervals) return -1;
+
+  const flatIntervals = flattenIntervals(workout.intervals);
+  let accumulatedTime = 0;
+
+  for (let i = 0; i < flatIntervals.length; i++) {
+    const interval = flatIntervals[i];
+    const intervalDuration = interval.duration || 0;
+
+    if (elapsedSeconds < accumulatedTime + intervalDuration) {
+      return i;
+    }
+
+    accumulatedTime += intervalDuration;
+  }
+
+  return flatIntervals.length - 1; // Last interval
+}
+
+// Watch for interval changes and play sound
+watch(
+  () => session.elapsedSeconds.value,
+  (newElapsedSeconds) => {
+    if (!appState.selectedWorkout.value || session.isPaused.value) return;
+
+    const newIntervalIndex = getCurrentIntervalIndex(newElapsedSeconds, appState.selectedWorkout.value);
+
+    // Interval changed
+    if (newIntervalIndex !== currentIntervalIndex.value && newIntervalIndex >= 0) {
+      const previousIndex = currentIntervalIndex.value;
+      currentIntervalIndex.value = newIntervalIndex;
+
+      // Play sound on interval change (but not on the very first interval)
+      if (previousIndex >= 0) {
+        audioSettings.playIntervalSound();
+      }
+    }
+  }
+);
 </script>
 
 <template>
