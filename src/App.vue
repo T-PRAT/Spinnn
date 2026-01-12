@@ -1,7 +1,7 @@
 <script setup>
 import { watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import Sidebar from './components/Sidebar.vue';
+import Sidebar from './components/layout/Sidebar.vue';
 import { useAppState } from './composables/useAppState';
 import { useTheme } from './composables/useTheme';
 

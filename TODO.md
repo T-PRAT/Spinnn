@@ -2,14 +2,19 @@
 
 ## A
 
-- ajouter sons debut d'intervalle
+- ajouter sons intervalle
+- refonte dashboard
 
 ## B
 
+- verifier .fit (appareil, activité...)
 - dashboard en mode paysage mobile
 - dashboard en mode paysage tablette
 
 ## C
+
+- renommer l'activité au summary
+- ajouter RPE a la summary
 
 ## Ideas
 

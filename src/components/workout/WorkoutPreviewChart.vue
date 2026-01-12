@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch, onBeforeUnmount } from "vue";
 import * as d3 from "d3";
-import { useAppState } from "../composables/useAppState";
+import { useAppState } from "../../composables/useAppState";
 
 const appState = useAppState();
 

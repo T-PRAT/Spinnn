@@ -1,9 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { useBluetoothHRM } from '../composables/useBluetoothHRM';
-import { useBluetoothTrainer } from '../composables/useBluetoothTrainer';
-import { useMockDevices } from '../composables/useMockDevices';
-import { isBluetoothAvailable } from '../utils/web-ble.js';
+import { useBluetoothHRM } from '../../composables/useBluetoothHRM';
+import { useBluetoothTrainer } from '../../composables/useBluetoothTrainer';
+import { useMockDevices } from '../../composables/useMockDevices';
+import { isBluetoothAvailable } from '../../utils/web-ble.js';
 
 const hrm = useBluetoothHRM();
 const trainer = useBluetoothTrainer();

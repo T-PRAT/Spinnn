@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useBluetoothHRM } from '../composables/useBluetoothHRM';
-import { useBluetoothTrainer } from '../composables/useBluetoothTrainer';
+import { useBluetoothHRM } from '../../composables/useBluetoothHRM';
+import { useBluetoothTrainer } from '../../composables/useBluetoothTrainer';
 
 const hrm = useBluetoothHRM();
 const trainer = useBluetoothTrainer();

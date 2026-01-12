@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { useIntervalsIcu } from '../composables/useIntervalsIcu';
+import { useIntervalsIcu } from '../../composables/useIntervalsIcu';
 
 const intervals = useIntervalsIcu();
 

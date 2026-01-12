@@ -1,9 +1,9 @@
 <script setup>
 import { ref, watch } from "vue";
-import { useIntervalsIcu } from "../composables/useIntervalsIcu";
-import { useAppState } from "../composables/useAppState";
-import { formatDuration } from "../data/sampleWorkouts";
-import WorkoutPreviewChart from "./WorkoutPreviewChart.vue";
+import { useIntervalsIcu } from "../../composables/useIntervalsIcu";
+import { useAppState } from "../../composables/useAppState";
+import { formatDuration } from "../../data/sampleWorkouts";
+import WorkoutPreviewChart from "../workout/WorkoutPreviewChart.vue";
 
 const emit = defineEmits(["workout-selected"]);
 const intervals = useIntervalsIcu();

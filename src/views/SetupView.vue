@@ -1,10 +1,10 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import WorkoutSelector from "../components/WorkoutSelector.vue";
-import DeviceConnector from "../components/DeviceConnector.vue";
-import WorkoutPreviewChart from "../components/WorkoutPreviewChart.vue";
-import IntervalsTodayWorkout from "../components/IntervalsTodayWorkout.vue";
+import WorkoutSelector from "../components/workout/WorkoutSelector.vue";
+import DeviceConnector from "../components/device/DeviceConnector.vue";
+import WorkoutPreviewChart from "../components/workout/WorkoutPreviewChart.vue";
+import IntervalsTodayWorkout from "../components/layout/IntervalsTodayWorkout.vue";
 import { useAppState } from "../composables/useAppState";
 import { useWorkoutSession } from "../composables/useWorkoutSession";
 import { useIntervalsIcu } from "../composables/useIntervalsIcu";

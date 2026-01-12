@@ -1,7 +1,10 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
-import WorkoutChart from "../components/WorkoutChart.vue";
+import WorkoutChart from "../components/workout/WorkoutChart.vue";
+import MetricsGrid from "../components/workout/MetricsGrid.vue";
+import MetricConfigModal from "../components/workout/MetricConfigModal.vue";
+import DeviceStatusButton from "../components/device/DeviceStatusButton.vue";
 import { useAppState } from "../composables/useAppState";
 import { useWorkoutSession } from "../composables/useWorkoutSession";
 import { useBluetoothHRM } from "../composables/useBluetoothHRM";
@@ -20,399 +23,486 @@ const audioSettings = useAudioSettings();
 const showStopConfirmation = ref(false);
 const showReconnectMenu = ref(false);
 const currentIntervalIndex = ref(-1);
+const showMetricConfig = ref(false);
+const selectedSlotId = ref(null);
 let dataInterval = null;
 
+// Configuration des métriques par slot
+const defaultMetricsConfig = {
+	1: "speed",
+	2: "distance",
+	3: "energy",
+	4: "power",
+	5: "intervalPower",
+	6: "heartRate",
+	7: "intervalHeartRate",
+	8: "cadence",
+	9: "intervalRemainingTime",
+	10: "energy",
+};
+
+const metricsConfig = ref({ ...defaultMetricsConfig });
+
+// Charger la configuration depuis localStorage
+const savedMetricsConfig = localStorage.getItem("spinnn_metrics_config");
+if (savedMetricsConfig) {
+	try {
+		metricsConfig.value = {
+			...defaultMetricsConfig,
+			...JSON.parse(savedMetricsConfig),
+		};
+	} catch (e) {
+		console.warn("Failed to load metrics config", e);
+	}
+}
+
+// Métriques disponibles
+const availableMetrics = [
+	{ id: "power", label: "Puissance" },
+	{ id: "heartRate", label: "FC" },
+	{ id: "cadence", label: "Cadence" },
+	{ id: "speed", label: "Vitesse" },
+	{ id: "distance", label: "Distance" },
+	{ id: "energy", label: "Énergie" },
+	{ id: "intervalPower", label: "Puissance Tour" },
+	{ id: "intervalHeartRate", label: "FC Tour" },
+	{ id: "intervalRemainingTime", label: "Temps Restant" },
+	{ id: "elapsedTime", label: "Temps Écoulé" },
+	{ id: "avgPower", label: "Puissance Moy" },
+	{ id: "avgHeartRate", label: "FC Moy" },
+	{ id: "avgCadence", label: "Cadence Moy" },
+];
+
+function openMetricConfig(slotId) {
+	selectedSlotId.value = slotId;
+	showMetricConfig.value = true;
+}
+
+function closeMetricConfig() {
+	showMetricConfig.value = false;
+	selectedSlotId.value = null;
+}
+
+const selectedMetricId = computed(() => {
+	if (selectedSlotId.value && metricsConfig.value[selectedSlotId.value]) {
+		return metricsConfig.value[selectedSlotId.value];
+	}
+	return "power";
+});
+
+function selectMetric(metricId) {
+	if (selectedSlotId.value) {
+		metricsConfig.value[selectedSlotId.value] = metricId;
+		localStorage.setItem(
+			"spinnn_metrics_config",
+			JSON.stringify(metricsConfig.value),
+		);
+	}
+	showMetricConfig.value = false;
+}
+
+function getMetricLabel(slotId) {
+	const metricId = metricsConfig.value[slotId];
+	const metric = availableMetrics.find((m) => m.id === metricId);
+	return metric?.label || "---";
+}
+
+function getMetricValue(slotId) {
+	const metricId = metricsConfig.value[slotId];
+	const m = currentMetrics.value;
+	const s = session;
+
+	switch (metricId) {
+		case "power":
+			return `${m.power} W`;
+		case "heartRate":
+			return `${m.heartRate} bpm`;
+		case "cadence":
+			return `${m.cadence} rpm`;
+		case "speed":
+			return `${(m.speed * 3.6).toFixed(1)} km/h`;
+		case "distance":
+			return `${(m.distance / 1000).toFixed(2)} km`;
+		case "energy":
+			return `${s.energy.value} kcal`;
+		case "intervalPower":
+			return `${s.intervalPower.value} W`;
+		case "intervalHeartRate":
+			return `${s.intervalHeartRate.value} bpm`;
+		case "intervalRemainingTime":
+			return s.formattedIntervalRemainingTime.value;
+		case "elapsedTime":
+			return s.formattedElapsedTime.value;
+		case "avgPower":
+			return `${Math.round(s.avgPower.value)} W`;
+		case "avgHeartRate":
+			return `${Math.round(s.avgHeartRate.value)} bpm`;
+		case "avgCadence":
+			return `${Math.round(s.avgCadence.value)} rpm`;
+		default:
+			return "---";
+	}
+}
+
 onMounted(() => {
-  // Only try to load saved workout state if no workout is currently active
-  // (This handles browser refresh scenarios)
-  if (!session.isActive.value) {
-    const wasLoaded = session.loadWorkoutState();
+	// Try to load saved workout state if session is not active
+	if (!session.isActive.value) {
+		const wasLoaded = session.loadWorkoutState();
 
-    if (wasLoaded) {
-      // Restore app state from loaded session
-      appState.setWorkout(session.workout.value);
-    }
-  }
+		if (!wasLoaded) {
+			// No saved workout, redirect to setup
+			router.push({ name: "setup" });
+			return;
+		}
+	}
 
-  if (!appState.selectedWorkout.value || !session.isActive.value) {
-    router.push({ name: "setup" });
-    return;
-  }
+	// Use workout from session (loaded from localStorage) if appState is empty
+	if (!appState.selectedWorkout.value && session.workout.value) {
+		appState.setWorkout(session.workout.value);
+	}
 
-  // Start mock devices if in mock mode
-  if (appState.mockModeActive.value && !mockDevices.isActive.value) {
-    mockDevices.start(appState.selectedWorkout.value, appState.ftp.value);
-  }
+	// Verify we have a workout before continuing
+	if (!appState.selectedWorkout.value) {
+		router.push({ name: "setup" });
+		return;
+	}
 
-  startDataCollection();
+	if (appState.mockModeActive.value && !mockDevices.isActive.value) {
+		mockDevices.start(appState.selectedWorkout.value, appState.ftp.value);
+	}
+
+	startDataCollection();
 });
 
 onBeforeUnmount(() => {
-  stopDataCollection();
+	stopDataCollection();
 
-  // Stop mock devices if they were started
-  if (appState.mockModeActive.value && mockDevices.isActive.value) {
-    mockDevices.stop();
-  }
+	if (appState.mockModeActive.value && mockDevices.isActive.value) {
+		mockDevices.stop();
+	}
 });
 
 function startDataCollection() {
-  dataInterval = setInterval(() => {
-    if (!session.isPaused.value && session.isActive.value) {
-      const data = appState.mockModeActive.value
-        ? {
-            heartRate: mockDevices.heartRate.value,
-            power: mockDevices.power.value,
-            cadence: mockDevices.cadence.value,
-            speed: mockDevices.speed.value,
-          }
-        : {
-            heartRate: hrm.heartRate.value,
-            power: trainer.power.value,
-            cadence: trainer.cadence.value,
-            speed: trainer.speed.value,
-          };
-      session.recordDataPoint(data);
-    }
-  }, 1000); // Collecte chaque seconde pour précision
+	dataInterval = setInterval(() => {
+		if (!session.isPaused.value && session.isActive.value) {
+			const data = appState.mockModeActive.value
+				? {
+						heartRate: mockDevices.heartRate.value,
+						power: mockDevices.power.value,
+						cadence: mockDevices.cadence.value,
+						speed: mockDevices.speed.value,
+					}
+				: {
+						heartRate: hrm.heartRate.value,
+						power: trainer.power.value,
+						cadence: trainer.cadence.value,
+						speed: trainer.speed.value,
+					};
+			session.recordDataPoint(data);
+		}
+	}, 1000);
 }
 
 function stopDataCollection() {
-  if (dataInterval) {
-    clearInterval(dataInterval);
-    dataInterval = null;
-  }
+	if (dataInterval) {
+		clearInterval(dataInterval);
+		dataInterval = null;
+	}
 }
 
 function togglePause() {
-  if (session.isPaused.value) {
-    session.resume();
-  } else {
-    session.pause();
-  }
+	if (session.isPaused.value) {
+		session.resume();
+	} else {
+		session.pause();
+	}
 }
 
 function confirmStop() {
-  showStopConfirmation.value = true;
+	showStopConfirmation.value = true;
 }
 
 function cancelStop() {
-  showStopConfirmation.value = false;
+	showStopConfirmation.value = false;
 }
 
 function proceedStop() {
-  showStopConfirmation.value = false;
-  stopWorkout();
+	showStopConfirmation.value = false;
+	stopWorkout();
 }
 
 function stopWorkout() {
-  session.stop();
-  stopDataCollection();
-  appState.finishWorkout();
-  router.push({ name: "summary" });
+	session.stop();
+	stopDataCollection();
+	appState.finishWorkout();
+	router.push({ name: "summary" });
 }
 
 watch(
-  () => session.isWorkoutComplete.value,
-  (isComplete) => {
-    if (isComplete && session.isActive.value) {
-      stopWorkout();
-    }
-  }
+	() => session.isWorkoutComplete.value,
+	(isComplete) => {
+		if (isComplete && session.isActive.value) {
+			stopWorkout();
+		}
+	},
 );
 
-const currentMetrics = computed(() => {
-  if (session.dataPoints.value.length === 0) {
-    return { power: 0, heartRate: 0, cadence: 0, speed: 0 };
-  }
-  return session.dataPoints.value[session.dataPoints.value.length - 1];
+const progressPercentage = computed(() => {
+	if (
+		!appState.selectedWorkout.value ||
+		appState.selectedWorkout.value.duration === 0
+	)
+		return 0;
+	return (
+		(session.elapsedSeconds.value /
+			appState.selectedWorkout.value.duration) *
+		100
+	);
 });
 
-// Check if any device is disconnected (only in real mode, not mock)
+const currentMetrics = computed(() => {
+	if (session.dataPoints.value.length === 0) {
+		return { power: 0, heartRate: 0, cadence: 0, speed: 0, distance: 0 };
+	}
+	return session.dataPoints.value[session.dataPoints.value.length - 1];
+});
+
 const hasDisconnectedDevices = computed(() => {
-  if (appState.mockModeActive.value) return false;
-  return !hrm.isConnected.value || !trainer.isConnected.value;
+	if (appState.mockModeActive.value) return false;
+	return !hrm.isConnected.value || !trainer.isConnected.value;
 });
 
 const deviceStatus = computed(() => {
-  return {
-    hrm: {
-      connected: hrm.isConnected.value || appState.mockModeActive.value,
-      connecting: hrm.isConnecting.value,
-    },
-    trainer: {
-      connected: trainer.isConnected.value || appState.mockModeActive.value,
-      connecting: trainer.isConnecting.value,
-    },
-  };
+	return {
+		hrm: {
+			connected: hrm.isConnected.value || appState.mockModeActive.value,
+			connecting: hrm.isConnecting.value,
+		},
+		trainer: {
+			connected:
+				trainer.isConnected.value || appState.mockModeActive.value,
+			connecting: trainer.isConnecting.value,
+		},
+	};
 });
 
 async function reconnectHRM() {
-  await hrm.connect();
+	await hrm.connect();
 }
 
 async function reconnectTrainer() {
-  await trainer.connect();
+	await trainer.connect();
 }
 
-// Helper function to flatten intervals (including nested repeat blocks)
-function flattenIntervals(intervals) {
-  const flattened = [];
-
-  function processIntervals(intervalList) {
-    intervalList.forEach(interval => {
-      if (interval.type === 'repeat' && interval.intervals) {
-        // Process repeat block
-        for (let i = 0; i < (interval.repeat || 1); i++) {
-          processIntervals(interval.intervals);
-        }
-      } else {
-        // Regular interval
-        flattened.push(interval);
-      }
-    });
-  }
-
-  processIntervals(intervals);
-  return flattened;
-}
-
-// Calculate current interval index based on elapsed time
-function getCurrentIntervalIndex(elapsedSeconds, workout) {
-  if (!workout || !workout.intervals) return -1;
-
-  const flatIntervals = flattenIntervals(workout.intervals);
-  let accumulatedTime = 0;
-
-  for (let i = 0; i < flatIntervals.length; i++) {
-    const interval = flatIntervals[i];
-    const intervalDuration = interval.duration || 0;
-
-    if (elapsedSeconds < accumulatedTime + intervalDuration) {
-      return i;
-    }
-
-    accumulatedTime += intervalDuration;
-  }
-
-  return flatIntervals.length - 1; // Last interval
-}
-
-// Watch for interval changes and play sound
 watch(
-  () => session.elapsedSeconds.value,
-  (newElapsedSeconds) => {
-    if (!appState.selectedWorkout.value || session.isPaused.value) return;
+	() => session.elapsedSeconds.value,
+	(newElapsedSeconds) => {
+		if (!appState.selectedWorkout.value || session.isPaused.value) return;
 
-    const newIntervalIndex = getCurrentIntervalIndex(newElapsedSeconds, appState.selectedWorkout.value);
+		const currentIntervalInfo = session.getCurrentIntervalIndex(
+			newElapsedSeconds,
+			appState.selectedWorkout.value,
+		);
+		const newIntervalIndex = currentIntervalInfo.index;
 
-    // Interval changed
-    if (newIntervalIndex !== currentIntervalIndex.value && newIntervalIndex >= 0) {
-      const previousIndex = currentIntervalIndex.value;
-      currentIntervalIndex.value = newIntervalIndex;
+		if (
+			newIntervalIndex !== currentIntervalIndex.value &&
+			newIntervalIndex >= 0
+		) {
+			const previousIndex = currentIntervalIndex.value;
+			currentIntervalIndex.value = newIntervalIndex;
 
-      // Play sound on interval change (but not on the very first interval)
-      if (previousIndex >= 0) {
-        audioSettings.playIntervalSound();
-      }
-    }
-  }
+			if (previousIndex >= 0) {
+				audioSettings.playIntervalSound();
+			}
+		}
+	},
 );
+
+// Computed properties for slots
+const leftSlots = computed(() => [
+	{ id: 1, label: getMetricLabel(1), value: getMetricValue(1) },
+	{ id: 2, label: getMetricLabel(2), value: getMetricValue(2) },
+]);
+
+const rightSlots = computed(() => [
+	{ id: 3, label: getMetricLabel(3), value: getMetricValue(3) },
+	{ id: 8, label: getMetricLabel(8), value: getMetricValue(8) },
+]);
 </script>
 
 <template>
-  <div class="max-w-screen-2xl mx-auto px-0 md:px-2 space-y-1 landscape:space-y-1 md:space-y-4">
-    <!-- Status banner -->
-    <div class="bg-card rounded-lg p-2 landscape:p-2 md:p-4 shadow border border-border">
-      <div class="flex items-center justify-between">
-        <div class="flex-1 min-w-0">
-          <h2 class="text-base landscape:text-lg md:text-xl font-bold text-foreground truncate">{{ appState.selectedWorkout.value?.name }}</h2>
-          <p class="text-muted-foreground text-xs landscape:text-sm md:text-sm hidden landscape:block">{{ appState.selectedWorkout.value?.description }}</p>
-        </div>
-        <div class="flex items-center gap-2 landscape:gap-4 md:gap-4">
-          <div class="text-center">
-            <div class="text-xl landscape:text-2xl md:text-3xl font-bold text-primary">{{ session.formattedElapsedTime.value }}</div>
-            <div class="text-[10px] landscape:text-xs md:text-xs text-muted-foreground">/ {{ session.formattedWorkoutDuration.value }}</div>
-          </div>
-          <div v-if="!session.isPaused.value" class="flex items-center gap-1 landscape:gap-2 md:gap-2">
-            <div class="w-2 h-2 landscape:w-3 landscape:h-3 md:w-3 md:h-3 bg-chart-3 rounded-full animate-pulse"></div>
-            <span class="text-chart-3 text-xs landscape:text-sm md:text-sm font-medium hidden landscape:inline">En cours</span>
-          </div>
-          <div v-else class="flex items-center gap-1 landscape:gap-2 md:gap-2">
-            <div class="w-2 h-2 landscape:w-3 landscape:h-3 md:w-3 md:h-3 bg-chart-1 rounded-full"></div>
-            <span class="text-chart-1 text-xs landscape:text-sm md:text-sm font-medium hidden landscape:inline">En pause</span>
-          </div>
-        </div>
-      </div>
-    </div>
+	<div class="flex flex-col h-full overflow-hidden">
+		<!-- 1. Barre principale avec progression intégrée -->
+		<div class="relative bg-card border-b border-border px-2 py-1.5 md:px-4 md:py-3 shrink-0">
+			<div
+				class="absolute bottom-0 left-0 h-1 bg-primary transition-all duration-500"
+				:style="{ width: `${progressPercentage}%` }"
+			></div>
 
-    <!-- Device connection status (only show in real mode) -->
-    <div v-if="!appState.mockModeActive.value" class="flex items-center justify-center gap-2 landscape:gap-3 md:gap-6">
-      <!-- HRM status -->
-      <button
-        @click="deviceStatus.hrm.connected || deviceStatus.hrm.connecting ? null : reconnectHRM()"
-        :class="[
-          'flex items-center gap-2 px-4 py-2 rounded-lg transition-all',
-          deviceStatus.hrm.connected
-            ? 'bg-chart-3/10 border border-chart-3/30 cursor-default'
-            : deviceStatus.hrm.connecting
-            ? 'bg-yellow-500/10 border border-yellow-500/30 cursor-wait'
-            : 'bg-destructive/10 border border-destructive/30 hover:bg-destructive/20 cursor-pointer',
-        ]"
-        :disabled="deviceStatus.hrm.connected || deviceStatus.hrm.connecting"
-      >
-        <div
-          :class="[
-            'w-3 h-3 rounded-full',
-            deviceStatus.hrm.connected ? 'bg-chart-3 animate-pulse' : deviceStatus.hrm.connecting ? 'bg-yellow-500 animate-pulse' : 'bg-destructive',
-          ]"
-        ></div>
-        <span
-          :class="[
-            'text-sm font-medium',
-            deviceStatus.hrm.connected ? 'text-chart-3' : deviceStatus.hrm.connecting ? 'text-yellow-600 dark:text-yellow-500' : 'text-destructive',
-          ]"
-        >
-          {{ deviceStatus.hrm.connecting ? "HRM..." : deviceStatus.hrm.connected ? "HRM" : "HRM deconnecte" }}
-        </span>
-      </button>
+			<div class="flex items-center justify-between relative z-10">
+				<div class="flex-1 min-w-0">
+					<h2 class="text-sm md:text-lg font-bold text-foreground truncate">
+						{{ appState.selectedWorkout.value?.name }}
+					</h2>
+					<p class="text-[10px] md:text-xs text-muted-foreground truncate hidden sm:block">
+						{{ appState.selectedWorkout.value?.description }}
+					</p>
+				</div>
 
-      <!-- Trainer status -->
-      <button
-        @click="deviceStatus.trainer.connected || deviceStatus.trainer.connecting ? null : reconnectTrainer()"
-        :class="[
-          'flex items-center gap-2 px-4 py-2 rounded-lg transition-all',
-          deviceStatus.trainer.connected
-            ? 'bg-chart-3/10 border border-chart-3/30 cursor-default'
-            : deviceStatus.trainer.connecting
-            ? 'bg-yellow-500/10 border border-yellow-500/30 cursor-wait'
-            : 'bg-destructive/10 border border-destructive/30 hover:bg-destructive/20 cursor-pointer',
-        ]"
-        :disabled="deviceStatus.trainer.connected || deviceStatus.trainer.connecting"
-      >
-        <div
-          :class="[
-            'w-3 h-3 rounded-full',
-            deviceStatus.trainer.connected
-              ? 'bg-chart-3 animate-pulse'
-              : deviceStatus.trainer.connecting
-              ? 'bg-yellow-500 animate-pulse'
-              : 'bg-destructive',
-          ]"
-        ></div>
-        <span
-          :class="[
-            'text-sm font-medium',
-            deviceStatus.trainer.connected
-              ? 'text-chart-3'
-              : deviceStatus.trainer.connecting
-              ? 'text-yellow-600 dark:text-yellow-500'
-              : 'text-destructive',
-          ]"
-        >
-          {{ deviceStatus.trainer.connecting ? "Home-trainer..." : deviceStatus.trainer.connected ? "Home-trainer" : "Home-trainer deconnecte" }}
-        </span>
-      </button>
-    </div>
+				<div class="text-right ml-2 md:ml-4">
+					<div class="text-xl md:text-2xl font-bold text-primary leading-tight">
+						{{ session.formattedElapsedTime.value }}
+					</div>
+					<div class="text-[10px] md:text-xs text-muted-foreground hidden sm:block">
+						/ {{ session.formattedWorkoutDuration.value }}
+					</div>
+				</div>
+			</div>
+		</div>
 
-    <!-- Large chart -->
-    <div class="bg-card rounded-lg p-1 landscape:p-1 md:p-2 shadow border border-border min-h-[200px] landscape:min-h-[140px] md:min-h-[500px]">
-      <WorkoutChart
-        :data-points="session.dataPoints.value"
-        :ftp="appState.ftp.value"
-        :workout="appState.selectedWorkout.value"
-        :elapsed-seconds="session.elapsedSeconds.value"
-      />
-    </div>
+		<!-- 2. Zone métriques -->
+		<MetricsGrid
+			:current-metrics="currentMetrics"
+			:session="session"
+			:left-slots="leftSlots"
+			:right-slots="rightSlots"
+			@configure="openMetricConfig"
+		/>
 
-    <!-- Metrics: Cadence | PUISSANCE | FC | Vitesse -->
-    <div class="grid grid-cols-4 landscape:grid-cols-4 lg:grid-cols-4 gap-1 landscape:gap-1.5 md:gap-4">
-      <!-- Cadence (petite) -->
-      <div class="bg-card rounded-lg p-1 landscape:p-1.5 md:p-3 shadow border border-border text-center">
-        <div class="text-[9px] landscape:text-[10px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">Cadence</div>
-        <div class="text-sm landscape:text-base md:text-2xl font-semibold text-chart-2">{{ currentMetrics.cadence }}<span class="text-[8px] landscape:text-[10px] md:text-sm ml-0.5 md:ml-1">rpm</span></div>
-      </div>
+		<!-- Modal de configuration des métriques -->
+		<MetricConfigModal
+			:show="showMetricConfig"
+			:available-metrics="availableMetrics"
+			:selected-metric-id="selectedMetricId"
+			@close="closeMetricConfig"
+			@select="selectMetric"
+		/>
 
-      <!-- PUISSANCE (GRANDE) -->
-      <div class="bg-card rounded-lg p-1 landscape:p-1.5 md:p-6 shadow border border-border text-center">
-        <div class="text-[9px] landscape:text-[10px] md:text-sm text-muted-foreground mb-0.5 md:mb-2">Puissance</div>
-        <div class="text-lg landscape:text-xl md:text-6xl font-bold text-chart-1">{{ currentMetrics.power }}<span class="text-xs landscape:text-sm md:text-2xl ml-0.5 md:ml-1">W</span></div>
-      </div>
+		<!-- 3. Graphique principal -->
+		<div class="px-1 pb-1 md:px-2 md:pb-2 shrink-0">
+			<div class="bg-card rounded-lg border border-border h-[140px] md:h-[250px]">
+				<WorkoutChart
+					:data-points="session.dataPoints.value"
+					:ftp="appState.ftp.value"
+					:workout="appState.selectedWorkout.value"
+					:elapsed-seconds="session.elapsedSeconds.value"
+				/>
+			</div>
+		</div>
 
-      <!-- FC (GRANDE) -->
-      <div class="bg-card rounded-lg p-1 landscape:p-1.5 md:p-6 shadow border border-border text-center">
-        <div class="text-[9px] landscape:text-[10px] md:text-sm text-muted-foreground mb-0.5 md:mb-2">FC</div>
-        <div class="text-lg landscape:text-xl md:text-6xl font-bold text-destructive">
-          {{ currentMetrics.heartRate }}<span class="text-xs landscape:text-sm md:text-2xl ml-0.5 md:ml-1">bpm</span>
-        </div>
-      </div>
+		<!-- 4. Pied de page -->
+		<div
+			class="flex items-center justify-center px-2 py-3 md:px-4 md:py-8 bg-card border-t border-border shrink-0 gap-2 md:gap-4"
+		>
+			<!-- Gauche : Boutons de connexion (petits) -->
+			<div v-if="!appState.mockModeActive.value" class="flex gap-1 md:gap-2">
+				<DeviceStatusButton
+					type="hrm"
+					:connected="deviceStatus.hrm.connected"
+					:connecting="deviceStatus.hrm.connecting"
+					@reconnect="reconnectHRM"
+				/>
+				<DeviceStatusButton
+					type="trainer"
+					:connected="deviceStatus.trainer.connected"
+					:connecting="deviceStatus.trainer.connecting"
+					@reconnect="reconnectTrainer"
+				/>
+			</div>
 
-      <!-- Vitesse (petite) -->
-      <div class="bg-card rounded-lg p-1 landscape:p-1.5 md:p-3 shadow border border-border text-center">
-        <div class="text-[9px] landscape:text-[10px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">Vitesse</div>
-        <div class="text-sm landscape:text-base md:text-2xl font-semibold text-primary">
-          {{ (currentMetrics.speed * 3.6).toFixed(1) }}<span class="text-[8px] landscape:text-[10px] md:text-sm ml-0.5 md:ml-1">km/h</span>
-        </div>
-      </div>
-    </div>
+			<!-- Centre : Boutons de contrôle -->
+			<div class="flex gap-1 md:gap-2 justify-center">
+				<button
+					@click="togglePause"
+					:class="[
+						'px-3 md:px-6 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-semibold transition-all flex items-center gap-1 md:gap-2',
+						session.isPaused.value
+							? 'bg-chart-3 hover:bg-chart-3/90 text-primary-foreground'
+							: 'bg-secondary hover:bg-secondary/80 text-secondary-foreground',
+					]"
+				>
+					<svg
+						v-if="session.isPaused.value"
+						class="w-3 h-3 md:w-4 md:h-4"
+						fill="currentColor"
+						viewBox="0 0 20 20"
+					>
+						<path
+							fill-rule="evenodd"
+							d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+					<svg
+						v-else
+						class="w-3 h-3 md:w-4 md:h-4"
+						fill="currentColor"
+						viewBox="0 0 20 20"
+					>
+						<path
+							fill-rule="evenodd"
+							d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+					<span class="hidden sm:inline">{{ session.isPaused.value ? "Reprendre" : "Pause" }}</span>
+				</button>
 
-    <!-- Controls -->
-    <div class="flex justify-center gap-2 landscape:gap-3 md:gap-4 pt-1 landscape:pt-1.5 md:pt-4">
-      <button
-        @click="togglePause"
-        :class="[
-          'px-4 landscape:px-6 md:px-8 py-2 landscape:py-2.5 md:py-3 rounded-lg text-sm landscape:text-base md:text-base font-semibold transition-all flex items-center gap-1 landscape:gap-2 md:gap-2',
-          session.isPaused.value
-            ? 'bg-chart-3 hover:bg-chart-3/90 text-primary-foreground'
-            : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground',
-        ]"
-      >
-        <svg v-if="session.isPaused.value" class="w-4 h-4 landscape:w-5 landscape:h-5 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fill-rule="evenodd"
-            d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-            clip-rule="evenodd"
-          />
-        </svg>
-        <svg v-else class="w-4 h-4 landscape:w-5 landscape:h-5 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fill-rule="evenodd"
-            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
-            clip-rule="evenodd"
-          />
-        </svg>
-        {{ session.isPaused.value ? "Reprendre" : "Pause" }}
-      </button>
+				<button
+					@click="confirmStop"
+					class="px-3 md:px-6 py-1.5 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-xs md:text-sm font-semibold transition-all flex items-center gap-1 md:gap-2"
+				>
+					<svg
+						class="w-3 h-3 md:w-4 md:h-4"
+						fill="currentColor"
+						viewBox="0 0 20 20"
+					>
+						<path
+							fill-rule="evenodd"
+							d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+					<span class="hidden sm:inline">Arrêter</span>
+				</button>
+			</div>
 
-      <button
-        @click="confirmStop"
-        class="px-4 landscape:px-6 md:px-8 py-2 landscape:py-2.5 md:py-3 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm landscape:text-base md:text-base font-semibold transition-all flex items-center gap-1 landscape:gap-2 md:gap-2"
-      >
-        <svg class="w-4 h-4 landscape:w-5 landscape:h-5 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fill-rule="evenodd"
-            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z"
-            clip-rule="evenodd"
-          />
-        </svg>
-        Arreter
-      </button>
-    </div>
+			<!-- Espace vide à droite pour équilibrer -->
+			<div v-if="!appState.mockModeActive.value" class="flex-1"></div>
+		</div>
 
-    <!-- Modal de confirmation d'arrêt -->
-    <div v-if="showStopConfirmation" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="cancelStop">
-      <div class="bg-card border border-border rounded-lg p-6 max-w-md mx-4 shadow-lg">
-        <h3 class="text-lg font-semibold text-foreground mb-3">Arrêter l'entraînement ?</h3>
-        <p class="text-muted-foreground mb-6">Êtes-vous sûr de vouloir arrêter la séance ? Vos données seront sauvegardées.</p>
-        <div class="flex gap-3 justify-end">
-          <button @click="cancelStop" class="px-4 py-2 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors">
-            Annuler
-          </button>
-          <button @click="proceedStop" class="px-4 py-2 rounded bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors">
-            Arrêter la séance
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+		<!-- Modal de confirmation d'arrêt -->
+		<div
+			v-if="showStopConfirmation"
+			class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+			@click.self="cancelStop"
+		>
+			<div
+				class="bg-card border border-border rounded-lg p-6 max-w-md mx-4 shadow-lg"
+			>
+				<h3 class="text-lg font-semibold text-foreground mb-3">
+					Arrêter l'entraînement ?
+				</h3>
+				<p class="text-muted-foreground mb-6">
+					Êtes-vous sûr de vouloir arrêter la séance ? Vos données
+					seront sauvegardées.
+				</p>
+				<div class="flex gap-3 justify-end">
+					<button
+						@click="cancelStop"
+						class="px-4 py-2 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+					>
+						Annuler
+					</button>
+					<button
+						@click="proceedStop"
+						class="px-4 py-2 rounded bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+					>
+						Arrêter la séance
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
 </template>

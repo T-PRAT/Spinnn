@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch, onBeforeUnmount } from "vue";
 import * as d3 from "d3";
-import { useAppState } from "../composables/useAppState";
+import { useAppState } from "../../composables/useAppState";
 
 const appState = useAppState();
 
@@ -17,21 +17,14 @@ let svg = null;
 let xScale = null;
 let yScalePower = null;
 let yScaleHR = null;
+let yScaleCadence = null;
 
 const margin = { top: 0, right: 40, bottom: 30, left: 50 };
 let width = 800;
 let height = 500;
 
-// Fonction pour obtenir la hauteur responsive
 function getResponsiveHeight() {
-  if (window.innerWidth < 768) { // mobile
-    // Mode paysage: hauteur encore plus réduite
-    if (window.innerHeight < window.innerWidth) {
-      return 120; // hauteur minimale en mode paysage
-    }
-    return 180; // hauteur très réduite sur mobile portrait pour laisser place aux contrôles
-  }
-  return 500; // hauteur normale sur desktop
+  return 250;
 }
 
 onMounted(() => {
@@ -117,6 +110,7 @@ function initChart() {
 
   yScalePower = d3.scaleLinear().domain([0, maxPowerScale]).range([height, 0]);
   yScaleHR = d3.scaleLinear().domain([60, 200]).range([height, 0]);
+  yScaleCadence = d3.scaleLinear().domain([0, 120]).range([height, 0]);
 
   // Draw workout profile background
   if (props.workout?.intervals) {
@@ -126,6 +120,7 @@ function initChart() {
   // Data paths
   svg.append("path").attr("class", "power-line").attr("fill", "none").attr("stroke", "#f59e0b").attr("stroke-width", 4);
   svg.append("path").attr("class", "hr-line").attr("fill", "none").attr("stroke", "#ef4444").attr("stroke-width", 3.5);
+  svg.append("path").attr("class", "cadence-line").attr("fill", "none").attr("stroke", "#8b5cf6").attr("stroke-width", 2.5);
 
   // Current position line
   svg
@@ -281,17 +276,25 @@ function updateChart(data) {
     .line()
     .x((d) => xScale(d.timestamp))
     .y((d) => yScalePower(d.power))
-    .curve(d3.curveCardinal.tension(0.5)); // Courbe plus lisse
+    .curve(d3.curveCardinal.tension(0.5));
 
   const hrLine = d3
     .line()
     .x((d) => xScale(d.timestamp))
     .y((d) => yScaleHR(d.heartRate))
-    .curve(d3.curveCardinal.tension(0.5)); // Courbe plus lisse
+    .curve(d3.curveCardinal.tension(0.5));
+
+  const cadenceLine = d3
+    .line()
+    .x((d) => xScale(d.timestamp))
+    .y((d) => yScaleCadence(d.cadence))
+    .curve(d3.curveCardinal.tension(0.5));
 
   svg.select(".power-line").datum(smoothedData).transition().duration(300).attr("d", powerLine);
 
   svg.select(".hr-line").datum(smoothedData).transition().duration(300).attr("d", hrLine);
+
+  svg.select(".cadence-line").datum(smoothedData).transition().duration(300).attr("d", cadenceLine);
 
   updateCurrentPosition();
 }
@@ -304,8 +307,8 @@ function updateCurrentPosition() {
 </script>
 
 <template>
-  <div>
-    <div ref="chartRef" class="w-full"></div>
+  <div class="h-full flex flex-col">
+    <div ref="chartRef" class="w-full h-full"></div>
     <div v-if="dataPoints.length === 0" class="text-center text-muted-foreground py-8">En attente des donnees...</div>
   </div>
 </template>

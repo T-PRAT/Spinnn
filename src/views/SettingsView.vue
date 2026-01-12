@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router';
 import { useAppState } from '../composables/useAppState';
 import { useTheme } from '../composables/useTheme';
 import { useAudioSettings } from '../composables/useAudioSettings';
-import IntervalsSettings from '../components/IntervalsSettings.vue';
+import IntervalsSettings from '../components/settings/IntervalsSettings.vue';
 
 const route = useRoute();
 const appState = useAppState();
