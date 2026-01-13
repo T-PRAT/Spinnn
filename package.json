@@ -9,7 +9,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:run": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
     "@garmin/fitsdk": "^21.178.0",
@@ -20,8 +27,13 @@
     "vue-router": "4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.1",
     "@vitejs/plugin-vue": "^6.0.3",
+    "@vitest/ui": "^3.0.7",
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^17.4.4",
     "vite": "^7.3.0",
-    "vite-plugin-vue-devtools": "^8.0.5"
+    "vite-plugin-vue-devtools": "^8.0.5",
+    "vitest": "^3.0.7"
   }
 }

@@ -37,3 +37,8 @@ __screenshots__/
 
 # Fake HRM
 fake-hrm/
+MONETIZATION.md
+
+# Test
+test-results/
+playwright-report/
