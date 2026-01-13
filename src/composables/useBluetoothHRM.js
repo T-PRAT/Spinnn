@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue';
+import { ref } from 'vue';
 import { Connectable, ConnectionStatus } from '../utils/Connectable.js';
 import { heartRateMonitorFilter, SERVICES, CHARACTERISTICS } from '../utils/web-ble.js';
 import { xf } from '../utils/EventDispatcher.js';
@@ -6,7 +6,7 @@ import { parseHeartRateMeasurement } from '../utils/bluetoothParser.js';
 
 /**
  * Heart Rate Monitor Bluetooth Composable
- * Refactored to use Connectable base class with auto-reconnect support
+ * Singleton pattern - state is shared across all components
  *
  * Features:
  * - Auto-reconnect on disconnect
@@ -14,23 +14,28 @@ import { parseHeartRateMeasurement } from '../utils/bluetoothParser.js';
  * - Connection state tracking
  * - Clean resource management
  */
-export function useBluetoothHRM() {
-  const heartRate = ref(0);
-  const isConnected = ref(false);
-  const isConnecting = ref(false);
-  const isReconnecting = ref(false);
-  const error = ref(null);
-  const deviceName = ref('');
-  const status = ref(ConnectionStatus.disconnected);
 
-  let connectable = null;
-  let unsubscribers = [];
+// Singleton state - shared across all components
+const heartRate = ref(0);
+const isConnected = ref(false);
+const isConnecting = ref(false);
+const isReconnecting = ref(false);
+const error = ref(null);
+const deviceName = ref('');
+const status = ref(ConnectionStatus.disconnected);
+
+let connectable = null;
+let unsubscribers = [];
+let isInitialized = false;
+
+export function useBluetoothHRM() {
 
   /**
-   * Initialize the Connectable instance
+   * Initialize the Connectable instance (only once for singleton)
    */
   function initConnectable() {
-    if (connectable) return;
+    if (isInitialized) return;
+    isInitialized = true;
 
     connectable = new Connectable({
       name: 'hrm',
@@ -95,15 +100,10 @@ export function useBluetoothHRM() {
    * Handle heart rate measurement data
    */
   function handleHeartRateData(dataView) {
-    const { heartRate: hr, isContactDetected, sensorContactSupported } = parseHeartRateMeasurement(dataView);
+    const { heartRate: hr } = parseHeartRateMeasurement(dataView);
 
-    // Accept data if:
-    // 1. Contact is detected (sensorContactSupported && isContactDetected)
-    // 2. OR sensor doesn't support contact detection (!sensorContactSupported)
-    // 3. AND heart rate value is valid (> 0)
-    const shouldAccept = hr > 0 && (!sensorContactSupported || isContactDetected);
-
-    if (shouldAccept) {
+    // Accept any valid heart rate value (> 0 and reasonable < 250 bpm)
+    if (hr > 0 && hr < 250) {
       heartRate.value = hr;
 
       // Dispatch to event system for other components
@@ -205,22 +205,7 @@ export function useBluetoothHRM() {
     isReconnecting.value = false;
   }
 
-  /**
-   * Clean up on unmount
-   */
-  onUnmounted(() => {
-    // Unsubscribe from events
-    unsubscribers.forEach(unsub => unsub());
-    unsubscribers = [];
-
-    // Disconnect and cleanup
-    if (connectable) {
-      connectable.config.autoReconnect = false;
-      connectable.cancelReconnect();
-      connectable.disconnect();
-      connectable = null;
-    }
-  });
+  // Note: No onUnmounted cleanup for singleton - connection persists across components
 
   return {
     // State

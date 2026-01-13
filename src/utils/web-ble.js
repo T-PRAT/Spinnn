@@ -33,10 +33,12 @@ export const CHARACTERISTICS = {
   cscFeature: 0x2A5C,
 
   // Fitness Machine Service
+  fitnessMachineFeature: 0x2ACC,
   indoorBikeData: 0x2AD2,
   fitnessMachineControlPoint: 0x2AD9,
   fitnessMachineStatus: 0x2ADA,
   supportedResistanceLevelRange: 0x2AD6,
+  supportedPowerRange: 0x2AD8,
 
   // Battery Service
   batteryLevel: 0x2A19,
@@ -123,7 +125,8 @@ export function heartRateMonitorFilter() {
 }
 
 /**
- * Filter for Smart Trainer (Cycling Power or CSC)
+ * Filter for Smart Trainer (Cycling Power, CSC, or FTMS)
+ * FTMS is included as optional service to enable ERG mode control
  */
 export function smartTrainerFilter() {
   return {
@@ -133,6 +136,9 @@ export function smartTrainerFilter() {
       { services: [SERVICES.fitnessMachine] },
     ],
     optionalServices: [
+      SERVICES.fitnessMachine,
+      SERVICES.cyclingPower,
+      SERVICES.cyclingSpeedCadence,
       SERVICES.heartRate,
       SERVICES.battery,
       SERVICES.deviceInformation,

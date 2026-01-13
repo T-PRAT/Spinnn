@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue';
+import { ref } from 'vue';
 import { Connectable, ConnectionStatus } from '../utils/Connectable.js';
 import { smartTrainerFilter, SERVICES, CHARACTERISTICS } from '../utils/web-ble.js';
 import { xf } from '../utils/EventDispatcher.js';
@@ -6,40 +6,85 @@ import { parseCyclingPowerMeasurement, calculateCadence, calculateSpeed } from '
 
 /**
  * Smart Trainer Bluetooth Composable
- * Refactored to use Connectable base class with auto-reconnect support
+ * Singleton pattern - state is shared across all components
  *
  * Features:
  * - Auto-reconnect on disconnect
  * - Event-driven data streaming
  * - Connection state tracking
  * - Support for multiple service types (Cycling Power, CSC)
+ * - FTMS control (ERG mode, Simulation, Resistance)
  * - Clean resource management
  */
+
+// Control modes
+export const ControlMode = {
+  ERG: 'erg',           // Target power mode
+  SIM: 'sim',           // Simulation mode (grade/slope)
+  RESISTANCE: 'resistance', // Direct resistance control
+  PASSIVE: 'passive',   // No control (free ride)
+};
+
+// FTMS Control Point opcodes
+const FTMS_OPCODES = {
+  REQUEST_CONTROL: 0x00,
+  RESET: 0x01,
+  SET_TARGET_RESISTANCE: 0x04,
+  SET_TARGET_POWER: 0x05,
+  SET_INDOOR_BIKE_SIMULATION: 0x11,
+  RESPONSE_CODE: 0x80,
+};
+
+// FTMS Result codes
+const FTMS_RESULTS = {
+  SUCCESS: 0x01,
+  NOT_SUPPORTED: 0x02,
+  INVALID_PARAMETER: 0x03,
+  OPERATION_FAILED: 0x04,
+  CONTROL_NOT_PERMITTED: 0x05,
+};
+
+// Singleton state - shared across all components
+const power = ref(0);
+const cadence = ref(0);
+const speed = ref(0);
+const isConnected = ref(false);
+const isConnecting = ref(false);
+const isReconnecting = ref(false);
+const error = ref(null);
+const deviceName = ref('');
+const status = ref(ConnectionStatus.disconnected);
+
+// FTMS control state
+const controlMode = ref(ControlMode.ERG);
+const targetPower = ref(0);
+const targetResistance = ref(0);
+const targetGrade = ref(0);
+const hasControl = ref(false);
+const ftmsSupported = ref(false);
+
+let connectable = null;
+let unsubscribers = [];
+let isInitialized = false;
+
+// FTMS control point characteristic
+let ftmsControlPoint = null;
+let ftmsServer = null;
+
+// State for cadence/speed calculations
+let lastCrankRevs = null;
+let lastCrankTime = null;
+let lastWheelRevs = null;
+let lastWheelTime = null;
+
 export function useBluetoothTrainer() {
-  const power = ref(0);
-  const cadence = ref(0);
-  const speed = ref(0);
-  const isConnected = ref(false);
-  const isConnecting = ref(false);
-  const isReconnecting = ref(false);
-  const error = ref(null);
-  const deviceName = ref('');
-  const status = ref(ConnectionStatus.disconnected);
-
-  let connectable = null;
-  let unsubscribers = [];
-
-  // State for cadence/speed calculations
-  let lastCrankRevs = null;
-  let lastCrankTime = null;
-  let lastWheelRevs = null;
-  let lastWheelTime = null;
 
   /**
-   * Initialize the Connectable instance
+   * Initialize the Connectable instance (only once for singleton)
    */
   function initConnectable() {
-    if (connectable) return;
+    if (isInitialized) return;
+    isInitialized = true;
 
     connectable = new Connectable({
       name: 'trainer',
@@ -62,18 +107,27 @@ export function useBluetoothTrainer() {
       }],
 
       // Lifecycle callbacks
-      onConnected: (device) => {
+      onConnected: async (device) => {
         deviceName.value = device.name || 'Unknown Trainer';
         isConnected.value = true;
         isConnecting.value = false;
         isReconnecting.value = false;
         error.value = null;
+
+        // Try to setup FTMS control (for ERG mode)
+        if (connectable?.server) {
+          await setupFTMSControl(connectable.server);
+        }
       },
 
       onDisconnected: () => {
         isConnected.value = false;
         isConnecting.value = false;
         resetData();
+        // Reset FTMS state
+        hasControl.value = false;
+        ftmsControlPoint = null;
+        ftmsServer = null;
       },
 
       onData: (serviceName, data) => {
@@ -226,6 +280,187 @@ export function useBluetoothTrainer() {
   }
 
   /**
+   * Setup FTMS control after connection
+   */
+  async function setupFTMSControl(server) {
+    try {
+      ftmsServer = server;
+      const ftmsService = await server.getPrimaryService(SERVICES.fitnessMachine);
+      ftmsControlPoint = await ftmsService.getCharacteristic(CHARACTERISTICS.fitnessMachineControlPoint);
+
+      // Enable notifications for control point responses
+      await ftmsControlPoint.startNotifications();
+      ftmsControlPoint.addEventListener('characteristicvaluechanged', handleFTMSResponse);
+
+      ftmsSupported.value = true;
+      console.log('[Trainer] FTMS Control Point setup successful');
+
+      // Request control automatically
+      await requestControl();
+
+      return true;
+    } catch (err) {
+      console.warn('[Trainer] FTMS not supported or setup failed:', err.message);
+      ftmsSupported.value = false;
+      return false;
+    }
+  }
+
+  /**
+   * Handle FTMS Control Point responses
+   */
+  function handleFTMSResponse(event) {
+    const data = event.target.value;
+    const responseCode = data.getUint8(0);
+
+    if (responseCode === FTMS_OPCODES.RESPONSE_CODE) {
+      const requestOpcode = data.getUint8(1);
+      const result = data.getUint8(2);
+
+      const resultName = Object.keys(FTMS_RESULTS).find(k => FTMS_RESULTS[k] === result) || 'UNKNOWN';
+      console.log(`[Trainer] FTMS Response: opcode=${requestOpcode}, result=${resultName}`);
+
+      if (requestOpcode === FTMS_OPCODES.REQUEST_CONTROL) {
+        hasControl.value = (result === FTMS_RESULTS.SUCCESS);
+        if (hasControl.value) {
+          console.log('[Trainer] Control granted');
+        } else {
+          console.warn('[Trainer] Control request failed:', resultName);
+        }
+      }
+    }
+  }
+
+  /**
+   * Request control of the trainer
+   */
+  async function requestControl() {
+    if (!ftmsControlPoint) {
+      console.warn('[Trainer] FTMS not available');
+      return false;
+    }
+
+    try {
+      const buffer = new ArrayBuffer(1);
+      const view = new DataView(buffer);
+      view.setUint8(0, FTMS_OPCODES.REQUEST_CONTROL);
+      await ftmsControlPoint.writeValue(buffer);
+      console.log('[Trainer] Requested control');
+      return true;
+    } catch (err) {
+      console.error('[Trainer] Failed to request control:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Set target power (ERG mode)
+   * @param {number} watts - Target power in watts
+   */
+  async function setTargetPower(watts) {
+    if (!ftmsControlPoint || !hasControl.value) {
+      console.warn('[Trainer] Cannot set power - no control');
+      return false;
+    }
+
+    // Clamp to reasonable range
+    const clampedWatts = Math.max(0, Math.min(2000, Math.round(watts)));
+
+    try {
+      const buffer = new ArrayBuffer(3);
+      const view = new DataView(buffer);
+      view.setUint8(0, FTMS_OPCODES.SET_TARGET_POWER);
+      view.setInt16(1, clampedWatts, true); // Little-endian signed int16
+      await ftmsControlPoint.writeValue(buffer);
+
+      targetPower.value = clampedWatts;
+      controlMode.value = ControlMode.ERG;
+      console.log(`[Trainer] Set target power: ${clampedWatts}W`);
+      return true;
+    } catch (err) {
+      console.error('[Trainer] Failed to set target power:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Set simulation parameters (SIM mode)
+   * @param {number} grade - Grade/slope in percentage (-100 to +100)
+   * @param {number} [windSpeed=0] - Wind speed in m/s
+   * @param {number} [crr=0.004] - Rolling resistance coefficient
+   * @param {number} [cw=0.51] - Wind resistance coefficient (drag * area)
+   */
+  async function setSimulation(grade, windSpeed = 0, crr = 0.004, cw = 0.51) {
+    if (!ftmsControlPoint || !hasControl.value) {
+      console.warn('[Trainer] Cannot set simulation - no control');
+      return false;
+    }
+
+    // Clamp grade to -45% to +45%
+    const clampedGrade = Math.max(-45, Math.min(45, grade));
+
+    try {
+      const buffer = new ArrayBuffer(7);
+      const view = new DataView(buffer);
+      view.setUint8(0, FTMS_OPCODES.SET_INDOOR_BIKE_SIMULATION);
+      view.setInt16(1, Math.round(windSpeed * 1000), true); // Wind speed in 0.001 m/s
+      view.setInt16(3, Math.round(clampedGrade * 100), true); // Grade in 0.01%
+      view.setUint8(5, Math.round(crr * 10000)); // CRR in 0.0001
+      view.setUint8(6, Math.round(cw * 100)); // CW in 0.01 kg/m
+      await ftmsControlPoint.writeValue(buffer);
+
+      targetGrade.value = clampedGrade;
+      controlMode.value = ControlMode.SIM;
+      console.log(`[Trainer] Set simulation: grade=${clampedGrade}%`);
+      return true;
+    } catch (err) {
+      console.error('[Trainer] Failed to set simulation:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Set resistance level (RESISTANCE mode)
+   * @param {number} level - Resistance level 0-100%
+   */
+  async function setResistance(level) {
+    if (!ftmsControlPoint || !hasControl.value) {
+      console.warn('[Trainer] Cannot set resistance - no control');
+      return false;
+    }
+
+    // Clamp to 0-100%
+    const clampedLevel = Math.max(0, Math.min(100, level));
+
+    try {
+      const buffer = new ArrayBuffer(2);
+      const view = new DataView(buffer);
+      view.setUint8(0, FTMS_OPCODES.SET_TARGET_RESISTANCE);
+      view.setUint8(1, Math.round(clampedLevel * 2)); // Resolution is 0.5%
+      await ftmsControlPoint.writeValue(buffer);
+
+      targetResistance.value = clampedLevel;
+      controlMode.value = ControlMode.RESISTANCE;
+      console.log(`[Trainer] Set resistance: ${clampedLevel}%`);
+      return true;
+    } catch (err) {
+      console.error('[Trainer] Failed to set resistance:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Set control mode
+   * @param {string} mode - One of ControlMode values
+   */
+  function setControlMode(mode) {
+    if (Object.values(ControlMode).includes(mode)) {
+      controlMode.value = mode;
+      console.log(`[Trainer] Control mode set to: ${mode}`);
+    }
+  }
+
+  /**
    * Connect to a smart trainer
    * @param {Object} options
    * @param {boolean} [options.autoReconnect=true] - Enable auto-reconnect
@@ -316,22 +551,7 @@ export function useBluetoothTrainer() {
     isReconnecting.value = false;
   }
 
-  /**
-   * Clean up on unmount
-   */
-  onUnmounted(() => {
-    // Unsubscribe from events
-    unsubscribers.forEach(unsub => unsub());
-    unsubscribers = [];
-
-    // Disconnect and cleanup
-    if (connectable) {
-      connectable.config.autoReconnect = false;
-      connectable.cancelReconnect();
-      connectable.disconnect();
-      connectable = null;
-    }
-  });
+  // Note: No onUnmounted cleanup for singleton - connection persists across components
 
   return {
     // State
@@ -345,11 +565,26 @@ export function useBluetoothTrainer() {
     deviceName,
     status,
 
-    // Methods
+    // FTMS control state
+    controlMode,
+    targetPower,
+    targetResistance,
+    targetGrade,
+    hasControl,
+    ftmsSupported,
+
+    // Connection methods
     connect,
     disconnect,
     reconnect,
     cancelReconnect,
+
+    // FTMS control methods
+    setTargetPower,
+    setSimulation,
+    setResistance,
+    setControlMode,
+    requestControl,
 
     // Internal (for debugging)
     get connectable() {
