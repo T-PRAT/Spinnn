@@ -18,8 +18,10 @@ let xScale = null;
 let yScalePower = null;
 let yScaleHR = null;
 let yScaleCadence = null;
+let resizeObserver = null;
+let isChartInitialized = false;
 
-const margin = { top: 0, right: 40, bottom: 30, left: 50 };
+const margin = { top: 8, right: 8, bottom: 8, left: 8 };
 let width = 800;
 let height = 500;
 
@@ -28,22 +30,36 @@ function getResponsiveHeight() {
 }
 
 onMounted(() => {
-  initChart();
-  window.addEventListener("resize", handleResize);
+  // Use ResizeObserver to detect when container has valid dimensions
+  resizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.contentRect.width > 0) {
+        initChart();
+        if (props.dataPoints.length > 0) {
+          updateChart(props.dataPoints);
+        }
+      }
+    }
+  });
+
+  if (chartRef.value) {
+    resizeObserver.observe(chartRef.value);
+  }
+
+  // Also try to init immediately in case dimensions are already available
+  setTimeout(() => {
+    if (!isChartInitialized && chartRef.value && chartRef.value.clientWidth > 0) {
+      initChart();
+    }
+  }, 50);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener("resize", handleResize);
-});
-
-function handleResize() {
-  if (chartRef.value) {
-    initChart();
-    if (props.dataPoints.length > 0) {
-      updateChart(props.dataPoints);
-    }
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
   }
-}
+});
 
 watch(
   () => props.dataPoints,
@@ -67,17 +83,23 @@ watch(
 function initChart() {
   if (!chartRef.value) return;
 
+  const containerWidth = chartRef.value.clientWidth;
+  const containerHeight = chartRef.value.clientHeight;
+  if (containerWidth <= 0 || containerHeight <= 0) return; // Guard against invalid dimensions
+
+  // Clear previous chart
   d3.select(chartRef.value).selectAll("*").remove();
 
-  const containerWidth = chartRef.value.clientWidth;
-  width = containerWidth - margin.left - margin.right;
-  height = getResponsiveHeight();
+  width = Math.max(100, containerWidth - margin.left - margin.right);
+  height = Math.max(50, containerHeight - margin.top - margin.bottom);
+
+  isChartInitialized = true;
 
   svg = d3
     .select(chartRef.value)
     .append("svg")
     .attr("width", containerWidth)
-    .attr("height", height + margin.top + margin.bottom)
+    .attr("height", containerHeight)
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -108,9 +130,14 @@ function initChart() {
   // Add 10% headroom above max power
   const maxPowerScale = maxPowerInWorkout * 1.1;
 
+  // Power uses full height
   yScalePower = d3.scaleLinear().domain([0, maxPowerScale]).range([height, 0]);
-  yScaleHR = d3.scaleLinear().domain([60, 200]).range([height, 0]);
-  yScaleCadence = d3.scaleLinear().domain([0, 120]).range([height, 0]);
+
+  // HR uses top 60% of the chart (values 60-200 bpm mapped to top portion)
+  yScaleHR = d3.scaleLinear().domain([60, 200]).range([height * 0.6, 0]);
+
+  // Cadence uses bottom 50% of the chart (values 0-120 rpm mapped to bottom portion)
+  yScaleCadence = d3.scaleLinear().domain([0, 120]).range([height, height * 0.5]);
 
   // Draw workout profile background
   if (props.workout?.intervals) {
@@ -131,6 +158,35 @@ function initChart() {
     .attr("stroke-dasharray", "4,2")
     .attr("y1", 0)
     .attr("y2", height);
+
+  // Legend (top right)
+  const legend = svg.append("g")
+    .attr("class", "legend")
+    .attr("transform", `translate(${width - 115}, 12)`);
+
+  const legendItems = [
+    { color: "#f59e0b", label: "W" },
+    { color: "#ef4444", label: "FC" },
+    { color: "#8b5cf6", label: "rpm" },
+  ];
+
+  legendItems.forEach((item, i) => {
+    const g = legend.append("g").attr("transform", `translate(${i * 38}, 0)`);
+    g.append("line")
+      .attr("x1", 0)
+      .attr("x2", 16)
+      .attr("y1", 0)
+      .attr("y2", 0)
+      .attr("stroke", item.color)
+      .attr("stroke-width", 3);
+    g.append("text")
+      .attr("x", 19)
+      .attr("y", 4)
+      .attr("font-size", "11px")
+      .attr("font-weight", "500")
+      .attr("fill", "#999")
+      .text(item.label);
+  });
 }
 
 function drawWorkoutProfile() {
@@ -248,6 +304,7 @@ function getIntervalColor(type, power) {
 
 function smoothData(data, windowSize = 3) {
   // Applique une moyenne mobile pour lisser les courbes affichées
+  if (!data || data.length === 0) return [];
   if (data.length < windowSize) return data;
 
   return data.map((point, index) => {
@@ -255,46 +312,76 @@ function smoothData(data, windowSize = 3) {
     const end = Math.min(data.length, index + Math.ceil(windowSize / 2));
     const window = data.slice(start, end);
 
-    const avgPower = window.reduce((sum, p) => sum + p.power, 0) / window.length;
-    const avgHR = window.reduce((sum, p) => sum + p.heartRate, 0) / window.length;
+    const validPower = window.filter(p => typeof p.power === 'number' && !isNaN(p.power));
+    const validHR = window.filter(p => typeof p.heartRate === 'number' && !isNaN(p.heartRate));
+    const validCadence = window.filter(p => typeof p.cadence === 'number' && !isNaN(p.cadence));
+
+    const avgPower = validPower.length > 0 ? validPower.reduce((sum, p) => sum + p.power, 0) / validPower.length : 0;
+    const avgHR = validHR.length > 0 ? validHR.reduce((sum, p) => sum + p.heartRate, 0) / validHR.length : 0;
+    const avgCadence = validCadence.length > 0 ? validCadence.reduce((sum, p) => sum + p.cadence, 0) / validCadence.length : 0;
 
     return {
       ...point,
       power: avgPower,
       heartRate: avgHR,
+      cadence: avgCadence,
     };
   });
 }
 
 function updateChart(data) {
-  if (!svg || data.length === 0) return;
+  if (!svg || !xScale || !yScalePower || !yScaleHR || !yScaleCadence) return;
+  if (!data || data.length === 0) return;
 
   // Lisser les données pour l'affichage uniquement
   const smoothedData = smoothData(data, 5);
+  if (smoothedData.length === 0) return;
+
+  // Filter out invalid data points for each line
+  const validPowerData = smoothedData.filter(d =>
+    typeof d.timestamp === 'number' && !isNaN(d.timestamp) &&
+    typeof d.power === 'number' && !isNaN(d.power)
+  );
+  const validHRData = smoothedData.filter(d =>
+    typeof d.timestamp === 'number' && !isNaN(d.timestamp) &&
+    typeof d.heartRate === 'number' && !isNaN(d.heartRate) && d.heartRate > 0
+  );
+  const validCadenceData = smoothedData.filter(d =>
+    typeof d.timestamp === 'number' && !isNaN(d.timestamp) &&
+    typeof d.cadence === 'number' && !isNaN(d.cadence)
+  );
 
   const powerLine = d3
     .line()
+    .defined(d => d.power >= 0)
     .x((d) => xScale(d.timestamp))
     .y((d) => yScalePower(d.power))
-    .curve(d3.curveCardinal.tension(0.5));
+    .curve(d3.curveMonotoneX);
 
   const hrLine = d3
     .line()
+    .defined(d => d.heartRate > 0)
     .x((d) => xScale(d.timestamp))
     .y((d) => yScaleHR(d.heartRate))
-    .curve(d3.curveCardinal.tension(0.5));
+    .curve(d3.curveMonotoneX);
 
   const cadenceLine = d3
     .line()
+    .defined(d => d.cadence >= 0)
     .x((d) => xScale(d.timestamp))
     .y((d) => yScaleCadence(d.cadence))
-    .curve(d3.curveCardinal.tension(0.5));
+    .curve(d3.curveMonotoneX);
 
-  svg.select(".power-line").datum(smoothedData).transition().duration(300).attr("d", powerLine);
-
-  svg.select(".hr-line").datum(smoothedData).transition().duration(300).attr("d", hrLine);
-
-  svg.select(".cadence-line").datum(smoothedData).transition().duration(300).attr("d", cadenceLine);
+  // Update lines without transition for smoother real-time updates
+  if (validPowerData.length > 0) {
+    svg.select(".power-line").datum(validPowerData).attr("d", powerLine);
+  }
+  if (validHRData.length > 0) {
+    svg.select(".hr-line").datum(validHRData).attr("d", hrLine);
+  }
+  if (validCadenceData.length > 0) {
+    svg.select(".cadence-line").datum(validCadenceData).attr("d", cadenceLine);
+  }
 
   updateCurrentPosition();
 }
