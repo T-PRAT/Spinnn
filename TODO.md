@@ -1,43 +1,40 @@
 # TODO
 
 ## A
-
-- ajouter sons intervalle
-- refonte dashboard
+- trouver un meilleur nom
+- faire un logo
+- bouton aller prochain intervalle
+- meilleur sons intervalle
 
 ## B
-
+- monter baisser la puissance de l'entrainement en cours
+- monter baisser la puissance de l'intervalle en cours
+- ajouter une image(graphique) a l'export
+- export strava
 - verifier .fit (appareil, activité...)
 - dashboard en mode paysage mobile
 - dashboard en mode paysage tablette
 
 ## C
-
+- animation diverse
 - renommer l'activité au summary
 - ajouter RPE a la summary
-
-## Ideas
-
-// --- Général ---
-
-- faire un logo
-- trouver un meilleur nom
-- animation diverse
-
-// --- Home ---
-
-- customizer le dashboard
-
-// --- Workout ---
-
-- bouton aller prochain intervalle
 - modifier les entrainements (sytaxe interval ?)
 - pouvoir connecter d'autre capteurs (core,)
-- monter baisser la puissance de l'entrainement en cours
-- monter baisser la puissance de l'intervalle en cours
 
-// --- Summary ---
+## Fixes
+- [HRM] Rétablir validation contact capteur (sensorContactSupported)
+- [Chart] Ajouter debounce sur ResizeObserver (performance)
+- [Chart] Réduire lissage de 5 à 2-3 points (délai affichage)
+- [DeviceConnector] Corriger nettoyage animation onUnmounted
+- [Tests] Compléter E2E tests (flux workout complet)
+- [Tests] Ajouter tests zwoParser, calculations, localStorage
+- [UI] Remplacer couleurs hardcodées par variables CSS
+- [WorkoutView] Vérifier existance fonction getTargetPowerAtTime
 
-- graphique
-- ajouter une image(graphique) a l'export
-- export strava
+## Done
+- customizer le dashboard
+- refonte dashboard
+- [DeviceConnector] Ajouter animation des points lors de la connexion/reconnexion Bluetooth (Connexion...)
+
+## Ideas
