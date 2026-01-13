@@ -165,6 +165,29 @@ export const workoutCategories = [
         ]
       }
     ]
+  },
+  {
+    id: 'test',
+    name: 'Test',
+    icon: '🧪',
+    workouts: [
+      {
+        id: 'test-short',
+        name: 'Test 3min',
+        description: '3min - Rampe + intervalles pour tests',
+        duration: 180,
+        difficulty: 'Moderate',
+        intervals: [
+          { type: 'warmup', duration: 20, powerStart: 0.5, powerEnd: 0.75, name: 'Rampe' },
+          { type: 'work', duration: 30, power: 0.90, name: 'Interval 1' },
+          { type: 'recovery', duration: 20, power: 0.60, name: 'Repos' },
+          { type: 'work', duration: 30, power: 1.00, name: 'Interval 2' },
+          { type: 'recovery', duration: 20, power: 0.60, name: 'Repos' },
+          { type: 'work', duration: 30, power: 1.10, name: 'Interval 3' },
+          { type: 'cooldown', duration: 30, powerStart: 0.7, powerEnd: 0.5, name: 'Retour calme' }
+        ]
+      }
+    ]
   }
 ];
 

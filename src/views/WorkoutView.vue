@@ -8,9 +8,10 @@ import DeviceStatusButton from "../components/device/DeviceStatusButton.vue";
 import { useAppState } from "../composables/useAppState";
 import { useWorkoutSession } from "../composables/useWorkoutSession";
 import { useBluetoothHRM } from "../composables/useBluetoothHRM";
-import { useBluetoothTrainer } from "../composables/useBluetoothTrainer";
+import { useBluetoothTrainer, ControlMode } from "../composables/useBluetoothTrainer";
 import { useMockDevices } from "../composables/useMockDevices";
 import { useAudioSettings } from "../composables/useAudioSettings";
+import { getTargetPowerAtTime } from "../data/sampleWorkouts";
 
 const router = useRouter();
 const appState = useAppState();
@@ -26,6 +27,13 @@ const currentIntervalIndex = ref(-1);
 const showMetricConfig = ref(false);
 const selectedSlotId = ref(null);
 let dataInterval = null;
+let ergInterval = null;
+let lastTargetPower = 0;
+
+// Auto-pause/start based on power
+const autoPauseEnabled = ref(true);
+const powerActiveSeconds = ref(0);
+const POWER_START_THRESHOLD = 3; // seconds of power > 0 to auto-start
 
 // Configuration des métriques par slot
 const defaultMetricsConfig = {
@@ -72,6 +80,70 @@ const availableMetrics = [
 	{ id: "avgHeartRate", label: "FC Moy" },
 	{ id: "avgCadence", label: "Cadence Moy" },
 ];
+
+// ERG mode control - available modes
+const controlModes = [
+	{ id: ControlMode.ERG, label: "ERG", description: "Puissance cible" },
+	{ id: ControlMode.SIM, label: "SIM", description: "Simulation pente" },
+	{ id: ControlMode.RESISTANCE, label: "RES", description: "Résistance fixe" },
+	{ id: ControlMode.PASSIVE, label: "OFF", description: "Libre" },
+];
+
+// Current target power based on workout interval
+const currentTargetPower = computed(() => {
+	if (!appState.selectedWorkout.value) return 0;
+	return getTargetPowerAtTime(
+		appState.selectedWorkout.value,
+		session.elapsedSeconds.value,
+		appState.ftp.value
+	);
+});
+
+// Update trainer ERG target power
+async function updateERGPower() {
+	if (appState.mockModeActive.value) return;
+	if (!trainer.hasControl.value) return;
+	if (trainer.controlMode.value !== ControlMode.ERG) return;
+	if (session.isPaused.value) return;
+
+	const target = currentTargetPower.value;
+	if (target > 0 && target !== lastTargetPower) {
+		await trainer.setTargetPower(target);
+		lastTargetPower = target;
+	}
+}
+
+// Start ERG control loop (updates every second for ramps)
+function startERGControl() {
+	if (ergInterval) return;
+	ergInterval = setInterval(updateERGPower, 1000);
+	// Initial update
+	updateERGPower();
+}
+
+// Stop ERG control loop
+function stopERGControl() {
+	if (ergInterval) {
+		clearInterval(ergInterval);
+		ergInterval = null;
+	}
+}
+
+// Change control mode
+async function changeControlMode(mode) {
+	trainer.setControlMode(mode);
+
+	if (mode === ControlMode.ERG) {
+		lastTargetPower = 0; // Force update
+		await updateERGPower();
+	} else if (mode === ControlMode.SIM) {
+		// Default to 0% grade
+		await trainer.setSimulation(0);
+	} else if (mode === ControlMode.RESISTANCE) {
+		// Default to 50% resistance
+		await trainer.setResistance(50);
+	}
+}
 
 function openMetricConfig(slotId) {
 	selectedSlotId.value = slotId;
@@ -171,11 +243,18 @@ onMounted(() => {
 		mockDevices.start(appState.selectedWorkout.value, appState.ftp.value);
 	}
 
+	// Start paused if auto-pause is enabled (waiting for pedaling)
+	if (autoPauseEnabled.value && !session.isPaused.value) {
+		session.pause();
+	}
+
 	startDataCollection();
+	startERGControl();
 });
 
 onBeforeUnmount(() => {
 	stopDataCollection();
+	stopERGControl();
 
 	if (appState.mockModeActive.value && mockDevices.isActive.value) {
 		mockDevices.stop();
@@ -184,6 +263,29 @@ onBeforeUnmount(() => {
 
 function startDataCollection() {
 	dataInterval = setInterval(() => {
+		const currentPower = appState.mockModeActive.value
+			? mockDevices.power.value
+			: trainer.power.value;
+
+		// Auto-pause/start logic
+		if (autoPauseEnabled.value && session.isActive.value) {
+			if (currentPower > 0) {
+				powerActiveSeconds.value++;
+				// Auto-start after POWER_START_THRESHOLD seconds of power
+				if (session.isPaused.value && powerActiveSeconds.value >= POWER_START_THRESHOLD) {
+					session.resume();
+					powerActiveSeconds.value = 0;
+				}
+			} else {
+				powerActiveSeconds.value = 0;
+				// Auto-pause when power is 0
+				if (!session.isPaused.value) {
+					session.pause();
+				}
+			}
+		}
+
+		// Record data only when not paused
 		if (!session.isPaused.value && session.isActive.value) {
 			const data = appState.mockModeActive.value
 				? {
@@ -211,12 +313,26 @@ function stopDataCollection() {
 }
 
 function togglePause() {
+	// Disable auto-pause when user manually controls
+	autoPauseEnabled.value = false;
+
 	if (session.isPaused.value) {
 		session.resume();
 	} else {
 		session.pause();
 	}
 }
+
+// Re-enable auto-pause
+function enableAutoPause() {
+	autoPauseEnabled.value = true;
+	powerActiveSeconds.value = 0;
+}
+
+// Check if waiting for pedaling
+const isWaitingForPedaling = computed(() => {
+	return autoPauseEnabled.value && session.isPaused.value && session.isActive.value;
+});
 
 function confirmStop() {
 	showStopConfirmation.value = true;
@@ -334,9 +450,11 @@ const rightSlots = computed(() => [
 <template>
 	<div class="flex flex-col h-full overflow-hidden">
 		<!-- 1. Barre principale avec progression intégrée -->
-		<div class="relative bg-card border-b border-border px-2 py-1.5 md:px-4 md:py-3 shrink-0">
+		<div class="mx-1 mt-1 md:mx-2 md:mt-2 shrink-0">
+			<div class="relative bg-card rounded-lg border border-border px-2 py-1.5 md:px-4 md:py-3 overflow-hidden">
 			<div
-				class="absolute bottom-0 left-0 h-1 bg-primary transition-all duration-500"
+				class="absolute bottom-0 left-0 h-1 bg-primary transition-all duration-500 rounded-bl-lg"
+				:class="{ 'rounded-br-lg': progressPercentage >= 100 }"
 				:style="{ width: `${progressPercentage}%` }"
 			></div>
 
@@ -358,7 +476,19 @@ const rightSlots = computed(() => [
 						/ {{ session.formattedWorkoutDuration.value }}
 					</div>
 				</div>
+
 			</div>
+			</div>
+		</div>
+
+		<!-- Indicateur d'attente de pédalage -->
+		<div
+			v-if="isWaitingForPedaling"
+			class="bg-primary/10 border-b border-primary/30 px-4 py-2 flex items-center justify-center gap-3"
+		>
+			<span class="text-xl animate-bounce">🚴</span>
+			<span class="text-sm font-medium text-primary">Pédalez pour démarrer</span>
+			<span class="text-xs text-primary/70">({{ powerActiveSeconds }}/{{ POWER_START_THRESHOLD }}s)</span>
 		</div>
 
 		<!-- 2. Zone métriques -->
@@ -392,23 +522,49 @@ const rightSlots = computed(() => [
 		</div>
 
 		<!-- 4. Pied de page -->
-		<div
-			class="flex items-center justify-center px-2 py-3 md:px-4 md:py-8 bg-card border-t border-border shrink-0 gap-2 md:gap-4"
-		>
-			<!-- Gauche : Boutons de connexion (petits) -->
-			<div v-if="!appState.mockModeActive.value" class="flex gap-1 md:gap-2">
-				<DeviceStatusButton
-					type="hrm"
-					:connected="deviceStatus.hrm.connected"
-					:connecting="deviceStatus.hrm.connecting"
-					@reconnect="reconnectHRM"
-				/>
-				<DeviceStatusButton
-					type="trainer"
-					:connected="deviceStatus.trainer.connected"
-					:connecting="deviceStatus.trainer.connecting"
-					@reconnect="reconnectTrainer"
-				/>
+		<div class="mx-1 mb-1 md:mx-2 md:mb-2 shrink-0">
+			<div
+				class="flex items-center justify-between px-2 py-3 md:px-4 md:py-8 bg-card rounded-lg border border-border gap-2 md:gap-4"
+			>
+			<!-- Gauche : Mode ERG et puissance cible -->
+			<div class="flex items-center gap-2 md:gap-3">
+				<!-- Sélecteur de mode -->
+				<div v-if="!appState.mockModeActive.value && trainer.ftmsSupported.value" class="flex rounded-lg overflow-hidden border border-border">
+					<button
+						v-for="mode in controlModes"
+						:key="mode.id"
+						@click="changeControlMode(mode.id)"
+						:class="[
+							'px-2 py-1 text-[10px] md:text-xs font-medium transition-colors',
+							trainer.controlMode.value === mode.id
+								? 'bg-primary text-primary-foreground'
+								: 'bg-card text-muted-foreground hover:bg-muted'
+						]"
+						:title="mode.description"
+					>
+						{{ mode.label }}
+					</button>
+				</div>
+				<!-- Puissance cible -->
+				<div v-if="trainer.controlMode.value === 'erg' && currentTargetPower > 0" class="text-center">
+					<div class="text-[10px] text-muted-foreground">Cible</div>
+					<div class="text-sm md:text-base font-bold text-primary">{{ currentTargetPower }}W</div>
+				</div>
+				<!-- Boutons de connexion -->
+				<div v-if="!appState.mockModeActive.value" class="flex gap-1 md:gap-2">
+					<DeviceStatusButton
+						type="hrm"
+						:connected="deviceStatus.hrm.connected"
+						:connecting="deviceStatus.hrm.connecting"
+						@reconnect="reconnectHRM"
+					/>
+					<DeviceStatusButton
+						type="trainer"
+						:connected="deviceStatus.trainer.connected"
+						:connecting="deviceStatus.trainer.connecting"
+						@reconnect="reconnectTrainer"
+					/>
+				</div>
 			</div>
 
 			<!-- Centre : Boutons de contrôle -->
@@ -467,9 +623,7 @@ const rightSlots = computed(() => [
 					<span class="hidden sm:inline">Arrêter</span>
 				</button>
 			</div>
-
-			<!-- Espace vide à droite pour équilibrer -->
-			<div v-if="!appState.mockModeActive.value" class="flex-1"></div>
+			</div>
 		</div>
 
 		<!-- Modal de confirmation d'arrêt -->
