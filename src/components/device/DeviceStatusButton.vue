@@ -35,7 +35,7 @@ const handleClick = () => {
 		:class="[
 			'flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all text-[10px] md:text-xs',
 			connected
-				? 'bg-chart-3/10 border border-chart-3/30 cursor-default'
+				? 'bg-green-500/10 border border-green-500/30 cursor-default'
 				: connecting
 				? 'bg-yellow-500/10 border border-yellow-500/30 cursor-wait'
 				: 'bg-destructive/10 border border-destructive/30 hover:bg-destructive/20 cursor-pointer',
@@ -46,7 +46,7 @@ const handleClick = () => {
 			:class="[
 				'w-1.5 h-1.5 md:w-2 md:h-2 rounded-full',
 				connected
-					? 'bg-chart-3 animate-pulse'
+					? 'bg-green-500'
 					: connecting
 					? 'bg-yellow-500 animate-pulse'
 					: 'bg-destructive',
@@ -56,7 +56,7 @@ const handleClick = () => {
 			:class="[
 				'text-[10px] md:text-xs font-medium',
 				connected
-					? 'text-chart-3'
+					? 'text-green-600 dark:text-green-500'
 					: connecting
 					? 'text-yellow-600 dark:text-yellow-500'
 					: 'text-destructive',

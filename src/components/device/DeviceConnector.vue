@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useBluetoothHRM } from '../../composables/useBluetoothHRM';
 import { useBluetoothTrainer } from '../../composables/useBluetoothTrainer';
 import { useMockDevices } from '../../composables/useMockDevices';
@@ -8,6 +8,41 @@ import { isBluetoothAvailable } from '../../utils/web-ble.js';
 const hrm = useBluetoothHRM();
 const trainer = useBluetoothTrainer();
 const mockDevices = useMockDevices();
+
+// Animation des points pour "Connexion..."
+const dotCount = ref(0);
+let dotInterval = null;
+
+function startDotAnimation() {
+  if (dotInterval) return;
+  dotCount.value = 0;
+  dotInterval = setInterval(() => {
+    dotCount.value = (dotCount.value + 1) % 4;
+  }, 400);
+}
+
+function stopDotAnimation() {
+  if (dotInterval) {
+    clearInterval(dotInterval);
+    dotInterval = null;
+  }
+}
+
+const animatedDots = computed(() => '.'.repeat(dotCount.value || 1));
+
+// Watch connecting/reconnecting states to animate
+watch([() => hrm.isConnecting.value, () => trainer.isConnecting.value, () => hrm.isReconnecting.value, () => trainer.isReconnecting.value],
+  ([hrmConnecting, trainerConnecting, hrmReconnecting, trainerReconnecting]) => {
+  if (hrmConnecting || trainerConnecting || hrmReconnecting || trainerReconnecting) {
+    startDotAnimation();
+  } else {
+    stopDotAnimation();
+  }
+});
+
+onUnmounted(() => {
+  stopDotAnimation();
+});
 
 const bluetoothSupported = ref(false);
 const useMockMode = ref(false);
@@ -110,7 +145,7 @@ setInterval(emitDataUpdate, 100);
           <div
             :class="[
               'w-4 h-4 rounded-full',
-              hrm.isConnected.value || useMockMode ? 'bg-chart-3' : 'bg-muted'
+              hrm.isConnected.value || useMockMode ? 'bg-green-500' : 'bg-muted'
             ]"
           ></div>
         </div>
@@ -128,7 +163,7 @@ setInterval(emitDataUpdate, 100);
         </div>
 
         <div v-else-if="hrm.isReconnecting.value" class="space-y-2">
-          <p class="text-sm text-muted-foreground">Reconnexion en cours...</p>
+          <p class="text-sm text-muted-foreground">Reconnexion en cours{{ animatedDots }}</p>
           <div class="flex items-center gap-2 text-chart-2 text-sm">
             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -150,9 +185,9 @@ setInterval(emitDataUpdate, 100);
             :disabled="hrm.isConnecting.value || !bluetoothSupported"
             class="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
           >
-            {{ hrm.isConnecting.value ? 'Connexion...' : 'Connecter Cardio' }}
+            {{ hrm.isConnecting.value ? `Connexion${animatedDots}` : 'Connecter Cardio' }}
           </button>
-          <div v-if="hrm.connectable?.deviceId" class="mt-2">
+          <div v-if="hrm.connectable?.deviceId && !hrm.isConnecting.value" class="mt-2">
             <button
               @click="reconnectHRM"
               :disabled="hrm.isConnecting.value"
@@ -169,14 +204,14 @@ setInterval(emitDataUpdate, 100);
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-semibold text-foreground flex items-center gap-2">
             <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 11V7a1 1 0 112 0v4a1 1 0 11-2 0z" />
+              <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
             </svg>
             Smart Trainer
           </h3>
           <div
             :class="[
               'w-4 h-4 rounded-full',
-              trainer.isConnected.value || useMockMode ? 'bg-chart-3' : 'bg-muted'
+              trainer.isConnected.value || useMockMode ? 'bg-green-500' : 'bg-muted'
             ]"
           ></div>
         </div>
@@ -207,7 +242,7 @@ setInterval(emitDataUpdate, 100);
         </div>
 
         <div v-else-if="trainer.isReconnecting.value" class="space-y-2">
-          <p class="text-sm text-muted-foreground">Reconnexion en cours...</p>
+          <p class="text-sm text-muted-foreground">Reconnexion en cours{{ animatedDots }}</p>
           <div class="flex items-center gap-2 text-chart-2 text-sm">
             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -229,9 +264,9 @@ setInterval(emitDataUpdate, 100);
             :disabled="trainer.isConnecting.value || !bluetoothSupported"
             class="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
           >
-            {{ trainer.isConnecting.value ? 'Connexion...' : 'Connecter Trainer' }}
+            {{ trainer.isConnecting.value ? `Connexion${animatedDots}` : 'Connecter Trainer' }}
           </button>
-          <div v-if="trainer.connectable?.deviceId" class="mt-2">
+          <div v-if="trainer.connectable?.deviceId && !trainer.isConnecting.value" class="mt-2">
             <button
               @click="reconnectTrainer"
               :disabled="trainer.isConnecting.value"
