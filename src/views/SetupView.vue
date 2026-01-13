@@ -242,37 +242,44 @@ function dismissPendingWorkout() {
           <DeviceConnector ref="deviceConnector" @device-status-change="handleDeviceStatusChange" @data-update="handleDataUpdate" />
         </div>
 
-        <!-- Colonne droite: Bouton démarrer + mode simulation -->
-        <div class="flex flex-col justify-center items-center space-y-3">
-          <!-- Indicateur mode simulation (petit texte) -->
-          <div v-if="deviceConnector?.useMockMode?.value" class="text-xs text-muted-foreground">Mode simulation actif</div>
+        <!-- Colonne droite: Bouton démarrer + Message -->
+        <div class="flex flex-col justify-center items-center space-y-4">
+          <!-- Indicateur mode simulation -->
+          <div v-if="deviceConnector?.useMockMode?.value" class="text-center">
+            <span class="inline-flex items-center gap-1 text-xs text-muted-foreground bg-accent px-2 py-1 rounded">
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+              </svg>
+              Mode simulation
+            </span>
+          </div>
 
           <!-- Bouton démarrer -->
           <button
             @click="startWorkout"
             :disabled="!canStart"
             :class="[
-              'w-full px-8 py-4 rounded-lg text-lg font-bold transition-all transform',
+              'px-6 py-3 rounded-lg text-base font-bold transition-all transform whitespace-nowrap',
               canStart
                 ? 'bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 shadow-lg'
                 : 'bg-muted text-muted-foreground cursor-not-allowed',
             ]"
           >
-            <span class="flex items-center justify-center gap-3">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+            <span class="flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fill-rule="evenodd"
                   d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
                   clip-rule="evenodd"
                 />
               </svg>
-              Demarrer l'entrainement
+              Démarrer l'entraînement
             </span>
           </button>
 
           <!-- Messages d'erreur -->
           <div v-if="!canStart" class="text-center space-y-2">
-            <p v-if="!appState.selectedWorkout.value" class="text-chart-1 text-xs font-medium">Selectionnez un entrainement ci-dessus</p>
+            <p v-if="!appState.selectedWorkout.value" class="text-chart-1 text-xs font-medium">Sélectionnez un entraînement ci-dessus</p>
             <div v-else-if="!isDeviceReady" class="space-y-2">
               <p class="text-chart-1 text-xs font-medium">Connectez vos capteurs ou activez le mode simulation</p>
               <button
@@ -284,6 +291,9 @@ function dismissPendingWorkout() {
               </button>
             </div>
           </div>
+
+          <!-- Message d'encouragement (seulement si prêt) -->
+          <p v-if="canStart" class="text-sm text-muted-foreground">Bonne séance ! 💪</p>
         </div>
       </div>
     </div>
