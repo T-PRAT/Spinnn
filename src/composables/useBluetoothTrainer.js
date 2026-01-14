@@ -182,12 +182,17 @@ export function useBluetoothTrainer() {
 
     if (data.crankRevolutions !== null && data.lastCrankEventTime !== null) {
       if (lastCrankRevs !== null && lastCrankTime !== null) {
-        cadence.value = calculateCadence(
+        const calculatedCadence = calculateCadence(
           data.crankRevolutions,
           lastCrankRevs,
           data.lastCrankEventTime,
           lastCrankTime
         );
+        // Only update cadence if we got a valid value (> 0)
+        // This prevents drops when BLE events have duplicate timestamps
+        if (calculatedCadence > 0) {
+          cadence.value = calculatedCadence;
+        }
       }
       lastCrankRevs = data.crankRevolutions;
       lastCrankTime = data.lastCrankEventTime;
@@ -195,12 +200,16 @@ export function useBluetoothTrainer() {
 
     if (data.wheelRevolutions !== null && data.lastWheelEventTime !== null) {
       if (lastWheelRevs !== null && lastWheelTime !== null) {
-        speed.value = calculateSpeed(
+        const calculatedSpeed = calculateSpeed(
           data.wheelRevolutions,
           lastWheelRevs,
           data.lastWheelEventTime,
           lastWheelTime
         );
+        // Only update speed if we got a valid value (> 0)
+        if (calculatedSpeed > 0) {
+          speed.value = calculatedSpeed;
+        }
       }
       lastWheelRevs = data.wheelRevolutions;
       lastWheelTime = data.lastWheelEventTime;
@@ -247,7 +256,11 @@ export function useBluetoothTrainer() {
       offset += 2;
 
       if (lastCrankRevs !== null && lastCrankTime !== null) {
-        cadence.value = calculateCadence(crankRevs, lastCrankRevs, crankTime, lastCrankTime);
+        const calculatedCadence = calculateCadence(crankRevs, lastCrankRevs, crankTime, lastCrankTime);
+        // Only update cadence if we got a valid value (> 0)
+        if (calculatedCadence > 0) {
+          cadence.value = calculatedCadence;
+        }
       }
 
       lastCrankRevs = crankRevs;
@@ -266,7 +279,11 @@ export function useBluetoothTrainer() {
       offset += 2;
 
       if (lastWheelRevs !== null && lastWheelTime !== null) {
-        speed.value = calculateSpeed(wheelRevs, lastWheelRevs, wheelTime, lastWheelTime);
+        const calculatedSpeed = calculateSpeed(wheelRevs, lastWheelRevs, wheelTime, lastWheelTime);
+        // Only update speed if we got a valid value (> 0)
+        if (calculatedSpeed > 0) {
+          speed.value = calculatedSpeed;
+        }
       }
 
       lastWheelRevs = wheelRevs;

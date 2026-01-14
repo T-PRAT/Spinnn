@@ -33,7 +33,9 @@ let lastTargetPower = 0;
 // Auto-pause/start based on power
 const autoPauseEnabled = ref(true);
 const powerActiveSeconds = ref(0);
+const powerInactiveSeconds = ref(0);
 const POWER_START_THRESHOLD = 3; // seconds of power > 0 to auto-start
+const POWER_PAUSE_THRESHOLD = 5; // seconds of power = 0 to auto-pause
 
 // Configuration des métriques par slot
 const defaultMetricsConfig = {
@@ -271,6 +273,7 @@ function startDataCollection() {
 		if (autoPauseEnabled.value && session.isActive.value) {
 			if (currentPower > 0) {
 				powerActiveSeconds.value++;
+				powerInactiveSeconds.value = 0;
 				// Auto-start after POWER_START_THRESHOLD seconds of power
 				if (session.isPaused.value && powerActiveSeconds.value >= POWER_START_THRESHOLD) {
 					session.resume();
@@ -278,8 +281,9 @@ function startDataCollection() {
 				}
 			} else {
 				powerActiveSeconds.value = 0;
-				// Auto-pause when power is 0
-				if (!session.isPaused.value) {
+				powerInactiveSeconds.value++;
+				// Auto-pause after POWER_PAUSE_THRESHOLD seconds without power
+				if (!session.isPaused.value && powerInactiveSeconds.value >= POWER_PAUSE_THRESHOLD) {
 					session.pause();
 				}
 			}
@@ -327,6 +331,7 @@ function togglePause() {
 function enableAutoPause() {
 	autoPauseEnabled.value = true;
 	powerActiveSeconds.value = 0;
+	powerInactiveSeconds.value = 0;
 }
 
 // Check if waiting for pedaling

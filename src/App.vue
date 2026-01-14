@@ -4,21 +4,41 @@ import { useRoute } from 'vue-router';
 import Sidebar from './components/layout/Sidebar.vue';
 import { useAppState } from './composables/useAppState';
 import { useTheme } from './composables/useTheme';
+import { useWorkoutSession } from './composables/useWorkoutSession';
 
 const appState = useAppState();
 const route = useRoute();
 const theme = useTheme();
+const session = useWorkoutSession();
+
+const defaultTitle = 'Spinnn - Entraînement Cyclisme';
+
+// Update page title
+function updateTitle() {
+  if (route.name === 'workout' && session.isPaused.value) {
+    document.title = `⏸ PAUSE - ${defaultTitle}`;
+  } else {
+    document.title = defaultTitle;
+  }
+}
 
 // Initialiser le thème au montage
 onMounted(() => {
   // Le thème est déjà appliqué par le composable useTheme
+  updateTitle();
 });
 
 watch(() => route.name, (routeName) => {
   if (routeName === 'setup') appState.goToStep(1);
   else if (routeName === 'workout') appState.goToStep(2);
   else if (routeName === 'summary') appState.goToStep(3);
+  updateTitle();
 }, { immediate: true });
+
+// Watch session pause state to update title
+watch(() => session.isPaused.value, () => {
+  updateTitle();
+});
 </script>
 
 <template>

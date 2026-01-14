@@ -1,40 +1,46 @@
 # TODO
+** [Home][Workout][Summary][Settings][General]**
 
 ## A
-- trouver un meilleur nom
-- faire un logo
-- bouton aller prochain intervalle
-- meilleur sons intervalle
+- [General] trouver un meilleur nom
+- [General] faire un logo
+- [Workout] bouton aller prochain intervalle
+- [Workout] meilleur sons intervalle
+- [Workout] mettre P cible et Pmax en dessous puissance (et pareil pour FC)
+- [Workout] ajouter barre de progression de l'intervalle en cours
 
 ## B
-- monter baisser la puissance de l'entrainement en cours
-- monter baisser la puissance de l'intervalle en cours
-- ajouter une image(graphique) a l'export
-- export strava
-- verifier .fit (appareil, activité...)
-- dashboard en mode paysage mobile
-- dashboard en mode paysage tablette
+- [Workout] monter baisser la puissance de l'entrainement en cours
+- [Workout] monter baisser la puissance de l'intervalle en cours
+- [Summary] ajouter une image(graphique) a l'export
+- [Summary] export strava
+- [Summary] verifier .fit (appareil, activité...)
+- [General] dashboard en mode paysage mobile
+- [General] dashboard en mode paysage tablette
+- [Workout] séparateur dans le graphique, surtout pour intervalles même zone
+- [Workout] titre fenêtre - surtout attention pause
 
 ## C
-- animation diverse
-- renommer l'activité au summary
-- ajouter RPE a la summary
-- modifier les entrainements (sytaxe interval ?)
-- pouvoir connecter d'autre capteurs (core,)
+- [Workout] indication quel capteur connecté en séance
+- [General] animation diverse
+- [Summary] renommer l'activité au summary
+- [Summary] ajouter RPE a la summary
+- [Home] modifier les entrainements (sytaxe interval ?)
+- [Settings] pouvoir connecter d'autre capteurs (core,)
 
 ## Fixes
-- [HRM] Rétablir validation contact capteur (sensorContactSupported)
-- [Chart] Ajouter debounce sur ResizeObserver (performance)
-- [Chart] Réduire lissage de 5 à 2-3 points (délai affichage)
-- [DeviceConnector] Corriger nettoyage animation onUnmounted
-- [Tests] Compléter E2E tests (flux workout complet)
-- [Tests] Ajouter tests zwoParser, calculations, localStorage
-- [UI] Remplacer couleurs hardcodées par variables CSS
-- [WorkoutView] Vérifier existance fonction getTargetPowerAtTime
+- [General] Remplacer couleurs hardcodées par variables CSS
+- [Workout] Fix ramp graphique dans mauvais sense
+- [Settings] Vitesse très faible pour puissance
+
+## IRL test TODO
+- [Workout] Drop dans la courbe de cadence inexpliqué
+- [Workout] Pause auto trop rapide
+
 
 ## Done
-- customizer le dashboard
-- refonte dashboard
-- [DeviceConnector] Ajouter animation des points lors de la connexion/reconnexion Bluetooth (Connexion...)
+- [General] customizer le dashboard
+- [General] refonte dashboard
+- [Workout] Changer FTP pendant séance ✓
 
 ## Ideas
