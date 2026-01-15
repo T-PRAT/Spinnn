@@ -359,6 +359,47 @@ function stopWorkout() {
 	router.push({ name: "summary" });
 }
 
+// Helper function to find next interval start time
+function findNextIntervalStartTime() {
+	if (!appState.selectedWorkout.value) return null;
+
+	const intervals = appState.selectedWorkout.value.intervals;
+	let currentTime = 0;
+	const elapsed = session.elapsedSeconds.value;
+
+	// Find which interval we're currently in
+	for (const interval of intervals) {
+		if (elapsed < currentTime + interval.duration) {
+			// We're in this interval, return the start of the next one
+			return currentTime + interval.duration;
+		}
+		currentTime += interval.duration;
+	}
+
+	// We're past all intervals
+	return null;
+}
+
+// Skip to next interval
+function skipToNextInterval() {
+	const nextIntervalStart = findNextIntervalStartTime();
+
+	if (nextIntervalStart === null || nextIntervalStart >= appState.selectedWorkout.value.duration) {
+		return; // Already at last interval or workout complete
+	}
+
+	// Jump to next interval start time
+	session.elapsedSeconds.value = nextIntervalStart;
+
+	// Resume if paused to get ERG updates
+	if (session.isPaused.value) {
+		session.resume();
+	}
+
+	// Update ERG power immediately
+	updateERGPower();
+}
+
 watch(
 	() => session.isWorkoutComplete.value,
 	(isComplete) => {
@@ -608,6 +649,21 @@ const rightSlots = computed(() => [
 						/>
 					</svg>
 					<span class="hidden sm:inline">{{ session.isPaused.value ? "Reprendre" : "Pause" }}</span>
+				</button>
+
+				<button
+					@click="skipToNextInterval"
+					:disabled="!findNextIntervalStartTime() || findNextIntervalStartTime() >= appState.selectedWorkout.value?.duration"
+					class="px-3 md:px-6 py-1.5 md:py-2 bg-chart-4 hover:bg-chart-4/90 text-primary-foreground rounded-lg text-xs md:text-sm font-semibold transition-all flex items-center gap-1 md:gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+				>
+					<svg
+						class="w-3 h-3 md:w-4 md:h-4"
+						fill="currentColor"
+						viewBox="0 0 20 20"
+					>
+						<path d="M4.5 4.5a1 1 0 011.414 0L8 6.586l2.086-2.086a1 1 0 111.414 1.414L9.414 8l2.086 2.086a1 1 0 11-1.414 1.414L8 9.414l-2.086 2.086a1 1 0 11-1.414-1.414L6.586 8 4.5 5.914A1 1 0 014.5 4.5zm9 0a1 1 0 011.414 0L17 6.586l2.086-2.086a1 1 0 111.414 1.414L18.414 8l2.086 2.086a1 1 0 11-1.414 1.414L17 9.414l-2.086 2.086a1 1 0 11-1.414-1.414L15.586 8 13.5 5.914a1 1 0 010-1.414z" />
+					</svg>
+					<span class="hidden sm:inline">Suivant</span>
 				</button>
 
 				<button
