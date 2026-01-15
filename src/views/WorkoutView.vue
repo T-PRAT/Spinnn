@@ -543,6 +543,7 @@ const rightSlots = computed(() => [
 			:session="session"
 			:left-slots="leftSlots"
 			:right-slots="rightSlots"
+			:current-target-power="currentTargetPower"
 			@configure="openMetricConfig"
 		/>
 

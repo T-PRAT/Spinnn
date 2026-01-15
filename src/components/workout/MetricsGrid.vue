@@ -18,6 +18,10 @@ const props = defineProps({
 		type: Array,
 		required: true,
 	},
+	currentTargetPower: {
+		type: Number,
+		default: 0,
+	},
 });
 
 const emit = defineEmits(['configure']);
@@ -53,10 +57,28 @@ const emit = defineEmits(['configure']);
 					}}<span class="text-lg md:text-2xl ml-1">W</span>
 				</div>
 				<hr class="border-border opacity-50" />
-				<div class="text-[10px] md:text-xs text-muted-foreground mt-1 md:mt-2">Tour</div>
-				<div class="text-sm md:text-lg font-semibold text-chart-1 mt-1">
-					{{ session.intervalPower.value
-					}}<span class="text-xs md:text-sm ml-1">W</span>
+				<div class="grid grid-cols-2 gap-2 mt-1 md:mt-2 text-left">
+					<div>
+						<div class="text-[9px] md:text-[10px] text-muted-foreground">Cible</div>
+						<div class="text-xs md:text-sm font-semibold text-chart-1">
+							{{ currentTargetPower
+							}}<span class="text-[9px] md:text-xs ml-1">W</span>
+						</div>
+					</div>
+					<div>
+						<div class="text-[9px] md:text-[10px] text-muted-foreground">Max</div>
+						<div class="text-xs md:text-sm font-semibold text-chart-1">
+							{{ session.maxPower.value
+							}}<span class="text-[9px] md:text-xs ml-1">W</span>
+						</div>
+					</div>
+					<div>
+						<div class="text-[9px] md:text-[10px] text-muted-foreground">Tour</div>
+						<div class="text-xs md:text-sm font-semibold text-chart-1">
+							{{ session.intervalPower.value
+							}}<span class="text-[9px] md:text-xs ml-1">W</span>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -71,10 +93,21 @@ const emit = defineEmits(['configure']);
 					}}<span class="text-lg md:text-2xl ml-1">bpm</span>
 				</div>
 				<hr class="border-border opacity-50" />
-				<div class="text-[10px] md:text-xs text-muted-foreground mt-1 md:mt-2">Tour</div>
-				<div class="text-sm md:text-lg font-semibold text-destructive mt-1">
-					{{ session.intervalHeartRate.value
-					}}<span class="text-xs md:text-sm ml-1">bpm</span>
+				<div class="grid grid-cols-2 gap-2 mt-1 md:mt-2 text-left">
+					<div>
+						<div class="text-[9px] md:text-[10px] text-muted-foreground">Max</div>
+						<div class="text-xs md:text-sm font-semibold text-destructive">
+							{{ session.maxHeartRate.value
+							}}<span class="text-[9px] md:text-xs ml-1">bpm</span>
+						</div>
+					</div>
+					<div>
+						<div class="text-[9px] md:text-[10px] text-muted-foreground">Moy Int.</div>
+						<div class="text-xs md:text-sm font-semibold text-destructive">
+							{{ session.intervalHeartRate.value
+							}}<span class="text-[9px] md:text-xs ml-1">bpm</span>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
