@@ -112,10 +112,12 @@ export function useMockDevices() {
       const cadenceVariation = (Math.random() - 0.5) * 6; // ±3 rpm
       cadence.value = Math.round(baseCadence + cadenceVariation);
 
-      // Speed correlates with power (rough approximation)
-      // Average: ~30W per km/h at steady state
-      const baseSpeed = (currentPower / 30) + 5; // m/s
-      const speedVariation = (Math.random() - 0.5) * 0.4;
+      // Speed correlates with power (realistic flat-road approximation for average cyclist)
+      // Physics-based: Power = (Crr + CdA * v^2) * v
+      // Simplified: 200W ≈ 33 km/h (9.2 m/s), 100W ≈ 26 km/h (7.2 m/s)
+      // Using cubic approximation: speed ≈ (power / 0.25)^(1/3)
+      const baseSpeed = Math.pow(currentPower / 0.25, 1/3); // m/s
+      const speedVariation = (Math.random() - 0.5) * 0.3;
       speed.value = Math.max(0, baseSpeed + speedVariation);
 
     }, 100);
