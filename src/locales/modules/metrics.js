@@ -1,0 +1,33 @@
+export default {
+  power: 'Puissance',
+  heartRate: 'FC',
+  cadence: 'Cadence',
+  speed: 'Vitesse',
+  distance: 'Distance',
+  energy: 'Énergie',
+  intervalPower: 'Puissance Tour',
+  intervalHeartRate: 'FC Tour',
+  intervalRemainingTime: 'Temps Restant',
+  elapsedTime: 'Temps Écoulé',
+  avgPower: 'Puissance Moy',
+  avgHeartRate: 'FC Moy',
+  avgCadence: 'Cadence Moy',
+  // Units
+  watts: 'W',
+  bpm: 'bpm',
+  rpm: 'rpm',
+  kmh: 'km/h',
+  km: 'km',
+  kcal: 'kcal',
+  // Summary stats
+  duration: 'Durée',
+  distanceFull: 'Distance',
+  avgPowerFull: 'Puissance moy.',
+  avgHeartRateFull: 'FC moyenne',
+  maxPower: 'Puissance max',
+  maxHeartRate: 'FC max',
+  avgCadenceFull: 'Cadence moy.',
+  normalizedPower: 'Puissance normalisée',
+  intensityFactor: 'Facteur d\'intensité',
+  tss: 'TSS'
+};

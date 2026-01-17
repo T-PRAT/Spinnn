@@ -3,13 +3,15 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useBluetoothHRM } from '../../composables/useBluetoothHRM';
 import { useBluetoothTrainer } from '../../composables/useBluetoothTrainer';
 import { useMockDevices } from '../../composables/useMockDevices';
+import { useI18n } from '@/composables/useI18n';
 import { isBluetoothAvailable } from '../../utils/web-ble.js';
 
 const hrm = useBluetoothHRM();
 const trainer = useBluetoothTrainer();
 const mockDevices = useMockDevices();
+const { t } = useI18n();
 
-// Animation des points pour "Connexion..."
+// Animated dots for "Connecting..."
 const dotCount = ref(0);
 let dotInterval = null;
 
@@ -129,8 +131,8 @@ setInterval(emitDataUpdate, 100);
   <div class="space-y-4">
     <!-- Bluetooth not supported -->
     <div v-if="!bluetoothSupported" class="p-4 bg-chart-1/10 border border-chart-1/30 rounded-lg">
-      <p class="text-chart-1 text-sm font-medium">Bluetooth non disponible</p>
-      <p class="text-chart-1/80 text-xs mt-1">Utilisez Chrome/Edge en HTTPS ou localhost</p>
+      <p class="text-chart-1 text-sm font-medium">{{ t('device.bluetoothNotAvailable') }}</p>
+      <p class="text-chart-1/80 text-xs mt-1">{{ t('device.bluetoothNotAvailableHint') }}</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -140,7 +142,7 @@ setInterval(emitDataUpdate, 100);
             <svg class="w-5 h-5 text-destructive" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
             </svg>
-            Cardio (HRM)
+            {{ t('device.heartRateMonitor') }}
           </h3>
           <div
             :class="[
@@ -151,31 +153,31 @@ setInterval(emitDataUpdate, 100);
         </div>
 
         <div v-if="useMockMode || hrm.isConnected.value" class="space-y-2">
-          <p class="text-sm text-muted-foreground">{{ useMockMode ? 'Mock HR Monitor' : hrm.deviceName.value }}</p>
-          <p class="text-3xl font-bold text-destructive">{{ useMockMode ? mockDevices.heartRate.value : hrm.heartRate.value }} <span class="text-sm text-muted-foreground">bpm</span></p>
+          <p class="text-sm text-muted-foreground">{{ useMockMode ? t('device.mockHRM') : hrm.deviceName.value }}</p>
+          <p class="text-3xl font-bold text-destructive">{{ useMockMode ? mockDevices.heartRate.value : hrm.heartRate.value }} <span class="text-sm text-muted-foreground">{{ t('metrics.bpm') }}</span></p>
           <button
             v-if="!useMockMode"
             @click="disconnectHRM"
             class="w-full px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors"
           >
-            Deconnecter
+            {{ t('device.disconnect') }}
           </button>
         </div>
 
         <div v-else-if="hrm.isReconnecting.value" class="space-y-2">
-          <p class="text-sm text-muted-foreground">Reconnexion en cours{{ animatedDots }}</p>
+          <p class="text-sm text-muted-foreground">{{ t('device.reconnecting') }}{{ animatedDots }}</p>
           <div class="flex items-center gap-2 text-chart-2 text-sm">
             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span>Tentative de reconnexion auto</span>
+            <span>{{ t('device.autoReconnect') }}</span>
           </div>
           <button
             @click="hrm.cancelReconnect()"
             class="w-full px-3 py-1.5 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors text-sm"
           >
-            Annuler la reconnexion
+            {{ t('device.cancelReconnect') }}
           </button>
         </div>
 
@@ -185,7 +187,7 @@ setInterval(emitDataUpdate, 100);
             :disabled="hrm.isConnecting.value || !bluetoothSupported"
             class="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
           >
-            {{ hrm.isConnecting.value ? `Connexion${animatedDots}` : 'Connecter Cardio' }}
+            {{ hrm.isConnecting.value ? `${t('device.connecting')}${animatedDots}` : t('device.connectHRM') }}
           </button>
           <div v-if="hrm.connectable?.deviceId && !hrm.isConnecting.value" class="mt-2">
             <button
@@ -193,7 +195,7 @@ setInterval(emitDataUpdate, 100);
               :disabled="hrm.isConnecting.value"
               class="w-full px-3 py-1.5 bg-chart-2 text-chart-2-foreground rounded-lg hover:bg-chart-2/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors text-sm"
             >
-              Reconnecter au dernier appareil
+              {{ t('device.reconnect') }}
             </button>
           </div>
           <p v-if="hrm.error.value" class="text-xs text-destructive mt-2">{{ hrm.error.value }}</p>
@@ -206,7 +208,7 @@ setInterval(emitDataUpdate, 100);
             <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
             </svg>
-            Smart Trainer
+            {{ t('device.smartTrainer') }}
           </h3>
           <div
             :class="[
@@ -217,19 +219,19 @@ setInterval(emitDataUpdate, 100);
         </div>
 
         <div v-if="useMockMode || trainer.isConnected.value" class="space-y-2">
-          <p class="text-sm text-muted-foreground">{{ useMockMode ? 'Mock Smart Trainer' : trainer.deviceName.value }}</p>
+          <p class="text-sm text-muted-foreground">{{ useMockMode ? t('device.mockTrainer') : trainer.deviceName.value }}</p>
           <div class="grid grid-cols-3 gap-2 text-center">
             <div>
-              <p class="text-xs text-muted-foreground">Puissance</p>
-              <p class="text-xl font-bold text-chart-1">{{ useMockMode ? mockDevices.power.value : trainer.power.value }}<span class="text-xs">W</span></p>
+              <p class="text-xs text-muted-foreground">{{ t('device.powerLabel') }}</p>
+              <p class="text-xl font-bold text-chart-1">{{ useMockMode ? mockDevices.power.value : trainer.power.value }}<span class="text-xs">{{ t('metrics.watts') }}</span></p>
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Cadence</p>
-              <p class="text-xl font-bold text-chart-2">{{ useMockMode ? mockDevices.cadence.value : trainer.cadence.value }}<span class="text-xs">rpm</span></p>
+              <p class="text-xs text-muted-foreground">{{ t('device.cadenceLabel') }}</p>
+              <p class="text-xl font-bold text-chart-2">{{ useMockMode ? mockDevices.cadence.value : trainer.cadence.value }}<span class="text-xs">{{ t('metrics.rpm') }}</span></p>
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Vitesse</p>
-              <p class="text-xl font-bold text-primary">{{ useMockMode ? (mockDevices.speed.value * 3.6).toFixed(1) : (trainer.speed.value * 3.6).toFixed(1) }}<span class="text-xs">km/h</span></p>
+              <p class="text-xs text-muted-foreground">{{ t('device.speedLabel') }}</p>
+              <p class="text-xl font-bold text-primary">{{ useMockMode ? (mockDevices.speed.value * 3.6).toFixed(1) : (trainer.speed.value * 3.6).toFixed(1) }}<span class="text-xs">{{ t('metrics.kmh') }}</span></p>
             </div>
           </div>
           <button
@@ -237,24 +239,24 @@ setInterval(emitDataUpdate, 100);
             @click="disconnectTrainer"
             class="w-full px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors"
           >
-            Deconnecter
+            {{ t('device.disconnect') }}
           </button>
         </div>
 
         <div v-else-if="trainer.isReconnecting.value" class="space-y-2">
-          <p class="text-sm text-muted-foreground">Reconnexion en cours{{ animatedDots }}</p>
+          <p class="text-sm text-muted-foreground">{{ t('device.reconnecting') }}{{ animatedDots }}</p>
           <div class="flex items-center gap-2 text-chart-2 text-sm">
             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span>Tentative de reconnexion auto</span>
+            <span>{{ t('device.autoReconnect') }}</span>
           </div>
           <button
             @click="trainer.cancelReconnect()"
             class="w-full px-3 py-1.5 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors text-sm"
           >
-            Annuler la reconnexion
+            {{ t('device.cancelReconnect') }}
           </button>
         </div>
 
@@ -264,7 +266,7 @@ setInterval(emitDataUpdate, 100);
             :disabled="trainer.isConnecting.value || !bluetoothSupported"
             class="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
           >
-            {{ trainer.isConnecting.value ? `Connexion${animatedDots}` : 'Connecter Trainer' }}
+            {{ trainer.isConnecting.value ? `${t('device.connecting')}${animatedDots}` : t('device.connectTrainer') }}
           </button>
           <div v-if="trainer.connectable?.deviceId && !trainer.isConnecting.value" class="mt-2">
             <button
@@ -272,7 +274,7 @@ setInterval(emitDataUpdate, 100);
               :disabled="trainer.isConnecting.value"
               class="w-full px-3 py-1.5 bg-chart-2 text-chart-2-foreground rounded-lg hover:bg-chart-2/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors text-sm"
             >
-              Reconnecter au dernier appareil
+              {{ t('device.reconnect') }}
             </button>
           </div>
           <p v-if="trainer.error.value" class="text-xs text-destructive mt-2">{{ trainer.error.value }}</p>

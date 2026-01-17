@@ -1,0 +1,72 @@
+export default {
+  buttons: {
+    save: 'Enregistrer',
+    cancel: 'Annuler',
+    delete: 'Supprimer',
+    edit: 'Modifier',
+    close: 'Fermer',
+    confirm: 'Confirmer',
+    back: 'Retour',
+    next: 'Suivant',
+    previous: 'Précédent',
+    skip: 'Passer',
+    test: 'Tester',
+    refresh: 'Rafraîchir',
+    download: 'Télécharger',
+    upload: 'Importer',
+    connect: 'Connecter',
+    disconnect: 'Déconnecter',
+    reconnect: 'Reconnecter',
+    start: 'Démarrer',
+    stop: 'Arrêter',
+    pause: 'Pause',
+    resume: 'Reprendre',
+    reset: 'Réinitialiser',
+    enable: 'Activer',
+    disable: 'Désactiver'
+  },
+  states: {
+    loading: 'Chargement...',
+    connected: 'Connecté',
+    disconnected: 'Déconnecté',
+    connecting: 'Connexion',
+    reconnecting: 'Reconnexion en cours',
+    enabled: 'Activé',
+    disabled: 'Désactivé',
+    active: 'Actif',
+    inactive: 'Inactif',
+    ready: 'Prêt',
+    notReady: 'Pas prêt'
+  },
+  labels: {
+    name: 'Nom',
+    description: 'Description',
+    duration: 'Durée',
+    difficulty: 'Difficulté',
+    category: 'Catégorie',
+    power: 'Puissance',
+    heartRate: 'Fréquence cardiaque',
+    cadence: 'Cadence',
+    speed: 'Vitesse',
+    distance: 'Distance',
+    energy: 'Énergie',
+    target: 'Cible',
+    max: 'Max',
+    average: 'Moyenne',
+    interval: 'Tour',
+    remainingTime: 'Temps restant',
+    elapsedTime: 'Temps écoulé'
+  },
+  difficulties: {
+    easy: 'Facile',
+    moderate: 'Modéré',
+    hard: 'Difficile'
+  },
+  messages: {
+    goodSession: 'Bonne séance !',
+    workoutComplete: 'Entraînement terminé !',
+    selectWorkout: 'Sélectionnez un entraînement',
+    connectSensors: 'Connectez vos capteurs',
+    enableSimulation: 'Activer la simulation'
+  }
+};

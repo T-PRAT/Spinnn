@@ -2,12 +2,14 @@
 import { ref, watch } from "vue";
 import { useIntervalsIcu } from "../../composables/useIntervalsIcu";
 import { useAppState } from "../../composables/useAppState";
+import { useI18n } from "@/composables/useI18n";
 import { formatDuration } from "../../data/sampleWorkouts";
 import WorkoutPreviewChart from "../workout/WorkoutPreviewChart.vue";
 
 const emit = defineEmits(["workout-selected"]);
 const intervals = useIntervalsIcu();
 const appState = useAppState();
+const { t } = useI18n();
 
 const todayWorkouts = ref([]);
 const isLoading = ref(false);
@@ -55,9 +57,9 @@ defineExpose({
   <div class="space-y-3">
     <div v-if="!intervals.isConnected.value" class="p-4 bg-muted/50 rounded-lg border border-border">
       <p class="text-sm text-muted-foreground text-center">
-        Connectez-vous à Intervals.icu dans les
-        <router-link to="/settings#intervals-icu" class="text-primary hover:underline">paramètres</router-link>
-        pour voir votre entrainement du jour
+        {{ t('workout.intervalsNotConnected') }}
+        <router-link to="/settings#intervals-icu" class="text-primary hover:underline">{{ t('workout.intervalsSettingsLink') }}</router-link>
+        {{ t('workout.intervalsNotConnectedSuffix') }}
       </p>
     </div>
 
@@ -71,17 +73,17 @@ defineExpose({
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
           ></path>
         </svg>
-        <span class="text-sm text-muted-foreground">Chargement...</span>
+        <span class="text-sm text-muted-foreground">{{ t('workout.loading') }}</span>
       </div>
     </div>
 
     <div v-else-if="error" class="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
       <p class="text-sm text-destructive">{{ error }}</p>
-      <button @click="loadTodayWorkouts" class="mt-2 text-sm text-primary hover:underline">Réessayer</button>
+      <button @click="loadTodayWorkouts" class="mt-2 text-sm text-primary hover:underline">{{ t('workout.retry') }}</button>
     </div>
 
     <div v-else-if="todayWorkouts.length === 0" class="p-4 bg-muted/50 rounded-lg border border-border flex items-center justify-center">
-      <span class="text-sm text-muted-foreground text-center">Pas d'entraînement aujourd'hui</span>
+      <span class="text-sm text-muted-foreground text-center">{{ t('workout.noWorkoutToday') }}</span>
     </div>
 
     <div v-else class="space-y-2">

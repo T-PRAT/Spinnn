@@ -4,16 +4,23 @@ import { useRoute } from 'vue-router';
 import { useAppState } from '../composables/useAppState';
 import { useTheme } from '../composables/useTheme';
 import { useAudioSettings } from '../composables/useAudioSettings';
+import { useI18n } from '../composables/useI18n';
 import IntervalsSettings from '../components/settings/IntervalsSettings.vue';
 
 const route = useRoute();
 const appState = useAppState();
 const theme = useTheme();
 const audioSettings = useAudioSettings();
+const { currentLocale, setLocale, t } = useI18n();
 
 const localFtp = ref(200);
 const showTooltip = ref(false);
 const localZones = ref({});
+
+const languages = [
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'en', name: 'English', flag: '🇬🇧' }
+];
 
 onMounted(() => {
   localFtp.value = appState.ftp.value;
@@ -76,16 +83,37 @@ function testSound(soundId) {
 <template>
   <div class="max-w-2xl mx-auto space-y-6">
     <div class="mb-8">
-      <h2 class="text-2xl font-bold text-foreground tracking-tight">Parametres</h2>
+      <h2 class="text-2xl font-bold text-foreground tracking-tight">{{ t('settings.title') }}</h2>
+    </div>
+
+    <!-- Language Selector -->
+    <div class="bg-card rounded-lg p-6 shadow border border-border">
+      <h3 class="text-lg font-semibold text-foreground mb-4">{{ t('settings.language.title') }}</h3>
+      <div class="flex items-center gap-3">
+        <button
+          v-for="lang in languages"
+          :key="lang.code"
+          @click="setLocale(lang.code)"
+          :class="[
+            'flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all',
+            currentLocale === lang.code
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          ]"
+        >
+          <span class="text-xl">{{ lang.flag }}</span>
+          <span>{{ lang.name }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- Theme Toggle -->
     <div class="bg-card rounded-lg p-6 shadow border border-border">
-      <h3 class="text-lg font-semibold text-foreground mb-4">Apparence</h3>
+      <h3 class="text-lg font-semibold text-foreground mb-4">{{ t('settings.appearance.title') }}</h3>
       <div class="flex items-center justify-between">
         <div>
-          <div class="text-sm font-medium text-foreground">Mode sombre</div>
-          <div class="text-xs text-muted-foreground mt-1">Basculer entre le mode clair et sombre</div>
+          <div class="text-sm font-medium text-foreground">{{ t('settings.appearance.darkMode') }}</div>
+          <div class="text-xs text-muted-foreground mt-1">{{ t('settings.appearance.darkModeDescription') }}</div>
         </div>
         <button
           @click="theme.toggleTheme()"
@@ -106,9 +134,9 @@ function testSound(soundId) {
 
     <!-- Audio Settings -->
     <div class="bg-card rounded-lg p-6 shadow border border-border">
-      <h3 class="text-lg font-semibold text-foreground mb-4">Sons d'intervalle</h3>
+      <h3 class="text-lg font-semibold text-foreground mb-4">{{ t('settings.audio.title') }}</h3>
       <p class="text-sm text-muted-foreground mb-4">
-        Choisissez un son qui sera joue au debut de chaque nouvel intervalle pendant l'entrainement
+        {{ t('settings.audio.description') }}
       </p>
 
       <div class="space-y-2">
@@ -149,7 +177,7 @@ function testSound(soundId) {
             @click.stop="testSound(sound.id)"
             class="ml-3 px-3 py-1 text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded transition-colors"
           >
-            Tester
+            {{ t('common.buttons.test') }}
           </button>
         </div>
       </div>
@@ -158,14 +186,14 @@ function testSound(soundId) {
     <!-- FTP Settings -->
     <div class="bg-card rounded-lg p-6 shadow border border-border">
       <div class="flex items-center gap-2 mb-4">
-        <h3 class="text-lg font-semibold text-foreground">Profil athlete</h3>
+        <h3 class="text-lg font-semibold text-foreground">{{ t('settings.athlete.title') }}</h3>
       </div>
 
       <div class="space-y-4">
         <div>
           <div class="flex items-center gap-2 mb-2">
             <label for="ftp" class="text-sm font-medium text-foreground">
-              FTP (Functional Threshold Power)
+              {{ t('settings.athlete.ftp') }}
             </label>
             <button
               @mouseenter="showTooltip = true"
@@ -181,8 +209,7 @@ function testSound(soundId) {
                 v-if="showTooltip"
                 class="absolute left-6 top-0 w-64 p-3 bg-popover text-popover-foreground text-xs rounded-lg shadow-lg border border-border z-10"
               >
-                Le FTP est la puissance maximale que vous pouvez maintenir pendant environ une heure.
-                Il est utilise pour calculer vos zones d'entrainement et le TSS.
+                {{ t('settings.athlete.ftpTooltip') }}
               </div>
             </button>
           </div>
@@ -195,16 +222,16 @@ function testSound(soundId) {
               max="500"
               class="w-32 px-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-lg text-foreground"
             />
-            <span class="text-muted-foreground">watts</span>
+            <span class="text-muted-foreground">{{ t('settings.athlete.ftpUnit') }}</span>
             <button
               @click="saveFtp"
               class="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
             >
-              Enregistrer
+              {{ t('common.buttons.save') }}
             </button>
           </div>
           <p class="text-xs text-muted-foreground mt-2">
-            Valeur actuelle sauvegardee : {{ appState.ftp.value }}W
+            {{ t('settings.athlete.ftpSaved') }} : {{ appState.ftp.value }}W
           </p>
         </div>
       </div>
@@ -213,16 +240,16 @@ function testSound(soundId) {
     <!-- Power Zones Configuration -->
     <div class="bg-card rounded-lg p-6 shadow border border-border">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-foreground">Zones de puissance</h3>
+        <h3 class="text-lg font-semibold text-foreground">{{ t('settings.zones.title') }}</h3>
         <button
           @click="resetZones"
           class="text-sm text-muted-foreground hover:text-foreground underline"
         >
-          Réinitialiser
+          {{ t('common.buttons.reset') }}
         </button>
       </div>
       <p class="text-sm text-muted-foreground mb-4">
-        Configurez vos zones de puissance en pourcentage de votre FTP ({{ appState.ftp.value }}W)
+        {{ t('settings.zones.description') }} ({{ appState.ftp.value }}W)
       </p>
 
       <div class="space-y-2">
@@ -266,7 +293,7 @@ function testSound(soundId) {
         @click="saveZones"
         class="mt-4 w-full px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
       >
-        Enregistrer les zones
+        {{ t('settings.zones.save') }}
       </button>
     </div>
 

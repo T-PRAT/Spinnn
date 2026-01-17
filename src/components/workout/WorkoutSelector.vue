@@ -2,11 +2,13 @@
 import { ref } from "vue";
 import { workoutCategories, formatDuration } from "../../data/sampleWorkouts";
 import { useAppState } from "../../composables/useAppState";
+import { useI18n } from "@/composables/useI18n";
 import WorkoutPreviewChart from "./WorkoutPreviewChart.vue";
 
 const appState = useAppState();
+const { t } = useI18n();
 const selectedWorkout = ref(null);
-const expandedCategories = ref(new Set(["endurance"])); // Première catégorie ouverte par défaut
+const expandedCategories = ref(new Set(["endurance"])); // First category open by default
 
 const emit = defineEmits(["workout-selected"]);
 
@@ -19,7 +21,7 @@ function toggleCategory(categoryId) {
 	if (expandedCategories.value.has(categoryId)) {
 		expandedCategories.value.delete(categoryId);
 	} else {
-		// Fermer toutes les autres catégories
+		// Close all other categories
 		expandedCategories.value.clear();
 		expandedCategories.value.add(categoryId);
 	}
@@ -29,7 +31,7 @@ function toggleCategory(categoryId) {
 <template>
 	<div class="space-y-4">
 		<h2 class="text-xl font-bold text-foreground">
-			Entrainements predefinis
+			{{ t('workout.predefined') }}
 		</h2>
 
 		<div class="h-92.5 max-h-150 overflow-y-auto space-y-3">

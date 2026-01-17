@@ -8,11 +8,13 @@ import IntervalsTodayWorkout from "../components/layout/IntervalsTodayWorkout.vu
 import { useAppState } from "../composables/useAppState";
 import { useWorkoutSession } from "../composables/useWorkoutSession";
 import { useIntervalsIcu } from "../composables/useIntervalsIcu";
+import { useI18n } from "@/composables/useI18n";
 
 const router = useRouter();
 const appState = useAppState();
 const session = useWorkoutSession();
 const intervals = useIntervalsIcu();
+const { t } = useI18n();
 
 const isDeviceReady = ref(false);
 const fileInput = ref(null);
@@ -155,19 +157,19 @@ function dismissPendingWorkout() {
     <div v-if="hasPendingWorkout" class="bg-primary/10 border border-primary/30 rounded-lg p-3 md:p-4 space-y-2 md:space-y-3">
       <div class="flex items-start justify-between">
         <div class="flex-1">
-          <h3 class="text-lg font-semibold text-primary mb-1">Entraînement en cours</h3>
+          <h3 class="text-lg font-semibold text-primary mb-1">{{ t('workout.inProgress') }}</h3>
           <p class="text-sm text-foreground mb-2">
             <strong>{{ session.workout.value?.name }}</strong>
           </p>
           <p class="text-sm text-muted-foreground">
-            Progression: {{ session.formattedElapsedTime.value }} / {{ session.formattedWorkoutDuration.value }} •
-            {{ Math.round((session.elapsedSeconds.value / session.workout.value.duration) * 100) }}% terminé
+            {{ t('workout.progress') }}: {{ session.formattedElapsedTime.value }} / {{ session.formattedWorkoutDuration.value }} •
+            {{ Math.round((session.elapsedSeconds.value / session.workout.value.duration) * 100) }}% {{ t('workout.completed') }}
           </p>
         </div>
         <button
           @click="dismissPendingWorkout"
           class="text-muted-foreground hover:text-destructive transition-colors p-1"
-          title="Ignorer et recommencer"
+          :title="t('workout.dismissButton')"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -179,7 +181,7 @@ function dismissPendingWorkout() {
           @click="startWorkout"
           class="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-semibold transition-colors"
         >
-          Reprendre l'entraînement
+          {{ t('workout.resumeButton') }}
         </button>
       </div>
     </div>
@@ -190,7 +192,7 @@ function dismissPendingWorkout() {
       </div>
       <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border space-y-4 md:space-y-6">
         <div>
-          <h2 class="text-xl font-bold text-foreground mb-4">Importer un fichier</h2>
+          <h2 class="text-xl font-bold text-foreground mb-4">{{ t('workout.importFile') }}</h2>
           <label class="block">
             <input
               ref="fileInput"
@@ -206,7 +208,7 @@ function dismissPendingWorkout() {
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-bold text-foreground flex items-center gap-2">
               <img src="/intervals.png" alt="Intervals.icu" class="w-6 h-6 rounded-lg" />
-              Intervals.icu <span class="text-sm font-normal text-muted-foreground">(entrainement du jour)</span>
+              {{ t('workout.intervalsIntegration') }} <span class="text-sm font-normal text-muted-foreground">{{ t('workout.intervalsToday') }}</span>
             </h2>
             <button
               v-if="intervals.isConnected"
@@ -222,7 +224,7 @@ function dismissPendingWorkout() {
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              Rafraichir
+              {{ t('common.buttons.refresh') }}
             </button>
           </div>
           <IntervalsTodayWorkout ref="intervalsWorkoutRef" @workout-selected="handleWorkoutSelected" />
@@ -231,30 +233,30 @@ function dismissPendingWorkout() {
     </div>
 
     <div v-if="appState.selectedWorkout.value" class="bg-card rounded-lg p-3 md:p-4 shadow border border-border">
-      <h3 class="text-sm font-medium text-muted-foreground mb-2">Apercu de l'entrainement</h3>
+      <h3 class="text-sm font-medium text-muted-foreground mb-2">{{ t('workout.preview') }}</h3>
       <WorkoutPreviewChart :ftp="appState.ftp.value" :workout="appState.selectedWorkout.value" :tall="true" />
     </div>
 
     <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Colonne gauche: Device Connector -->
+        <!-- Left column: Device Connector -->
         <div>
           <DeviceConnector ref="deviceConnector" @device-status-change="handleDeviceStatusChange" @data-update="handleDataUpdate" />
         </div>
 
-        <!-- Colonne droite: Bouton démarrer + Message -->
+        <!-- Right column: Start button + Message -->
         <div class="flex flex-col justify-center items-center space-y-4">
-          <!-- Indicateur mode simulation -->
+          <!-- Simulation mode indicator -->
           <div v-if="deviceConnector?.useMockMode?.value" class="text-center">
             <span class="inline-flex items-center gap-1 text-xs text-muted-foreground bg-accent px-2 py-1 rounded">
               <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
               </svg>
-              Mode simulation
+              {{ t('device.mockMode') }}
             </span>
           </div>
 
-          <!-- Bouton démarrer -->
+          <!-- Start button -->
           <button
             @click="startWorkout"
             :disabled="!canStart"
@@ -273,27 +275,27 @@ function dismissPendingWorkout() {
                   clip-rule="evenodd"
                 />
               </svg>
-              Démarrer l'entraînement
+              {{ t('workout.startButton') }}
             </span>
           </button>
 
-          <!-- Messages d'erreur -->
+          <!-- Error messages -->
           <div v-if="!canStart" class="text-center space-y-2">
-            <p v-if="!appState.selectedWorkout.value" class="text-chart-1 text-xs font-medium">Sélectionnez un entraînement ci-dessus</p>
+            <p v-if="!appState.selectedWorkout.value" class="text-chart-1 text-xs font-medium">{{ t('workout.selectWorkoutBelow') }}</p>
             <div v-else-if="!isDeviceReady" class="space-y-2">
-              <p class="text-chart-1 text-xs font-medium">Connectez vos capteurs ou activez le mode simulation</p>
+              <p class="text-chart-1 text-xs font-medium">{{ t('workout.connectSensorsOrSim') }}</p>
               <button
                 v-if="!deviceConnector?.useMockMode?.value"
                 @click="deviceConnector?.enableMockMode()"
                 class="px-3 py-1 bg-accent text-accent-foreground rounded text-xs font-medium hover:bg-accent/80 transition-colors"
               >
-                Activer la simulation
+                {{ t('workout.activateSimulation') }}
               </button>
             </div>
           </div>
 
-          <!-- Message d'encouragement (seulement si prêt) -->
-          <p v-if="canStart" class="text-sm text-muted-foreground">Bonne séance ! 💪</p>
+          <!-- Encouragement message (only if ready) -->
+          <p v-if="canStart" class="text-sm text-muted-foreground">{{ t('workout.goodSession') }}</p>
         </div>
       </div>
     </div>

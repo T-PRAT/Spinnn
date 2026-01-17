@@ -3,12 +3,14 @@ import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAppState } from '../composables/useAppState';
 import { useWorkoutSession } from '../composables/useWorkoutSession';
+import { useI18n } from '@/composables/useI18n';
 import { formatDuration } from '../data/sampleWorkouts';
 import { createFitFile } from '../utils/fitExporter';
 
 const router = useRouter();
 const appState = useAppState();
 const session = useWorkoutSession();
+const { t } = useI18n();
 
 onMounted(() => {
   if (session.dataPoints.value.length === 0) {
@@ -127,7 +129,7 @@ function startNewWorkout() {
 <template>
   <div class="max-w-4xl mx-auto space-y-3 md:space-y-6">
     <div class="text-center mb-4 md:mb-8">
-      <h2 class="text-3xl font-bold text-foreground tracking-tight">Entrainement termine !</h2>
+      <h2 class="text-3xl font-bold text-foreground tracking-tight">{{ t('workout.summaryTitle') }}</h2>
       <p class="text-muted-foreground mt-2">{{ appState.selectedWorkout.value?.name }}</p>
     </div>
 
@@ -135,49 +137,49 @@ function startNewWorkout() {
       <!-- Main stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
         <div class="bg-card rounded-lg p-3 md:p-6 shadow border border-border text-center">
-          <div class="text-sm text-muted-foreground mb-2">Duree</div>
+          <div class="text-sm text-muted-foreground mb-2">{{ t('workout.summaryStats.duration') }}</div>
           <div class="text-3xl font-bold text-foreground">{{ stats.duration }}</div>
         </div>
         <div class="bg-card rounded-lg p-3 md:p-6 shadow border border-border text-center">
-          <div class="text-sm text-muted-foreground mb-2">Distance</div>
+          <div class="text-sm text-muted-foreground mb-2">{{ t('workout.summaryStats.distance') }}</div>
           <div class="text-3xl font-bold text-primary">{{ stats.distance }}<span class="text-sm">km</span></div>
         </div>
         <div class="bg-card rounded-lg p-3 md:p-6 shadow border border-border text-center">
-          <div class="text-sm text-muted-foreground mb-2">Puissance moy.</div>
+          <div class="text-sm text-muted-foreground mb-2">{{ t('workout.summaryStats.avgPower') }}</div>
           <div class="text-3xl font-bold text-chart-1">{{ stats.avgPower }}<span class="text-sm">W</span></div>
         </div>
         <div class="bg-card rounded-lg p-3 md:p-6 shadow border border-border text-center">
-          <div class="text-sm text-muted-foreground mb-2">FC moyenne</div>
+          <div class="text-sm text-muted-foreground mb-2">{{ t('workout.summaryStats.avgHeartRate') }}</div>
           <div class="text-3xl font-bold text-destructive">{{ stats.avgHeartRate }}<span class="text-sm">bpm</span></div>
         </div>
       </div>
 
       <!-- Detailed stats -->
       <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border">
-        <h3 class="text-lg font-semibold text-foreground mb-3 md:mb-4">Statistiques detaillees</h3>
+        <h3 class="text-lg font-semibold text-foreground mb-3 md:mb-4">{{ t('workout.summaryDetailedStats') }}</h3>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
           <div>
-            <div class="text-sm text-muted-foreground">Puissance max</div>
+            <div class="text-sm text-muted-foreground">{{ t('workout.summaryStats.maxPower') }}</div>
             <div class="text-xl font-semibold text-foreground">{{ stats.maxPower }}W</div>
           </div>
           <div>
-            <div class="text-sm text-muted-foreground">FC max</div>
+            <div class="text-sm text-muted-foreground">{{ t('workout.summaryStats.maxHeartRate') }}</div>
             <div class="text-xl font-semibold text-foreground">{{ stats.maxHeartRate }} bpm</div>
           </div>
           <div>
-            <div class="text-sm text-muted-foreground">Cadence moy.</div>
+            <div class="text-sm text-muted-foreground">{{ t('workout.summaryStats.avgCadence') }}</div>
             <div class="text-xl font-semibold text-foreground">{{ stats.avgCadence }} rpm</div>
           </div>
           <div>
-            <div class="text-sm text-muted-foreground">Puissance normalisee</div>
+            <div class="text-sm text-muted-foreground">{{ t('workout.summaryStats.normalizedPower') }}</div>
             <div class="text-xl font-semibold text-foreground">{{ stats.normalizedPower }}W</div>
           </div>
           <div>
-            <div class="text-sm text-muted-foreground">Facteur d'intensite</div>
+            <div class="text-sm text-muted-foreground">{{ t('workout.summaryStats.intensityFactor') }}</div>
             <div class="text-xl font-semibold text-foreground">{{ stats.intensityFactor }}</div>
           </div>
           <div>
-            <div class="text-sm text-muted-foreground">TSS</div>
+            <div class="text-sm text-muted-foreground">{{ t('workout.summaryStats.tss') }}</div>
             <div class="text-xl font-semibold text-foreground">{{ stats.tss }}</div>
           </div>
         </div>
@@ -185,7 +187,7 @@ function startNewWorkout() {
 
       <!-- Export buttons -->
       <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border">
-        <h3 class="text-lg font-semibold text-foreground mb-3 md:mb-4">Exporter les donnees</h3>
+        <h3 class="text-lg font-semibold text-foreground mb-3 md:mb-4">{{ t('workout.summaryExportData') }}</h3>
         <div class="flex flex-col md:flex-row gap-3 md:gap-4">
           <button
             @click="downloadCSV"
@@ -194,7 +196,7 @@ function startNewWorkout() {
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            Telecharger CSV
+            {{ t('workout.summaryDownloadCSV') }}
           </button>
           <button
             @click="downloadFIT"
@@ -203,7 +205,7 @@ function startNewWorkout() {
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            Telecharger FIT
+            {{ t('workout.summaryDownloadFIT') }}
           </button>
         </div>
       </div>
@@ -217,7 +219,7 @@ function startNewWorkout() {
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          Nouvel entrainement
+          {{ t('workout.summaryNewWorkout') }}
         </button>
       </div>
     </div>

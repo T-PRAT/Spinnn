@@ -2,24 +2,56 @@
 import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useWorkoutSession } from '@/composables/useWorkoutSession';
+import { useI18n as useVueI18n } from 'vue-i18n';
 
 const router = useRouter();
 const route = useRoute();
 const session = useWorkoutSession();
+
+let t;
+try {
+  const i18n = useVueI18n();
+  t = i18n.t;
+} catch (e) {
+  console.warn('i18n not available:', e);
+  t = (key) => key;
+}
+
 const isMobileMenuOpen = ref(false);
 
-// Sidebar collapse sur desktop pendant workout
-const isCollapsed = computed(() => route.name === 'workout');
+// Collapse sidebar on desktop during workout
+const isCollapsed = computed(() => route?.name === 'workout');
 
-const navItems = computed(() => [
-  { name: 'Accueil', route: 'setup', icon: 'home', always: true },
-  { name: 'Entrainement', route: 'workout', icon: 'play', condition: session.isActive.value },
-  { name: 'Historique', route: 'history', icon: 'history', always: true }
-].filter(item => item.always || item.condition));
+const navItems = computed(() => {
+  try {
+    return [
+      { name: (t && t('navigation.home')) || 'Accueil', route: 'setup', icon: 'home', always: true },
+      { name: (t && t('navigation.workout')) || 'Entraînement', route: 'workout', icon: 'play', condition: session.isActive.value },
+      { name: (t && t('navigation.history')) || 'Historique', route: 'history', icon: 'history', always: true }
+    ].filter(item => item.always || item.condition);
+  } catch (e) {
+    console.error('Error in navItems:', e);
+    return [
+      { name: 'Accueil', route: 'setup', icon: 'home', always: true },
+      { name: 'Historique', route: 'history', icon: 'history', always: true }
+    ];
+  }
+});
 
-const settingsItem = { name: 'Parametres', route: 'settings', icon: 'settings' };
+const settingsItem = computed(() => {
+  try {
+    return { name: (t && t('navigation.settings')) || 'Paramètres', route: 'settings', icon: 'settings' };
+  } catch (e) {
+    console.error('Error in settingsItem:', e);
+    return { name: 'Paramètres', route: 'settings', icon: 'settings' };
+  }
+});
 
 function navigate(routeName) {
+  if (!routeName) {
+    console.error('navigate called with undefined routeName');
+    return;
+  }
   router.push({ name: routeName });
   isMobileMenuOpen.value = false;
 }
@@ -43,18 +75,18 @@ function getIcon(iconName) {
   <!-- Mobile bottom bar -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 flex justify-around items-center h-16 px-2 safe-area-inset-bottom">
     <button
-      v-for="item in [...navItems, settingsItem]"
-      :key="item.route"
-      @click="navigate(item.route)"
+      v-for="item in [...navItems, settingsItem.value]"
+      :key="item?.route"
+      @click="navigate(item?.route)"
       :class="[
         'flex flex-col items-center justify-center flex-1 h-full rounded-lg transition-all',
-        route.name === item.route
+        route?.name === item?.route
           ? 'text-primary'
           : 'text-muted-foreground'
       ]"
     >
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" v-html="getIcon(item.icon)"></svg>
-      <span class="text-xs mt-1">{{ item.name }}</span>
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" v-html="getIcon(item?.icon)"></svg>
+      <span class="text-xs mt-1">{{ item?.name }}</span>
     </button>
   </nav>
 
@@ -79,7 +111,7 @@ function getIcon(iconName) {
         >
           Spinnn
         </h1>
-        <!-- Logo compact: juste "S" quand collapsed -->
+        <!-- Compact logo: just "S" when collapsed -->
         <div
           v-else
           class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center"
@@ -89,7 +121,7 @@ function getIcon(iconName) {
       </button>
     </div>
 
-    <!-- Navigation principale -->
+    <!-- Main navigation -->
     <nav class="p-4 space-y-2 flex-1">
       <button
         v-for="item in navItems"
@@ -98,7 +130,7 @@ function getIcon(iconName) {
         :class="[
           'w-full flex items-center rounded-lg transition-all',
           isCollapsed ? 'justify-center px-3 py-3' : 'gap-3 px-4 py-3',
-          route.name === item.route
+          route?.name === item.route
             ? 'bg-primary/10 text-primary font-medium'
             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
         ]"
@@ -109,21 +141,21 @@ function getIcon(iconName) {
       </button>
     </nav>
 
-    <!-- Paramètres en bas -->
+    <!-- Settings at bottom -->
     <div class="p-4 border-t border-border">
       <button
-        @click="navigate(settingsItem.route)"
+        @click="navigate(settingsItem.value?.route)"
         :class="[
           'w-full flex items-center rounded-lg transition-all',
           isCollapsed ? 'justify-center px-3 py-3' : 'gap-3 px-4 py-3',
-          route.name === settingsItem.route
+          route?.name === settingsItem.value?.route
             ? 'bg-primary/10 text-primary font-medium'
             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
         ]"
-        :title="isCollapsed ? settingsItem.name : ''"
+        :title="isCollapsed ? settingsItem.value?.name : ''"
       >
-        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" v-html="getIcon(settingsItem.icon)"></svg>
-        <span v-if="!isCollapsed" class="text-sm">{{ settingsItem.name }}</span>
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" v-html="getIcon(settingsItem.value?.icon)"></svg>
+        <span v-if="!isCollapsed" class="text-sm">{{ settingsItem.value?.name || 'Paramètres' }}</span>
       </button>
     </div>
   </aside>
