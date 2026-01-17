@@ -1,6 +1,6 @@
 <div align="center">
 
-# ![Spinnn Logo](https://img.icons8.com/fluency/96/cycling-road.png) Spinnn
+# <img src="/public/favicon.ico" alt="Spinnn Logo" width="48"> Spinnn
 
 *A modern web application for cycling workouts*
 
@@ -10,53 +10,53 @@
 
 ---
 
-## Pour Spinnn ?
+## Why Spinnn?
 
-Spinnn est une application web progressive pour exécuter des entraînements cyclistes avec suivi en temps réel. Connectez vos capteurs Bluetooth (cardiofrequencemètre, home trainer) et suivez votre puissance, fréquence cardiaque, cadence et vitesse pendant vos sessions.
+Spinnn is a progressive web application for executing cycling workouts with real-time monitoring. Connect your Bluetooth sensors (heart rate monitor, smart trainer) and track your power, heart rate, cadence, and speed during your sessions.
 
-### Fonctionnalités
+### Features
 
-- **Entraînements structurés** : Importez vos fichiers `.ZWO` ou synchronisez-vous avec [Intervals.icu](https://intervals.icu/)
-- **Connexion Bluetooth** : Connectez vos appareils compatibles Web Bluetooth (HRM, power meter, smart trainer)
-- **Suivi en temps réel** : Visualisez vos métriques avec des graphiques D3.js interactifs
-- **Mode ERG** : Contrôlez votre home trainer en mode résistance automatique
-- **Export FIT** : Exportez vos sessions vers Garmin Connect, Strava, TrainingPeaks, etc.
-- **Mode simulation** : Développez et testez sans matériel Bluetooth
-- **Thème clair/sombre** : Interface adaptée à vos préférences
-- **Responsive** : Fonctionne sur desktop et mobile
+- **Structured Workouts**: Import your `.ZWO` files or sync with [Intervals.icu](https://intervals.icu/)
+- **Bluetooth Connectivity**: Connect your Web Bluetooth compatible devices (HRM, power meter, smart trainer)
+- **Real-time Tracking**: Visualize your metrics with interactive D3.js charts
+- **ERG Mode**: Control your smart trainer in automatic resistance mode
+- **FIT Export**: Export your sessions to Garmin Connect, Strava, TrainingPeaks, etc.
+- **Simulation Mode**: Develop and test without Bluetooth hardware
+- **Light/Dark Theme**: Interface adapted to your preferences
+- **Responsive**: Works on desktop and mobile
 
 ---
 
-## Pour les développeurs
+## For Developers
 
-### Prérequis
+### Prerequisites
 
-- Node.js `^20.19.0` ou `>=22.12.0`
-- Un navigateur Chromium (Chrome, Edge) pour le Web Bluetooth
+- Node.js `^20.19.0` or `>=22.12.0`
+- A Chromium-based browser (Chrome, Edge) for Web Bluetooth
 
 ### Installation
 
 ```bash
-# Installer les dépendances
+# Install dependencies
 bun install
 
-# Lancer le serveur de développement
+# Start development server
 bun dev
 ```
 
-L'application sera disponible sur `http://localhost:5173`
+The application will be available at `http://localhost:5173`
 
-### Scripts utiles
+### Useful Scripts
 
 ```bash
-bun dev              # Serveur de développement
-bun run build        # Build de production
-bun test             # Tests unitaires
-bun test:e2e         # Tests E2E
-bun test:coverage    # Couverture de code
+bun dev              # Development server
+bun run build        # Production build
+bun test             # Unit tests
+bun test:e2e         # E2E tests
+bun test:coverage    # Code coverage
 ```
 
-### Stack technique
+### Tech Stack
 
 - Vue 3 (Composition API)
 - Vite
@@ -65,9 +65,9 @@ bun test:coverage    # Couverture de code
 - D3.js
 - Vitest + Playwright
 
-### Note importante
+### Important Note
 
-Le Web Bluetooth API nécessite HTTPS ou `localhost`. Firefox ne supporte pas le Web Bluetooth.
+Web Bluetooth API requires HTTPS or `localhost`. Firefox does not support Web Bluetooth.
 
 ---
 
