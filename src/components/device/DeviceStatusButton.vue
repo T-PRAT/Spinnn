@@ -33,7 +33,7 @@ const handleClick = () => {
 	<button
 		@click="handleClick"
 		:class="[
-			'flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all text-[10px] md:text-xs',
+			'flex items-center gap-1 md:gap-2 px-2 md:px-3 py-0.5 md:py-1 rounded-lg transition-all text-[10px] md:text-xs',
 			connected
 				? 'bg-green-500/10 border border-green-500/30 cursor-default'
 				: connecting

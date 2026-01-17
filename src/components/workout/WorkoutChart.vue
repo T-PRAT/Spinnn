@@ -334,7 +334,7 @@ function updateChart(data) {
   if (!data || data.length === 0) return;
 
   // Lisser les données pour l'affichage uniquement
-  const smoothedData = smoothData(data, 5);
+  const smoothedData = smoothData(data, 2);
   if (smoothedData.length === 0) return;
 
   // Filter out invalid data points for each line
