@@ -123,7 +123,7 @@ export default {
   powerNormalized: 'Puissance normalisée',
   heartRateLabel: 'FC',
   heartRateMax: 'Max',
-  heartRateInterval: 'Moy Int.',
+  heartRateInterval: 'Tour',
   heartRateAvg: 'FC moyenne',
   cadenceLabel: 'Cadence',
   cadenceAvg: 'Cadence moy.',
@@ -142,5 +142,7 @@ export default {
     sim: 'Simulation pente',
     res: 'Résistance fixe',
     passive: 'Libre'
-  }
+  },
+  // Interval progress text
+  intervalPowerConnector: 'à'
 };

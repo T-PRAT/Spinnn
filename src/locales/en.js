@@ -201,7 +201,7 @@ export default {
     powerNormalized: 'Normalized Power',
     heartRateLabel: 'HR',
     heartRateMax: 'Max',
-    heartRateInterval: 'Int Avg',
+    heartRateInterval: 'Lap',
     heartRateAvg: 'Avg HR',
     cadenceLabel: 'Cadence',
     cadenceAvg: 'Avg Cadence',
@@ -219,7 +219,8 @@ export default {
       sim: 'Grade simulation',
       res: 'Fixed resistance',
       passive: 'Free ride'
-    }
+    },
+    intervalPowerConnector: 'at'
   },
   metrics: {
     power: 'Power',
