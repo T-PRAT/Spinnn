@@ -11,6 +11,10 @@ const isPaused = ref(false);
 
 let intervalId = null;
 let lastDistance = 0;
+let dataPointIndex = 0;
+let actualStartTime = null; // Real start time for precise elapsed calculation
+let accumulatedPausedTime = 0; // Total time spent paused
+let pauseStartTime = null; // When the current pause started
 
 // Storage key for workout persistence
 const WORKOUT_STORAGE_KEY = 'spinnn_active_workout';
@@ -92,16 +96,23 @@ export function useWorkoutSession() {
     workout.value = selectedWorkout;
     ftp.value = userFtp;
     startTime.value = new Date();
+    actualStartTime = Date.now();
+    accumulatedPausedTime = 0;
+    pauseStartTime = null;
     elapsedSeconds.value = 0;
     dataPoints.value = [];
     lastDistance = 0;
+    dataPointIndex = 0;
     isActive.value = true;
 
     saveWorkoutState();
 
+    // Update elapsed time every 100ms based on real elapsed time
     intervalId = setInterval(() => {
-      elapsedSeconds.value++;
-    }, 1000);
+      const now = Date.now();
+      const elapsed = (now - actualStartTime - accumulatedPausedTime) / 1000;
+      elapsedSeconds.value = Math.max(0, Math.round(elapsed * 10) / 10); // Round to 1 decimal place
+    }, 100);
   }
 
   function stop() {
@@ -119,16 +130,21 @@ export function useWorkoutSession() {
   function reset() {
     stop();
     startTime.value = null;
+    actualStartTime = null;
     elapsedSeconds.value = 0;
     dataPoints.value = [];
     workout.value = null;
     isPaused.value = false;
     lastDistance = 0;
+    dataPointIndex = 0;
+    accumulatedPausedTime = 0;
+    pauseStartTime = null;
   }
 
   function pause() {
     if (!isActive.value || isPaused.value) return;
     isPaused.value = true;
+    pauseStartTime = Date.now();
     saveWorkoutState();
 
     if (intervalId) {
@@ -140,11 +156,36 @@ export function useWorkoutSession() {
   function resume() {
     if (!isActive.value || !isPaused.value) return;
     isPaused.value = false;
+
+    // Account for time spent paused
+    if (pauseStartTime) {
+      accumulatedPausedTime += Date.now() - pauseStartTime;
+      pauseStartTime = null;
+    }
+
     saveWorkoutState();
 
+    // Update elapsed time every 100ms based on real elapsed time
     intervalId = setInterval(() => {
-      elapsedSeconds.value++;
-    }, 1000);
+      const now = Date.now();
+      const elapsed = (now - actualStartTime - accumulatedPausedTime) / 1000;
+      elapsedSeconds.value = Math.max(0, Math.round(elapsed * 10) / 10); // Round to 1 decimal place
+    }, 100);
+  }
+
+  // Manually set elapsed time (used for skipping intervals)
+  function setElapsedSeconds(seconds) {
+    if (!isActive.value) return;
+
+    const now = Date.now();
+    const targetElapsed = Math.max(0, seconds);
+
+    // Adjust actualStartTime so that the elapsed time will be correct
+    // This avoids conflicts with the interval timer
+    actualStartTime = now - (targetElapsed * 1000) - accumulatedPausedTime;
+    elapsedSeconds.value = Math.max(0, Math.round(targetElapsed * 10) / 10);
+
+    saveWorkoutState();
   }
 
   function recordDataPoint(data) {
@@ -162,6 +203,8 @@ export function useWorkoutSession() {
       distance: Math.round(lastDistance)
     });
 
+    dataPointIndex++;
+
     // Save state every 10 data points (every 10 seconds)
     if (dataPoints.value.length % 10 === 0) {
       saveWorkoutState();
@@ -169,9 +212,18 @@ export function useWorkoutSession() {
   }
 
   const formattedElapsedTime = computed(() => {
-    const mins = Math.floor(elapsedSeconds.value / 60);
-    const secs = elapsedSeconds.value % 60;
+    // Use active elapsed time (time actually spent training, not including skips)
+    const totalSeconds = Math.floor(activeElapsedSeconds.value);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  });
+
+  // Active elapsed time: actual training time (based on recorded data points, excluding pauses)
+  const activeElapsedSeconds = computed(() => {
+    if (dataPoints.value.length === 0) return 0;
+    // Each data point represents 1 second of active training
+    return dataPoints.value.length;
   });
 
   const formattedWorkoutDuration = computed(() => {
@@ -358,6 +410,7 @@ export function useWorkoutSession() {
     isActive,
     startTime,
     elapsedSeconds,
+    activeElapsedSeconds,
     dataPoints,
     workout,
     ftp,
@@ -382,6 +435,7 @@ export function useWorkoutSession() {
     reset,
     pause,
     resume,
+    setElapsedSeconds,
     recordDataPoint,
     loadWorkoutState,
     clearWorkoutState
