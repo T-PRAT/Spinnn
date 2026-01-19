@@ -89,7 +89,7 @@ const progressColor = computed(() => {
 	return getIntervalColor(currentInterval.value.type, power);
 });
 
-// Calculate current interval progress
+// Calculate current interval progress (using elapsed for smooth animation)
 const intervalProgress = computed(() => {
 	if (!props.workout) return 0;
 
@@ -110,7 +110,7 @@ const intervalProgress = computed(() => {
 	return 100;
 });
 
-// Elapsed time in current interval in seconds
+// Elapsed time in current interval in seconds (using elapsed for smooth animation)
 const currentIntervalElapsed = computed(() => {
 	if (!props.workout) return 0;
 
@@ -146,23 +146,37 @@ const currentIntervalDuration = computed(() => {
 	return 0;
 });
 
-// Format time (e.g., 30s, 1m)
-function formatTime(seconds) {
-	if (seconds >= 60) {
-		const mins = Math.floor(seconds / 60);
-		return `${mins}m`;
+// Format interval text parts (e.g., "3m", "à", "200W")
+const intervalDurationText = computed(() => {
+	const duration = currentIntervalDuration.value;
+	const totalMinutes = Math.floor(duration / 60);
+	const seconds = duration % 60;
+
+	if (totalMinutes > 0 && seconds > 0) {
+		return `${totalMinutes}m${seconds}s`;
+	} else if (totalMinutes > 0) {
+		return `${totalMinutes}m`;
+	} else {
+		return `${seconds}s`;
 	}
-	return `${seconds}s`;
-}
+});
+
+const intervalPowerText = computed(() => {
+	return `${props.currentTargetPower || 0}W`;
+});
+
+const intervalConnector = computed(() => {
+	return t('workout.intervalPowerConnector');
+});
 </script>
 
 <template>
 	<div
-		class="grid grid-cols-6 gap-1 p-1 md:gap-2 md:p-2 flex-shrink-0 relative"
+		class="grid grid-cols-6 gap-0.5 p-0.5 md:gap-2 md:p-2 flex-shrink-0 relative"
 		id="metrics-grid"
 	>
 		<!-- Left side -->
-		<div class="flex flex-col gap-1 md:gap-2 self-stretch">
+		<div class="flex flex-col gap-0.5 md:gap-2 self-stretch">
 			<MetricCard
 				v-for="slot in leftSlots"
 				:key="slot.id"
@@ -176,36 +190,29 @@ function formatTime(seconds) {
 		<!-- Middle section: Power -->
 		<div class="col-span-2 self-stretch">
 			<div
-				class="bg-card rounded-lg p-2 md:p-4 text-center border border-border h-full flex flex-col justify-center"
+				class="bg-card rounded-lg p-1 md:p-4 text-center border border-border h-full flex flex-col justify-center"
 			>
-				<div class="text-[10px] md:text-xs text-muted-foreground mb-1 md:mb-2">
+				<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-2">
 					{{ t('workout.powerLabel') }}
 				</div>
-				<div class="text-4xl md:text-8xl font-bold text-chart-1 mb-1 md:mb-2 leading-none">
+				<div class="text-3xl md:text-8xl font-bold text-chart-1 mb-0.5 md:mb-2 leading-none">
 					{{ currentMetrics.power
-					}}<span class="text-lg md:text-2xl ml-1">{{ t('metrics.watts') }}</span>
+					}}<span class="text-sm md:text-2xl ml-0.5 md:ml-1">{{ t('metrics.watts') }}</span>
 				</div>
 				<hr class="border-border opacity-50" />
-				<div class="grid grid-cols-3 gap-2 md:gap-4 mt-2 md:mt-3 text-center">
+				<div class="grid grid-cols-2 gap-1 md:gap-4 mt-1 md:mt-3 text-center">
 					<div>
-						<div class="text-[10px] md:text-xs text-muted-foreground mb-1">{{ t('workout.powerTarget') }}</div>
-						<div class="text-base md:text-xl lg:text-2xl font-bold text-chart-1">
-							{{ currentTargetPower
-							}}<span class="text-xs md:text-sm ml-1">{{ t('metrics.watts') }}</span>
-						</div>
-					</div>
-					<div>
-						<div class="text-[10px] md:text-xs text-muted-foreground mb-1">{{ t('workout.powerMax') }}</div>
-						<div class="text-base md:text-xl lg:text-2xl font-bold text-chart-1">
-							{{ session.maxPower.value
-							}}<span class="text-xs md:text-sm ml-1">{{ t('metrics.watts') }}</span>
-						</div>
-					</div>
-					<div>
-						<div class="text-[10px] md:text-xs text-muted-foreground mb-1">{{ t('workout.powerInterval') }}</div>
-						<div class="text-base md:text-xl lg:text-2xl font-bold text-chart-1">
+						<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">{{ t('workout.powerInterval') }}</div>
+						<div class="text-sm md:text-xl lg:text-2xl font-bold text-chart-1">
 							{{ session.intervalPower.value
-							}}<span class="text-xs md:text-sm ml-1">{{ t('metrics.watts') }}</span>
+							}}<span class="text-[10px] md:text-sm ml-0.5 md:ml-1">{{ t('metrics.watts') }}</span>
+						</div>
+					</div>
+					<div>
+						<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">{{ t('workout.powerMax') }}</div>
+						<div class="text-sm md:text-xl lg:text-2xl font-bold text-chart-1">
+							{{ session.maxPower.value
+							}}<span class="text-[10px] md:text-sm ml-0.5 md:ml-1">{{ t('metrics.watts') }}</span>
 						</div>
 					</div>
 				</div>
@@ -215,27 +222,27 @@ function formatTime(seconds) {
 		<!-- Middle section: Heart Rate -->
 		<div class="col-span-2 self-stretch">
 			<div
-				class="bg-card rounded-lg p-2 md:p-4 text-center border border-border h-full flex flex-col justify-center"
+				class="bg-card rounded-lg p-1 md:p-4 text-center border border-border h-full flex flex-col justify-center"
 			>
-				<div class="text-[10px] md:text-xs text-muted-foreground mb-1 md:mb-2">{{ t('workout.heartRateLabel') }}</div>
-				<div class="text-4xl md:text-8xl font-bold text-destructive mb-1 md:mb-2 leading-none">
+				<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-2">{{ t('workout.heartRateLabel') }}</div>
+				<div class="text-3xl md:text-8xl font-bold text-destructive mb-0.5 md:mb-2 leading-none">
 					{{ currentMetrics.heartRate
-					}}<span class="text-lg md:text-2xl ml-1">{{ t('metrics.bpm') }}</span>
+					}}<span class="text-sm md:text-2xl ml-0.5 md:ml-1">{{ t('metrics.bpm') }}</span>
 				</div>
 				<hr class="border-border opacity-50" />
-				<div class="grid grid-cols-2 gap-2 md:gap-4 mt-2 md:mt-3 text-center">
+				<div class="grid grid-cols-2 gap-1 md:gap-4 mt-1 md:mt-3 text-center">
 					<div>
-						<div class="text-[10px] md:text-xs text-muted-foreground mb-1">{{ t('workout.heartRateMax') }}</div>
-						<div class="text-base md:text-xl lg:text-2xl font-bold text-destructive">
-							{{ session.maxHeartRate.value
-							}}<span class="text-xs md:text-sm ml-1">{{ t('metrics.bpm') }}</span>
+						<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">{{ t('workout.heartRateInterval') }}</div>
+						<div class="text-sm md:text-xl lg:text-2xl font-bold text-destructive">
+							{{ session.intervalHeartRate.value
+							}}<span class="text-[10px] md:text-sm ml-0.5 md:ml-1">{{ t('metrics.bpm') }}</span>
 						</div>
 					</div>
 					<div>
-						<div class="text-[10px] md:text-xs text-muted-foreground mb-1">{{ t('workout.heartRateInterval') }}</div>
-						<div class="text-base md:text-xl lg:text-2xl font-bold text-destructive">
-							{{ session.intervalHeartRate.value
-							}}<span class="text-xs md:text-sm ml-1">{{ t('metrics.bpm') }}</span>
+						<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">{{ t('workout.heartRateMax') }}</div>
+						<div class="text-sm md:text-xl lg:text-2xl font-bold text-destructive">
+							{{ session.maxHeartRate.value
+							}}<span class="text-[10px] md:text-sm ml-0.5 md:ml-1">{{ t('metrics.bpm') }}</span>
 						</div>
 					</div>
 				</div>
@@ -243,7 +250,7 @@ function formatTime(seconds) {
 		</div>
 
 		<!-- Right side -->
-		<div class="flex flex-col gap-1 md:gap-2 self-stretch">
+		<div class="flex flex-col gap-0.5 md:gap-2 self-stretch">
 			<MetricCard
 				v-for="slot in rightSlots"
 				:key="slot.id"
@@ -254,18 +261,32 @@ function formatTime(seconds) {
 			/>
 		</div>
 
-		<!-- Horizontal progress bar + interval time (spans 4 middle columns) -->
-		<div class="col-start-2 col-span-4 flex items-center gap-2 md:gap-3">
-			<!-- Affichage du temps intervalle -->
-			<div class="text-[10px] md:text-xs font-bold text-foreground text-right whitespace-nowrap min-w-fit">
-				{{ formatTime(currentIntervalElapsed) }} / {{ formatTime(currentIntervalDuration) }}
-			</div>
-			<!-- Barre de progression horizontale avec couleur de la zone -->
-			<div class="flex-1 h-3 md:h-4 bg-muted rounded-full overflow-hidden relative">
-				<div
-					class="absolute top-0 left-0 bottom-0 transition-all duration-300"
-					:style="{ width: `${intervalProgress}%`, backgroundColor: progressColor }"
-				></div>
+		<!-- Interval progress bar row -->
+		<div class="col-span-6 bg-card rounded-lg border border-border p-1 md:p-3">
+			<div class="flex items-center gap-1 md:gap-3">
+				<!-- Left: Duration + Power text -->
+				<div class="flex-shrink-0 text-left min-w-fit">
+					<div class="text-[10px] md:text-sm text-foreground flex items-baseline gap-0.5 md:gap-1">
+						<span class="font-bold tabular-nums">{{ intervalDurationText }}</span>
+						<span class="font-normal">{{ intervalConnector }}</span>
+						<span class="font-bold tabular-nums">{{ intervalPowerText }}</span>
+					</div>
+				</div>
+
+				<!-- Center: Progress bar -->
+				<div class="flex-1 h-2 md:h-4 bg-muted rounded-full overflow-hidden relative">
+					<div
+						class="absolute top-0 left-0 bottom-0 transition-all duration-75 ease-out"
+						:style="{ width: `${intervalProgress}%`, backgroundColor: progressColor }"
+					></div>
+				</div>
+
+				<!-- Right: Remaining seconds countdown -->
+				<div class="flex-shrink-0 text-right min-w-fit">
+					<div class="text-base md:text-xl font-bold tabular-nums text-foreground">
+						{{ Math.round(currentIntervalDuration - currentIntervalElapsed) }}s
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>

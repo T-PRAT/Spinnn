@@ -381,8 +381,8 @@ async function skipToNextInterval() {
     return; // Already at last interval or workout complete
   }
 
-  // Jump to next interval start time
-  session.elapsedSeconds.value = nextIntervalStart;
+  // Use setElapsedSeconds to properly adjust the time tracking
+  session.setElapsedSeconds(nextIntervalStart);
 
   // Resume if paused to get ERG updates
   if (session.isPaused.value) {
@@ -474,8 +474,8 @@ const rightSlots = computed(() => [
 <template>
   <div class="flex flex-col h-full overflow-hidden">
     <!-- 1. Barre principale avec progression intégrée -->
-    <div class="mx-1 mt-1 md:mx-2 md:mt-2 shrink-0">
-      <div class="relative bg-card rounded-lg border border-border px-2 py-1.5 md:px-4 md:py-3 overflow-hidden">
+    <div class="mx-0.5 mt-0.5 md:mx-2 md:mt-2 shrink-0">
+      <div class="relative bg-card rounded-lg border border-border px-1.5 py-1 md:px-4 md:py-3 overflow-hidden">
         <div
           class="absolute bottom-0 left-0 h-1 bg-primary transition-all duration-500 rounded-bl-lg"
           :class="{ 'rounded-br-lg': progressPercentage >= 100 }"
@@ -484,19 +484,19 @@ const rightSlots = computed(() => [
 
         <div class="flex items-center justify-between relative z-10">
           <div class="flex-1 min-w-0">
-            <h2 class="text-sm md:text-lg font-bold text-foreground truncate">
+            <h2 class="text-[11px] md:text-lg font-bold text-foreground truncate">
               {{ appState.selectedWorkout.value?.name }}
             </h2>
-            <p class="text-[10px] md:text-xs text-muted-foreground truncate hidden sm:block">
+            <p class="text-[9px] md:text-xs text-muted-foreground truncate hidden sm:block">
               {{ appState.selectedWorkout.value?.description }}
             </p>
           </div>
 
-          <div class="text-right ml-2 md:ml-4">
-            <div class="text-xl md:text-2xl font-bold text-primary leading-tight">
+          <div class="text-right ml-1.5 md:ml-4">
+            <div class="text-base md:text-2xl font-bold text-primary leading-tight">
               {{ session.formattedElapsedTime.value }}
             </div>
-            <div class="text-[10px] md:text-xs text-muted-foreground hidden sm:block">/ {{ session.formattedWorkoutDuration.value }}</div>
+            <div class="text-[9px] md:text-xs text-muted-foreground hidden sm:block">/ {{ session.formattedWorkoutDuration.value }}</div>
           </div>
         </div>
       </div>
@@ -524,8 +524,8 @@ const rightSlots = computed(() => [
     />
 
     <!-- 3. Graphique principal -->
-    <div class="px-1 pb-1 md:px-2 md:pb-2 shrink-0">
-      <div class="bg-card rounded-lg border border-border h-[140px] md:h-[250px]">
+    <div class="px-0.5 pb-0.5 md:px-2 md:pb-2 shrink-0">
+      <div class="bg-card rounded-lg border border-border h-[120px] md:h-[250px]">
         <WorkoutChart
           :data-points="session.dataPoints.value"
           :ftp="appState.ftp.value"
@@ -536,17 +536,17 @@ const rightSlots = computed(() => [
     </div>
 
     <!-- Waiting for pedaling indicator -->
-    <div v-if="isWaitingForPedaling" class="mx-1 md:mx-2 mb-1 md:mb-2 shrink-0">
-      <div class="bg-primary/10 border border-primary/30 rounded-lg px-4 py-3 flex items-center justify-center gap-3">
-        <span class="text-xl animate-bounce">🚴</span>
-        <span class="text-sm font-medium text-primary">{{ t('workout.pedalToStart') }}</span>
-        <span class="text-xs text-primary/70">({{ powerActiveSeconds }}/{{ POWER_START_THRESHOLD }}s)</span>
+    <div v-if="isWaitingForPedaling" class="mx-0.5 md:mx-2 mb-0.5 md:mb-2 shrink-0">
+      <div class="bg-primary/10 border border-primary/30 rounded-lg px-2 py-1.5 md:px-4 md:py-3 flex items-center justify-center gap-2 md:gap-3">
+        <span class="text-base md:text-xl animate-bounce">🚴</span>
+        <span class="text-[11px] md:text-sm font-medium text-primary">{{ t('workout.pedalToStart') }}</span>
+        <span class="text-[10px] md:text-xs text-primary/70">({{ powerActiveSeconds }}/{{ POWER_START_THRESHOLD }}s)</span>
       </div>
     </div>
 
     <!-- 4. Footer -->
-    <div class="mx-1 mb-1 md:mx-2 md:mb-2 shrink-0">
-      <div class="flex items-center px-2 py-3 md:px-4 md:py-8 bg-card rounded-lg border border-border gap-2 md:gap-4">
+    <div class="mx-0.5 mb-0.5 md:mx-2 md:mb-2 shrink-0">
+      <div class="flex items-center px-1.5 py-2 md:px-4 md:py-8 bg-card rounded-lg border border-border gap-1 md:gap-4">
         <!-- Left: ERG mode and target power -->
         <div class="flex items-center gap-2 md:gap-3 flex-shrink-0">
           <!-- Mode selector -->
