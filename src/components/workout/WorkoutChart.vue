@@ -106,8 +106,9 @@ function initChart() {
   const totalDuration = props.workout?.duration || 3600;
   xScale = d3.scaleLinear().domain([0, totalDuration]).range([0, width]);
 
-  // Calculate max power from workout intervals to avoid capping
+  // Calculate max power from workout intervals
   let maxPowerInWorkout = props.ftp * 1.5; // default fallback
+
   if (props.workout?.intervals) {
     props.workout.intervals.forEach((interval) => {
       let maxPowerInInterval = 0;
@@ -127,10 +128,15 @@ function initChart() {
     });
   }
 
-  // Add 10% headroom above max power
-  const maxPowerScale = maxPowerInWorkout * 1.1;
+  // Apply cube root transformation to compress extreme values (sprints)
+  // This prevents sprints from dominating the chart while preserving order
+  const transformPower = (power) => Math.sqrt(power);
+  const maxTransformedPower = transformPower(maxPowerInWorkout);
 
-  // Power uses full height
+  // Add 15% headroom above max power (in transformed space)
+  const maxPowerScale = maxTransformedPower * 1.15;
+
+  // Power scale uses transformed values: domain is in transformed space
   yScalePower = d3.scaleLinear().domain([0, maxPowerScale]).range([height, 0]);
 
   // HR uses top 60% of the chart (values 60-200 bpm mapped to top portion)
@@ -191,10 +197,17 @@ function initChart() {
 
 function drawWorkoutProfile() {
   let currentTime = 0;
+  const gap = 1; // Small gap between intervals in pixels
+  const transformPower = (power) => Math.sqrt(power);
+
   props.workout.intervals.forEach((interval) => {
     const startX = xScale(currentTime);
     const endX = xScale(currentTime + interval.duration);
     const intervalWidth = endX - startX;
+
+    // Apply gap: reduce width and shift position for all but first interval
+    const visualStartX = currentTime === 0 ? startX : startX + gap;
+    const visualWidth = currentTime === 0 ? intervalWidth : intervalWidth - gap;
 
     let power = interval.power;
     let isRamp = false;
@@ -212,29 +225,33 @@ function drawWorkoutProfile() {
       // Draw ramp as a polygon/trapezoid
       const powerStartWatts = interval.powerStart * props.ftp;
       const powerEndWatts = interval.powerEnd * props.ftp;
-      const startY = yScalePower(powerStartWatts);
-      const endY = yScalePower(powerEndWatts);
+      // Apply transformation to Y coordinates
+      const startY = yScalePower(transformPower(powerStartWatts));
+      const endY = yScalePower(transformPower(powerEndWatts));
+      const visualEndX = visualStartX + visualWidth;
 
       svg
         .append("polygon")
-        .attr("points", `${startX},${startY} ${endX},${endY} ${endX},${height} ${startX},${height}`)
+        .attr("points", `${visualStartX},${startY} ${visualEndX},${endY} ${visualEndX},${height} ${visualStartX},${height}`)
         .attr("fill", getIntervalColor(interval.type, power))
         .attr("opacity", 0.2);
     } else {
       // Draw rectangle for steady power intervals
+      // Apply transformation to Y coordinate
+      const transformedPower = transformPower(targetPower);
       svg
         .append("rect")
-        .attr("x", startX)
-        .attr("y", yScalePower(targetPower))
-        .attr("width", Math.max(0, intervalWidth))
-        .attr("height", Math.max(0, height - yScalePower(targetPower)))
+        .attr("x", visualStartX)
+        .attr("y", yScalePower(transformedPower))
+        .attr("width", Math.max(0, visualWidth))
+        .attr("height", Math.max(0, height - yScalePower(transformedPower)))
         .attr("fill", getIntervalColor(interval.type, power))
         .attr("opacity", 0.2);
     }
 
     // Add labels only if interval is wide enough (> 40px)
     if (intervalWidth > 40) {
-      const centerX = startX + intervalWidth / 2;
+      const centerX = visualStartX + visualWidth / 2;
       // Position labels at the bottom of the interval
       const labelY = height - 15;
 
@@ -333,6 +350,9 @@ function updateChart(data) {
   if (!svg || !xScale || !yScalePower || !yScaleHR || !yScaleCadence) return;
   if (!data || data.length === 0) return;
 
+  // Transformation function for power values
+  const transformPower = (power) => Math.sqrt(power);
+
   // Lisser les données pour l'affichage uniquement
   const smoothedData = smoothData(data, 2);
   if (smoothedData.length === 0) return;
@@ -355,7 +375,7 @@ function updateChart(data) {
     .line()
     .defined(d => d.power >= 0)
     .x((d) => xScale(d.timestamp))
-    .y((d) => yScalePower(d.power))
+    .y((d) => yScalePower(transformPower(d.power)))
     .curve(d3.curveMonotoneX);
 
   const hrLine = d3
