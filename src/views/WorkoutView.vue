@@ -96,6 +96,7 @@ const controlModes = computed(() => [
 // Current target power based on workout interval
 const currentTargetPower = computed(() => {
   if (!appState.selectedWorkout.value) return 0;
+  if (session.isWorkoutComplete.value) return 0; // Free ride after completion
   return getTargetPowerAtTime(appState.selectedWorkout.value, session.elapsedSeconds.value, appState.ftp.value);
 });
 
@@ -393,19 +394,23 @@ async function skipToNextInterval() {
   await updateERGPower();
 }
 
+const progressPercentage = computed(() => {
+  if (!appState.selectedWorkout.value || appState.selectedWorkout.value.duration === 0) return 0;
+  return Math.min(100, (session.elapsedSeconds.value / appState.selectedWorkout.value.duration) * 100);
+});
+
+// Switch to PASSIVE mode when workout completes (no more target resistance)
 watch(
   () => session.isWorkoutComplete.value,
   (isComplete) => {
-    if (isComplete && session.isActive.value) {
-      stopWorkout();
+    if (isComplete && !appState.mockModeActive.value && trainer.ftmsSupported.value) {
+      // Passer en mode passif pour ne plus imposer de résistance cible
+      if (trainer.controlMode.value !== ControlMode.PASSIVE) {
+        trainer.setControlMode(ControlMode.PASSIVE);
+      }
     }
   }
 );
-
-const progressPercentage = computed(() => {
-  if (!appState.selectedWorkout.value || appState.selectedWorkout.value.duration === 0) return 0;
-  return (session.elapsedSeconds.value / appState.selectedWorkout.value.duration) * 100;
-});
 
 const currentMetrics = computed(() => {
   if (session.dataPoints.value.length === 0) {
@@ -493,10 +498,12 @@ const rightSlots = computed(() => [
           </div>
 
           <div class="text-right ml-1.5 md:ml-4">
-            <div class="text-base md:text-2xl font-bold text-primary leading-tight">
+            <div class="text-base md:text-2xl font-bold leading-tight" :class="session.isWorkoutComplete.value ? 'text-orange-500' : 'text-primary'">
               {{ session.formattedElapsedTime.value }}
             </div>
-            <div class="text-[9px] md:text-xs text-muted-foreground hidden sm:block">/ {{ session.formattedWorkoutDuration.value }}</div>
+            <div class="text-[9px] md:text-xs text-muted-foreground hidden sm:block">
+              {{ session.isWorkoutComplete.value ? '(Entraînement terminé)' : `/ ${session.formattedWorkoutDuration.value}` }}
+            </div>
           </div>
         </div>
       </div>
@@ -541,6 +548,13 @@ const rightSlots = computed(() => [
         <span class="text-base md:text-xl animate-bounce">🚴</span>
         <span class="text-[11px] md:text-sm font-medium text-primary">{{ t('workout.pedalToStart') }}</span>
         <span class="text-[10px] md:text-xs text-primary/70">({{ powerActiveSeconds }}/{{ POWER_START_THRESHOLD }}s)</span>
+      </div>
+    </div>
+
+    <!-- Workout complete - continuation message -->
+    <div v-if="session.isWorkoutComplete.value && session.isActive.value" class="mx-0.5 md:mx-2 mb-0.5 md:mb-2 shrink-0">
+      <div class="bg-muted/50 border border-border rounded-lg px-2 py-1.5 md:px-4 md:py-2 flex items-center justify-center gap-2">
+        <span class="text-xs md:text-sm text-muted-foreground">Entraînement terminé • Continuez à pédaler ou arrêtez</span>
       </div>
     </div>
 
