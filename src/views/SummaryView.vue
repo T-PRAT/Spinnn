@@ -31,8 +31,11 @@ const stats = computed(() => {
   const totalCadence = validCadence.reduce((sum, d) => sum + d.cadence, 0);
   const lastPoint = data[data.length - 1];
 
+  // Use active elapsed seconds (actual training time, excluding pauses)
+  const activeDuration = session.activeElapsedSeconds.value || data.length;
+
   return {
-    duration: formatDuration(session.elapsedSeconds.value),
+    duration: formatDuration(activeDuration),
     avgPower: validPower.length > 0 ? Math.round(totalPower / validPower.length) : 0,
     maxPower: Math.max(...data.map(d => d.power || 0)),
     avgHeartRate: validHR.length > 0 ? Math.round(totalHR / validHR.length) : 0,
@@ -42,7 +45,7 @@ const stats = computed(() => {
     dataPoints: data.length,
     normalizedPower: calculateNormalizedPower(data),
     intensityFactor: calculateIntensityFactor(data, appState.ftp.value),
-    tss: calculateTSS(data, appState.ftp.value, session.elapsedSeconds.value)
+    tss: calculateTSS(data, appState.ftp.value, activeDuration)
   };
 });
 
@@ -95,8 +98,11 @@ function downloadFIT() {
   const sessionData = session.sessionData.value;
   const lastPoint = sessionData.dataPoints[sessionData.dataPoints.length - 1];
 
+  // Use active elapsed seconds (actual training time, excluding pauses)
+  const activeDuration = session.activeElapsedSeconds.value || session.dataPoints.value.length;
+
   const fitStats = {
-    durationSeconds: session.elapsedSeconds.value,
+    durationSeconds: activeDuration,
     distanceMeters: lastPoint?.distance || 0,
     avgPower: stats.value.avgPower,
     maxPower: stats.value.maxPower,
