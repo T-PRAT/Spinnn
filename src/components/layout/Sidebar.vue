@@ -144,18 +144,18 @@ function getIcon(iconName) {
     <!-- Settings at bottom -->
     <div class="p-4 border-t border-border">
       <button
-        @click="navigate(settingsItem.value?.route)"
+        @click="navigate(settingsItem.route)"
         :class="[
           'w-full flex items-center rounded-lg transition-all',
           isCollapsed ? 'justify-center px-3 py-3' : 'gap-3 px-4 py-3',
-          route?.name === settingsItem.value?.route
+          route?.name === settingsItem.route
             ? 'bg-primary/10 text-primary font-medium'
             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
         ]"
-        :title="isCollapsed ? settingsItem.value?.name : ''"
+        :title="isCollapsed ? settingsItem.name : ''"
       >
-        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" v-html="getIcon(settingsItem.value?.icon)"></svg>
-        <span v-if="!isCollapsed" class="text-sm">{{ settingsItem.value?.name || 'Paramètres' }}</span>
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" v-html="getIcon(settingsItem.icon)"></svg>
+        <span v-if="!isCollapsed" class="text-sm">{{ settingsItem.name }}</span>
       </button>
     </div>
   </aside>
