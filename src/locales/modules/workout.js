@@ -144,5 +144,14 @@ export default {
     passive: 'Libre'
   },
   // Interval progress text
-  intervalPowerConnector: 'à'
+  intervalPowerConnector: 'à',
+  // Strava upload
+  strava: {
+    upload: 'Envoyer vers Strava',
+    uploading: 'Envoi en cours...',
+    success: 'Envoyé vers Strava !',
+    error: 'Erreur lors de l\'envoi',
+    viewActivity: 'Voir sur Strava',
+    connect: 'Connecter Strava'
+  }
 };

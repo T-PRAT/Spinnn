@@ -220,7 +220,15 @@ export default {
       res: 'Fixed resistance',
       passive: 'Free ride'
     },
-    intervalPowerConnector: 'at'
+    intervalPowerConnector: 'at',
+    strava: {
+      upload: 'Upload to Strava',
+      uploading: 'Uploading...',
+      success: 'Uploaded to Strava!',
+      error: 'Upload failed',
+      viewActivity: 'View on Strava',
+      connect: 'Connect Strava'
+    }
   },
   metrics: {
     power: 'Power',
@@ -277,6 +285,15 @@ export default {
   },
   settings: {
     title: 'Settings',
+    navigation: {
+      preferences: 'Preferences',
+      athlete: 'Athlete',
+      integrations: 'Integrations'
+    },
+    preferences: {
+      title: 'Preferences',
+      description: 'Language, appearance and sounds'
+    },
     language: {
       title: 'Language',
       description: 'Choose your interface language'
@@ -309,6 +326,13 @@ export default {
       ftpSaved: 'Currently saved value',
       saveFTP: 'Save'
     },
+    athleteProfile: {
+      description: 'FTP and power zones'
+    },
+    integrations: {
+      title: 'Integrations',
+      description: 'Intervals.icu and Strava'
+    },
     zones: {
       title: 'Power Zones',
       description: 'Configure your power zones as a percentage of your FTP',
@@ -340,6 +364,32 @@ export default {
       helpText: 'To get your API key:',
       helpLink: 'Intervals.icu Settings',
       connectedMessage: 'Connected to Intervals.icu'
+    },
+    strava: {
+      title: 'Strava',
+      description: 'Upload your workouts to Strava',
+      connected: 'Connected',
+      disconnect: 'Disconnect',
+      connectButton: 'Connect Strava',
+      connecting: 'Connecting...',
+      connectedMessage: 'Connected as',
+      autoUpload: 'Auto-upload',
+      autoUploadDescription: 'Automatically upload each workout to Strava',
+      sportType: 'Activity Type',
+      sportTypeDescription: 'Choose the activity type for your workouts',
+      helpText: 'To connect Strava, create an application on',
+      helpLink: 'Strava Developers',
+      processing: 'Processing authorization...',
+      connectSuccess: 'Successfully connected to Strava!',
+      successTitle: 'Success!',
+      oauthError: 'OAuth authorization failed',
+      connectError: 'Failed to connect to Strava',
+      missingParams: 'Missing authorization parameters',
+      errorTitle: 'Connection Failed',
+      redirecting: 'Redirecting to settings...',
+      errorNoRefreshToken: 'No refresh token available',
+      errorNotConnected: 'Not connected to Strava',
+      errorInvalidState: 'Invalid OAuth state'
     },
     export: {
       title: 'Export Data',

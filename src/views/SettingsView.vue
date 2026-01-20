@@ -6,6 +6,7 @@ import { useTheme } from '../composables/useTheme';
 import { useAudioSettings } from '../composables/useAudioSettings';
 import { useI18n } from '../composables/useI18n';
 import IntervalsSettings from '../components/settings/IntervalsSettings.vue';
+import StravaSettings from '../components/settings/StravaSettings.vue';
 
 const route = useRoute();
 const appState = useAppState();
@@ -16,10 +17,17 @@ const { currentLocale, setLocale, t } = useI18n();
 const localFtp = ref(200);
 const showTooltip = ref(false);
 const localZones = ref({});
+const activeSection = ref('');
 
 const languages = [
   { code: 'fr', name: 'Français', flag: '🇫🇷' },
   { code: 'en', name: 'English', flag: '🇬🇧' }
+];
+
+const settingsSections = [
+  { id: 'preferences', label: 'settings.navigation.preferences', icon: '⚙️' },
+  { id: 'athlete', label: 'settings.navigation.athlete', icon: '🚴' },
+  { id: 'integrations', label: 'settings.navigation.integrations', icon: '🔗' }
 ];
 
 onMounted(() => {
@@ -35,7 +43,42 @@ onMounted(() => {
       }
     }
   });
+
+  // Setup intersection observer for active section tracking
+  setupIntersectionObserver();
 });
+
+function scrollToSection(sectionId) {
+  const element = document.getElementById(sectionId);
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    activeSection.value = sectionId;
+  }
+}
+
+function setupIntersectionObserver() {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          activeSection.value = entry.target.id;
+        }
+      });
+    },
+    {
+      rootMargin: '-20% 0px -70% 0px',
+      threshold: 0
+    }
+  );
+
+  // Observe all sections
+  settingsSections.forEach((section) => {
+    const element = document.getElementById(section.id);
+    if (element) {
+      observer.observe(element);
+    }
+  });
+}
 
 function saveFtp() {
   if (localFtp.value > 0) {
@@ -86,115 +129,147 @@ function testSound(soundId) {
       <h2 class="text-2xl font-bold text-foreground tracking-tight">{{ t('settings.title') }}</h2>
     </div>
 
-    <!-- Language Selector -->
-    <div class="bg-card rounded-lg p-6 shadow border border-border">
-      <h3 class="text-lg font-semibold text-foreground mb-4">{{ t('settings.language.title') }}</h3>
-      <div class="flex items-center gap-3">
+    <!-- Sticky Navigation Menu -->
+    <div class="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border mb-6 -mx-4 px-4">
+      <nav class="flex gap-1 overflow-x-auto py-2 scrollbar-hide">
         <button
-          v-for="lang in languages"
-          :key="lang.code"
-          @click="setLocale(lang.code)"
+          v-for="section in settingsSections"
+          :key="section.id"
+          @click="scrollToSection(section.id)"
           :class="[
-            'flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all',
-            currentLocale === lang.code
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all',
+            activeSection === section.id
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           ]"
+          :title="t(section.label)"
         >
-          <span class="text-xl">{{ lang.flag }}</span>
-          <span>{{ lang.name }}</span>
+          <span class="text-sm">{{ section.icon }}</span>
+          <span class="hidden sm:inline">{{ t(section.label) }}</span>
         </button>
-      </div>
+      </nav>
     </div>
 
-    <!-- Theme Toggle -->
-    <div class="bg-card rounded-lg p-6 shadow border border-border">
-      <h3 class="text-lg font-semibold text-foreground mb-4">{{ t('settings.appearance.title') }}</h3>
-      <div class="flex items-center justify-between">
-        <div>
-          <div class="text-sm font-medium text-foreground">{{ t('settings.appearance.darkMode') }}</div>
-          <div class="text-xs text-muted-foreground mt-1">{{ t('settings.appearance.darkModeDescription') }}</div>
+    <!-- PREFERENCES SECTION -->
+    <div id="preferences" class="space-y-6 scroll-mt-20">
+      <div class="bg-card rounded-lg border border-border">
+        <div class="p-4 border-b border-border">
+          <h3 class="text-lg font-semibold text-foreground">{{ t('settings.preferences.title') }}</h3>
+          <p class="text-sm text-muted-foreground mt-1">{{ t('settings.preferences.description') }}</p>
         </div>
-        <button
-          @click="theme.toggleTheme()"
-          :class="[
-            'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-            theme.isDark.value ? 'bg-primary' : 'bg-muted'
-          ]"
-        >
-          <span
-            :class="[
-              'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-              theme.isDark.value ? 'translate-x-6' : 'translate-x-1'
-            ]"
-          />
-        </button>
-      </div>
-    </div>
 
-    <!-- Audio Settings -->
-    <div class="bg-card rounded-lg p-6 shadow border border-border">
-      <h3 class="text-lg font-semibold text-foreground mb-4">{{ t('settings.audio.title') }}</h3>
-      <p class="text-sm text-muted-foreground mb-4">
-        {{ t('settings.audio.description') }}
-      </p>
+        <!-- Language -->
+        <div class="p-6 border-b border-border">
+          <h4 class="text-base font-medium text-foreground mb-4">{{ t('settings.language.title') }}</h4>
+          <div class="flex items-center gap-3">
+            <button
+              v-for="lang in languages"
+              :key="lang.code"
+              @click="setLocale(lang.code)"
+              :class="[
+                'flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all',
+                currentLocale === lang.code
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              ]"
+            >
+              <span class="text-xl">{{ lang.flag }}</span>
+              <span>{{ lang.name }}</span>
+            </button>
+          </div>
+        </div>
 
-      <div class="space-y-2">
-        <div
-          v-for="sound in audioSettings.availableSounds"
-          :key="sound.id"
-          @click="selectSound(sound.id)"
-          :class="[
-            'flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all',
-            audioSettings.selectedSound.value === sound.id
-              ? 'border-primary bg-primary/5'
-              : 'border-border hover:border-primary/50 hover:bg-muted/20'
-          ]"
-        >
-          <div class="flex-1">
-            <div class="flex items-center gap-2">
-              <div
+        <!-- Appearance -->
+        <div class="p-6 border-b border-border">
+          <h4 class="text-base font-medium text-foreground mb-4">{{ t('settings.appearance.title') }}</h4>
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-medium text-foreground">{{ t('settings.appearance.darkMode') }}</div>
+              <div class="text-xs text-muted-foreground mt-1">{{ t('settings.appearance.darkModeDescription') }}</div>
+            </div>
+            <button
+              @click="theme.toggleTheme()"
+              :class="[
+                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                theme.isDark.value ? 'bg-primary' : 'bg-muted'
+              ]"
+            >
+              <span
                 :class="[
-                  'w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all',
-                  audioSettings.selectedSound.value === sound.id
-                    ? 'border-primary bg-primary'
-                    : 'border-muted-foreground'
+                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                  theme.isDark.value ? 'translate-x-6' : 'translate-x-1'
                 ]"
+              />
+            </button>
+          </div>
+        </div>
+
+        <!-- Audio -->
+        <div class="p-6">
+          <h4 class="text-base font-medium text-foreground mb-4">{{ t('settings.audio.title') }}</h4>
+          <p class="text-sm text-muted-foreground mb-4">
+            {{ t('settings.audio.description') }}
+          </p>
+
+          <div class="space-y-2">
+            <div
+              v-for="sound in audioSettings.availableSounds"
+              :key="sound.id"
+              @click="selectSound(sound.id)"
+              :class="[
+                'flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all',
+                audioSettings.selectedSound.value === sound.id
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50 hover:bg-muted/20'
+              ]"
+            >
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <div
+                    :class="[
+                      'w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all',
+                      audioSettings.selectedSound.value === sound.id
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground'
+                    ]"
+                  >
+                    <div
+                      v-if="audioSettings.selectedSound.value === sound.id"
+                      class="w-2 h-2 rounded-full bg-primary-foreground"
+                    ></div>
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-foreground">{{ sound.name }}</div>
+                    <div class="text-xs text-muted-foreground">{{ sound.description }}</div>
+                  </div>
+                </div>
+              </div>
+              <button
+                v-if="sound.id !== 'none'"
+                @click.stop="testSound(sound.id)"
+                class="ml-3 px-3 py-1 text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded transition-colors"
               >
-                <div
-                  v-if="audioSettings.selectedSound.value === sound.id"
-                  class="w-2 h-2 rounded-full bg-primary-foreground"
-                ></div>
-              </div>
-              <div>
-                <div class="text-sm font-medium text-foreground">{{ sound.name }}</div>
-                <div class="text-xs text-muted-foreground">{{ sound.description }}</div>
-              </div>
+                {{ t('common.buttons.test') }}
+              </button>
             </div>
           </div>
-          <button
-            v-if="sound.id !== 'none'"
-            @click.stop="testSound(sound.id)"
-            class="ml-3 px-3 py-1 text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded transition-colors"
-          >
-            {{ t('common.buttons.test') }}
-          </button>
         </div>
       </div>
     </div>
 
-    <!-- FTP Settings -->
-    <div class="bg-card rounded-lg p-6 shadow border border-border">
-      <div class="flex items-center gap-2 mb-4">
-        <h3 class="text-lg font-semibold text-foreground">{{ t('settings.athlete.title') }}</h3>
-      </div>
+    <!-- ATHLETE SECTION -->
+    <div id="athlete" class="space-y-6 scroll-mt-20">
+      <div class="bg-card rounded-lg border border-border">
+        <div class="p-4 border-b border-border">
+          <h3 class="text-lg font-semibold text-foreground">{{ t('settings.athlete.title') }}</h3>
+          <p class="text-sm text-muted-foreground mt-1">{{ t('settings.athleteProfile.description') }}</p>
+        </div>
 
-      <div class="space-y-4">
-        <div>
+        <!-- FTP -->
+        <div class="p-6 border-b border-border">
+          <h4 class="text-base font-medium text-foreground mb-4">{{ t('settings.athlete.ftp') }}</h4>
           <div class="flex items-center gap-2 mb-2">
-            <label for="ftp" class="text-sm font-medium text-foreground">
-              {{ t('settings.athlete.ftp') }}
-            </label>
+            <label for="ftp" class="text-sm font-medium text-foreground"></label>
             <button
               @mouseenter="showTooltip = true"
               @mouseleave="showTooltip = false"
@@ -234,72 +309,87 @@ function testSound(soundId) {
             {{ t('settings.athlete.ftpSaved') }} : {{ appState.ftp.value }}W
           </p>
         </div>
-      </div>
-    </div>
 
-    <!-- Power Zones Configuration -->
-    <div class="bg-card rounded-lg p-6 shadow border border-border">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-foreground">{{ t('settings.zones.title') }}</h3>
-        <button
-          @click="resetZones"
-          class="text-sm text-muted-foreground hover:text-foreground underline"
-        >
-          {{ t('common.buttons.reset') }}
-        </button>
-      </div>
-      <p class="text-sm text-muted-foreground mb-4">
-        {{ t('settings.zones.description') }} ({{ appState.ftp.value }}W)
-      </p>
+        <!-- Power Zones -->
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="text-base font-medium text-foreground">{{ t('settings.zones.title') }}</h4>
+            <button
+              @click="resetZones"
+              class="text-sm text-muted-foreground hover:text-foreground underline"
+            >
+              {{ t('common.buttons.reset') }}
+            </button>
+          </div>
+          <p class="text-sm text-muted-foreground mb-4">
+            {{ t('settings.zones.description') }} ({{ appState.ftp.value }}W)
+          </p>
 
-      <div class="space-y-2">
-        <div
-          v-for="(zone, key) in localZones"
-          :key="key"
-          class="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/20 transition-colors"
-        >
-          <div
-            class="w-1 h-10 rounded-full"
-            :style="{ backgroundColor: getZoneColor(key) }"
-          ></div>
-          <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium text-foreground">{{ zone.name }}</div>
-            <div class="text-xs text-muted-foreground">
-              {{ Math.round(zone.min * appState.ftp.value / 100) }}W - {{ Math.round(zone.max * appState.ftp.value / 100) }}W
+          <div class="space-y-2">
+            <div
+              v-for="(zone, key) in localZones"
+              :key="key"
+              class="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/20 transition-colors"
+            >
+              <div
+                class="w-1 h-10 rounded-full"
+                :style="{ backgroundColor: getZoneColor(key) }"
+              ></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-foreground">{{ zone.name }}</div>
+                <div class="text-xs text-muted-foreground">
+                  {{ Math.round(zone.min * appState.ftp.value / 100) }}W - {{ Math.round(zone.max * appState.ftp.value / 100) }}W
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input
+                  type="number"
+                  v-model.number="zone.min"
+                  min="0"
+                  max="200"
+                  class="w-14 px-2 py-1 text-xs text-center bg-background border border-input rounded focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+                <span class="text-xs text-muted-foreground">-</span>
+                <input
+                  type="number"
+                  v-model.number="zone.max"
+                  min="0"
+                  max="200"
+                  class="w-14 px-2 py-1 text-xs text-center bg-background border border-input rounded focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+                <span class="text-xs text-muted-foreground">%</span>
+              </div>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <input
-              type="number"
-              v-model.number="zone.min"
-              min="0"
-              max="200"
-              class="w-14 px-2 py-1 text-xs text-center bg-background border border-input rounded focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-            <span class="text-xs text-muted-foreground">-</span>
-            <input
-              type="number"
-              v-model.number="zone.max"
-              min="0"
-              max="200"
-              class="w-14 px-2 py-1 text-xs text-center bg-background border border-input rounded focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-            <span class="text-xs text-muted-foreground">%</span>
-          </div>
+
+          <button
+            @click="saveZones"
+            class="mt-4 w-full px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
+          >
+            {{ t('settings.zones.save') }}
+          </button>
         </div>
       </div>
-
-      <button
-        @click="saveZones"
-        class="mt-4 w-full px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
-      >
-        {{ t('settings.zones.save') }}
-      </button>
     </div>
 
-    <!-- Intervals.icu Integration -->
-    <div id="intervals-icu" class="bg-card rounded-lg p-6 shadow border border-border">
-      <IntervalsSettings />
+    <!-- INTEGRATIONS SECTION -->
+    <div id="integrations" class="space-y-6 scroll-mt-20">
+      <div class="bg-card rounded-lg border border-border">
+        <div class="p-4 border-b border-border">
+          <h3 class="text-lg font-semibold text-foreground">{{ t('settings.integrations.title') }}</h3>
+          <p class="text-sm text-muted-foreground mt-1">{{ t('settings.integrations.description') }}</p>
+        </div>
+
+        <!-- Intervals.icu -->
+        <div class="p-6 border-b border-border">
+          <IntervalsSettings />
+        </div>
+
+        <!-- Strava -->
+        <div class="p-6">
+          <StravaSettings />
+        </div>
+      </div>
     </div>
   </div>
 </template>

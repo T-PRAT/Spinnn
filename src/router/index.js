@@ -4,6 +4,7 @@ import WorkoutView from '../views/WorkoutView.vue';
 import SummaryView from '../views/SummaryView.vue';
 import SettingsView from '../views/SettingsView.vue';
 import HistoryView from '../views/HistoryView.vue';
+import StravaCallbackView from '../views/StravaCallbackView.vue';
 
 const routes = [
   {
@@ -30,6 +31,11 @@ const routes = [
     path: '/history',
     name: 'history',
     component: HistoryView
+  },
+  {
+    path: '/strava-callback',
+    name: 'strava-callback',
+    component: StravaCallbackView
   }
 ];
 

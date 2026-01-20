@@ -1,5 +1,16 @@
 export default {
   title: 'Paramètres',
+  // Navigation menu
+  navigation: {
+    preferences: 'Préférences',
+    athlete: 'Profil athlète',
+    integrations: 'Intégrations'
+  },
+  // Preferences
+  preferences: {
+    title: 'Préférences',
+    description: 'Langue, apparence et sons'
+  },
   // Language
   language: {
     title: 'Langue',
@@ -36,6 +47,14 @@ export default {
     ftpSaved: 'Valeur actuelle sauvegardée',
     saveFTP: 'Enregistrer'
   },
+  athleteProfile: {
+    description: 'FTP et zones de puissance'
+  },
+  // Integrations
+  integrations: {
+    title: 'Intégrations',
+    description: 'Intervals.icu et Strava'
+  },
   // Power zones
   zones: {
     title: 'Zones de puissance',
@@ -69,6 +88,33 @@ export default {
     helpText: 'Pour obtenir votre clé API:',
     helpLink: 'Paramètres Intervals.icu',
     connectedMessage: 'Connecté à Intervals.icu'
+  },
+  // Strava
+  strava: {
+    title: 'Strava',
+    description: 'Envoyez vos entraînements vers Strava',
+    connected: 'Connecté',
+    disconnect: 'Déconnecter',
+    connectButton: 'Connecter Strava',
+    connecting: 'Connexion en cours...',
+    connectedMessage: 'Connecté en tant que',
+    autoUpload: 'Envoi automatique',
+    autoUploadDescription: 'Envoyer automatiquement chaque entraînement vers Strava',
+    sportType: "Type d'activité",
+    sportTypeDescription: 'Choisissez le type d\'activité pour vos entraînements',
+    helpText: 'Pour connecter Strava, créez une application sur',
+    helpLink: 'Strava Developers',
+    processing: 'Traitement de l\'autorisation...',
+    connectSuccess: 'Connexion réussie à Strava !',
+    successTitle: 'Succès !',
+    oauthError: 'Autorisation OAuth échouée',
+    connectError: 'Échec de la connexion à Strava',
+    missingParams: 'Paramètres d\'autorisation manquants',
+    errorTitle: 'Échec de la connexion',
+    redirecting: 'Redirection vers les paramètres...',
+    errorNoRefreshToken: 'Aucun token de rafraîchissement disponible',
+    errorNotConnected: 'Non connecté à Strava',
+    errorInvalidState: 'État OAuth invalide'
   },
   // Export
   export: {
