@@ -4,10 +4,7 @@
 ## A
 - [General] trouver un meilleur nom
 - [General] faire un logo
-- [Workout] bouton aller prochain intervalle
 - [Workout] meilleur sons intervalle
-- [Workout] mettre P cible et Pmax en dessous puissance (et pareil pour FC)
-- [Workout] ajouter barre de progression de l'intervalle en cours
 
 ## B
 - [Workout] monter baisser la puissance de l'entrainement en cours
@@ -34,11 +31,14 @@
 - [Settings] Vitesse très faible pour puissance
 
 ## IRL test TODO
+- [Workout] bouton aller prochain intervalle
 - [Workout] Drop dans la courbe de cadence inexpliqué
 - [Workout] Pause auto trop rapide
 
 
 ## Done
+- [Workout] ajouter barre de progression de l'intervalle en cours
+- [Workout] mettre P cible et Pmax en dessous puissance (et pareil pour FC)
 - [General] customizer le dashboard
 - [General] refonte dashboard
 - [Workout] Changer FTP pendant séance ✓

@@ -34,7 +34,7 @@ function toggleCategory(categoryId) {
 			{{ t('workout.predefined') }}
 		</h2>
 
-		<div class="h-92.5 max-h-150 overflow-y-auto space-y-3">
+		<div class="h-92.5 max-h-150 overflow-y-auto space-y-3 pr-3">
 			<div
 				v-for="category in workoutCategories"
 				:key="category.id"

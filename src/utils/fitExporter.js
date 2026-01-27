@@ -4,6 +4,15 @@
  */
 import { Encoder } from '@garmin/fitsdk';
 
+// Device identification for Spinnn
+// Using development manufacturer (255) with unique product ID
+// Strava can map this device: https://developers.strava.com/docs/uploads/#device-mapping
+const DEVICE = {
+  MANUFACTURER: 255, // Development (not registered with ANT+)
+  PRODUCT: 1001,     // Unique ID for Spinnn
+  SERIAL_NUMBER: 0x5350494E4E, // "SPINN" in hex
+};
+
 // Message numbers from FIT profile
 const MESG_NUM = {
   FILE_ID: 0,
@@ -51,9 +60,9 @@ export function createFitFile(sessionData, stats) {
   encoder.writeMesg({
     mesgNum: MESG_NUM.FILE_ID,
     type: 'activity',
-    manufacturer: 255, // Development
-    product: 0,
-    serialNumber: 12345,
+    manufacturer: DEVICE.MANUFACTURER,
+    product: DEVICE.PRODUCT,
+    serialNumber: DEVICE.SERIAL_NUMBER,
     timeCreated: startTime,
   });
 

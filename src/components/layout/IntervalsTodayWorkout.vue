@@ -58,7 +58,7 @@ defineExpose({
     <div v-if="!intervals.isConnected.value" class="p-4 bg-muted/50 rounded-lg border border-border">
       <p class="text-sm text-muted-foreground text-center">
         {{ t('workout.intervalsNotConnected') }}
-        <router-link to="/settings#intervals-icu" class="text-primary hover:underline">{{ t('workout.intervalsSettingsLink') }}</router-link>
+        <router-link to="/settings#integrations" class="text-primary hover:underline">{{ t('workout.intervalsSettingsLink') }}</router-link>
         {{ t('workout.intervalsNotConnectedSuffix') }}
       </p>
     </div>
