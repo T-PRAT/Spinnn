@@ -142,7 +142,7 @@ function testSound(soundId) {
               ? 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           ]"
-          :title="t(section.label)"
+          :title="t(section.label) || undefined"
         >
           <span class="text-sm">{{ section.icon }}</span>
           <span class="hidden sm:inline">{{ t(section.label) }}</span>
