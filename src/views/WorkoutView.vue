@@ -575,7 +575,7 @@ const rightSlots = computed(() => [
                   ? 'bg-primary text-primary-foreground shadow-inner'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground',
               ]"
-              :title="mode.description"
+              :title="mode.description || undefined"
             >
               {{ mode.label }}
             </button>
