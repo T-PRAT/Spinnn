@@ -169,7 +169,7 @@ function dismissPendingWorkout() {
         <button
           @click="dismissPendingWorkout"
           class="text-muted-foreground hover:text-destructive transition-colors p-1"
-          :title="t('workout.dismissButton')"
+          :title="t('workout.dismissButton') || undefined"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
