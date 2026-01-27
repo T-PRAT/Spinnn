@@ -81,7 +81,7 @@ function handleDisconnect() {
         <input
           v-model="apiKeyInput"
           type="password"
-          :placeholder="t('settings.intervals.apiKeyPlaceholder')"
+          :placeholder="t('settings.intervals.apiKeyPlaceholder') || ''"
           class="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <p class="mt-1 text-xs text-muted-foreground">
@@ -96,7 +96,7 @@ function handleDisconnect() {
         <input
           v-model="athleteIdInput"
           type="text"
-          :placeholder="t('settings.intervals.athleteIdPlaceholder')"
+          :placeholder="t('settings.intervals.athleteIdPlaceholder') || ''"
           class="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <p class="mt-1 text-xs text-muted-foreground">
