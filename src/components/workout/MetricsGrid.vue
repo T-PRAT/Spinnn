@@ -266,10 +266,12 @@ const intervalConnector = computed(() => {
 			<div class="flex items-center gap-1 md:gap-3">
 				<!-- Left: Duration + Power text -->
 				<div class="flex-shrink-0 text-left min-w-fit">
-					<div class="text-[10px] md:text-sm text-foreground flex items-baseline gap-0.5 md:gap-1">
-						<span class="font-bold tabular-nums">{{ intervalDurationText }}</span>
-						<span class="font-normal">{{ intervalConnector }}</span>
-						<span class="font-bold tabular-nums">{{ intervalPowerText }}</span>
+					<div class="bg-muted/50 border border-border rounded px-1.5 py-1 md:px-3 md:py-1.5">
+						<div class="text-sm md:text-lg text-foreground flex items-baseline gap-1 md:gap-1.5">
+							<span class="font-bold tabular-nums">{{ intervalDurationText }}</span>
+							<span class="font-normal text-muted-foreground">{{ intervalConnector }}</span>
+							<span class="font-bold tabular-nums">{{ intervalPowerText }}</span>
+						</div>
 					</div>
 				</div>
 
@@ -283,8 +285,10 @@ const intervalConnector = computed(() => {
 
 				<!-- Right: Remaining seconds countdown -->
 				<div class="flex-shrink-0 text-right min-w-fit">
-					<div class="text-base md:text-xl font-bold tabular-nums text-foreground">
-						{{ Math.round(currentIntervalDuration - currentIntervalElapsed) }}s
+					<div class="bg-muted/50 border border-border rounded px-1.5 py-1 md:px-3 md:py-1.5">
+						<div class="text-lg md:text-2xl font-bold tabular-nums text-foreground">
+							{{ Math.round(currentIntervalDuration - currentIntervalElapsed) }}s
+						</div>
 					</div>
 				</div>
 			</div>
