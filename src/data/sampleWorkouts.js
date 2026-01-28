@@ -204,7 +204,7 @@ export function formatDuration(seconds) {
 
 export function getTargetPowerAtTime(workout, elapsedSeconds, ftp) {
   let currentTime = 0;
-  
+
   for (const interval of workout.intervals) {
     if (elapsedSeconds >= currentTime && elapsedSeconds < currentTime + interval.duration) {
       if (interval.power !== undefined) {
@@ -217,6 +217,51 @@ export function getTargetPowerAtTime(workout, elapsedSeconds, ftp) {
     }
     currentTime += interval.duration;
   }
-  
+
   return 0;
+}
+
+/**
+ * Obtenir l'index de l'intervalle actuel à un moment donné
+ * Utilisé pour détecter les changements d'intervalle
+ */
+export function getCurrentIntervalIndex(workout, elapsedSeconds) {
+  let currentTime = 0;
+
+  for (let i = 0; i < workout.intervals.length; i++) {
+    const interval = workout.intervals[i];
+    if (elapsedSeconds >= currentTime && elapsedSeconds < currentTime + interval.duration) {
+      return i;
+    }
+    currentTime += interval.duration;
+  }
+
+  return -1; // Entraînement terminé
+}
+
+/**
+ * Obtenir la puissance cible ajustée avec les offsets de puissance
+ * @param {Object} workout - L'entraînement
+ * @param {number} elapsedSeconds - Temps écoulé en secondes
+ * @param {number} ftp - FTP de l'utilisateur
+ * @param {number} currentOffset - Offset de l'intervalle actuel (-0.20 à +0.20)
+ * @param {number} globalOffset - Offset global de la séance (-0.20 à +0.20)
+ * @returns {number} Puissance cible ajustée en watts
+ */
+export function getAdjustedTargetPowerAtTime(workout, elapsedSeconds, ftp, currentOffset, globalOffset) {
+  // Obtenir la puissance cible de base
+  const basePower = getTargetPowerAtTime(workout, elapsedSeconds, ftp);
+  if (basePower === 0) return 0;
+
+  // Calculer l'offset total en pourcentage
+  const totalOffsetPercent = currentOffset + globalOffset;
+
+  // Appliquer l'offset
+  const adjustedPower = basePower * (1 + totalOffsetPercent);
+
+  // Clamp dans une plage sécurisée
+  const minPower = 50;
+  const maxPower = Math.min(ftp * 1.5, 2000);
+
+  return Math.max(minPower, Math.min(maxPower, Math.round(adjustedPower)));
 }

@@ -153,5 +153,14 @@ export default {
     error: 'Erreur lors de l\'envoi',
     viewActivity: 'Voir sur Strava',
     connect: 'Connecter Strava'
-  }
+  },
+  // Power adjustments
+  intervalLabel: 'Tour',
+  globalLabel: 'Global',
+  adjustCurrentUp: 'Augmenter ce tour (+5%)',
+  adjustCurrentDown: 'Diminuer ce tour (-5%)',
+  adjustGlobalUp: 'Augmenter globalement (+5%)',
+  adjustGlobalDown: 'Diminuer globalement (-5%)',
+  currentOffset: 'Ajustement tour',
+  globalOffset: 'Ajustement global',
 };

@@ -12,7 +12,8 @@ import { useBluetoothTrainer, ControlMode } from "../composables/useBluetoothTra
 import { useMockDevices } from "../composables/useMockDevices";
 import { useAudioSettings } from "../composables/useAudioSettings";
 import { useI18n } from "@/composables/useI18n";
-import { getTargetPowerAtTime } from "../data/sampleWorkouts";
+import { usePowerAdjustments } from "@/composables/usePowerAdjustments";
+import { getTargetPowerAtTime, getAdjustedTargetPowerAtTime } from "../data/sampleWorkouts";
 
 const router = useRouter();
 const appState = useAppState();
@@ -21,6 +22,7 @@ const hrm = useBluetoothHRM();
 const trainer = useBluetoothTrainer();
 const mockDevices = useMockDevices();
 const audioSettings = useAudioSettings();
+const powerAdjustments = usePowerAdjustments();
 const { t } = useI18n();
 
 const showStopConfirmation = ref(false);
@@ -98,7 +100,13 @@ const controlModes = computed(() => [
 const currentTargetPower = computed(() => {
   if (!appState.selectedWorkout.value) return 0;
   if (session.isWorkoutComplete.value) return 0; // Free ride after completion
-  return getTargetPowerAtTime(appState.selectedWorkout.value, session.elapsedSeconds.value, appState.ftp.value);
+  return getAdjustedTargetPowerAtTime(
+    appState.selectedWorkout.value,
+    session.elapsedSeconds.value,
+    appState.ftp.value,
+    powerAdjustments.currentIntervalOffset.value,
+    powerAdjustments.globalOffset.value
+  );
 });
 
 // Update trainer ERG target power
@@ -325,6 +333,40 @@ function togglePause() {
   }
 }
 
+function adjustCurrentIntervalUp() {
+  const delta = 0.05; // +5%
+  powerAdjustments.adjustCurrentInterval(delta);
+  updateERGPower();
+}
+
+function adjustCurrentIntervalDown() {
+  const delta = -0.05; // -5%
+  powerAdjustments.adjustCurrentInterval(delta);
+  updateERGPower();
+}
+
+function resetCurrentInterval() {
+  powerAdjustments.resetCurrentIntervalOffset();
+  updateERGPower();
+}
+
+function adjustGlobalWorkoutUp() {
+  const delta = 0.05; // +5%
+  powerAdjustments.adjustGlobalWorkout(delta);
+  updateERGPower();
+}
+
+function adjustGlobalWorkoutDown() {
+  const delta = -0.05; // -5%
+  powerAdjustments.adjustGlobalWorkout(delta);
+  updateERGPower();
+}
+
+function resetGlobalWorkout() {
+  powerAdjustments.globalOffset.value = 0;
+  updateERGPower();
+}
+
 // Re-enable auto-pause
 function enableAutoPause() {
   autoPauseEnabled.value = true;
@@ -353,6 +395,7 @@ function proceedStop() {
 function stopWorkout() {
   session.stop();
   stopDataCollection();
+  powerAdjustments.resetAll();
   appState.finishWorkout();
   router.push({ name: "summary" });
 }
@@ -610,6 +653,79 @@ const rightSlots = computed(() => [
               :connecting="deviceStatus.trainer.connecting"
               @reconnect="reconnectTrainer"
             />
+          </div>
+        </div>
+
+        <!-- Power adjustment buttons -->
+        <div class="flex gap-1 md:gap-2 flex-shrink-0">
+          <!-- Current interval adjustment -->
+          <div class="flex flex-col items-center gap-0.5">
+            <span class="text-[8px] md:text-[9px] text-muted-foreground font-semibold uppercase tracking-wide">{{ t('workout.intervalLabel') }}</span>
+            <div class="flex rounded-lg overflow-hidden border-2 border-border shadow-sm">
+              <button
+                @click="adjustCurrentIntervalDown"
+                :disabled="session.isWorkoutComplete.value"
+                class="px-2 py-1.5 text-xs md:text-sm font-bold transition-all bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                :title="t('workout.adjustCurrentDown')"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                </svg>
+              </button>
+              <button
+                @click="resetCurrentInterval"
+                :disabled="session.isWorkoutComplete.value || powerAdjustments.currentIntervalOffset.value === 0"
+                class="px-1.5 py-1.5 text-[9px] md:text-xs font-bold bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-w-[2rem] text-center flex items-center justify-center transition-all"
+                :title="t('workout.currentOffset')"
+              >
+                {{ powerAdjustments.formattedCurrentOffset.value }}
+              </button>
+              <button
+                @click="adjustCurrentIntervalUp"
+                :disabled="session.isWorkoutComplete.value"
+                class="px-2 py-1.5 text-xs md:text-sm font-bold transition-all bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                :title="t('workout.adjustCurrentUp')"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Global workout adjustment -->
+          <div class="flex flex-col items-center gap-0.5">
+            <span class="text-[8px] md:text-[9px] text-muted-foreground font-semibold uppercase tracking-wide">{{ t('workout.globalLabel') }}</span>
+            <div class="flex rounded-lg overflow-hidden border-2 border-border shadow-sm">
+              <button
+                @click="adjustGlobalWorkoutDown"
+                :disabled="session.isWorkoutComplete.value"
+                class="px-2 py-1.5 text-xs md:text-sm font-bold transition-all bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                :title="t('workout.adjustGlobalDown')"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                </svg>
+              </button>
+              <button
+                @click="resetGlobalWorkout"
+                :disabled="session.isWorkoutComplete.value || powerAdjustments.globalOffset.value === 0"
+                class="px-1.5 py-1.5 text-[9px] md:text-xs font-bold bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-w-[2rem] text-center flex items-center justify-center transition-all"
+                :title="t('workout.globalOffset')"
+              >
+                {{ powerAdjustments.formattedGlobalOffset.value }}
+              </button>
+              <button
+                @click="adjustGlobalWorkoutUp"
+                :disabled="session.isWorkoutComplete.value"
+                class="px-2 py-1.5 text-xs md:text-sm font-bold transition-all bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                :title="t('workout.adjustGlobalUp')"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
