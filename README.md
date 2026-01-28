@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="/public/favicon.ico" alt="Spinnn Logo" width="48"> Spinnn
+# <img src="/public/Logo.png" alt="Spinnn Logo" width="48"> Spinnn
 
 *A modern web application for cycling workouts*
 
