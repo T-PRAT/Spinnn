@@ -37,7 +37,7 @@ let lastTargetPower = 0;
 const autoPauseEnabled = ref(true);
 const powerActiveSeconds = ref(0);
 const powerInactiveSeconds = ref(0);
-const POWER_START_THRESHOLD = 3; // seconds of power > 0 to auto-start
+const POWER_START_THRESHOLD = 0; // start immediately when power > 0
 const POWER_PAUSE_THRESHOLD = 5; // seconds of power = 0 to auto-pause
 
 // Configuration des métriques par slot
@@ -242,8 +242,11 @@ onMounted(() => {
     mockDevices.start(appState.selectedWorkout.value, appState.ftp.value);
   }
 
-  // Start paused if auto-pause is enabled (waiting for pedaling)
-  if (autoPauseEnabled.value && !session.isPaused.value) {
+  // Check current power level
+  const currentPower = appState.mockModeActive.value ? mockDevices.power.value : trainer.power.value;
+
+  // Start paused only if no power detected
+  if (autoPauseEnabled.value && currentPower === 0 && !session.isPaused.value) {
     session.pause();
   }
 
@@ -561,7 +564,6 @@ const rightSlots = computed(() => [
       <div class="bg-primary/10 border border-primary/30 rounded-lg px-2 py-1.5 md:px-4 md:py-3 flex items-center justify-center gap-2 md:gap-3">
         <span class="text-base md:text-xl animate-bounce">🚴</span>
         <span class="text-[11px] md:text-sm font-medium text-primary">{{ t('workout.pedalToStart') }}</span>
-        <span class="text-[10px] md:text-xs text-primary/70">({{ powerActiveSeconds }}/{{ POWER_START_THRESHOLD }}s)</span>
       </div>
     </div>
 
