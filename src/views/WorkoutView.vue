@@ -26,6 +26,7 @@ const { t } = useI18n();
 const showStopConfirmation = ref(false);
 const showReconnectMenu = ref(false);
 const currentIntervalIndex = ref(-1);
+const countdownPlayedForInterval = ref(-1); // Track which interval had countdown played
 const showMetricConfig = ref(false);
 const selectedSlotId = ref(null);
 let dataInterval = null;
@@ -453,12 +454,25 @@ watch(
     const currentIntervalInfo = session.getCurrentIntervalIndex(newElapsedSeconds, appState.selectedWorkout.value);
     const newIntervalIndex = currentIntervalInfo.index;
 
+    // Update current interval index
     if (newIntervalIndex !== currentIntervalIndex.value && newIntervalIndex >= 0) {
-      const previousIndex = currentIntervalIndex.value;
       currentIntervalIndex.value = newIntervalIndex;
+      // Reset countdown tracker when changing intervals
+      if (newIntervalIndex !== countdownPlayedForInterval.value) {
+        countdownPlayedForInterval.value = -1;
+      }
+    }
 
-      if (previousIndex >= 0) {
+    // Play countdown 3 seconds before interval ends
+    if (newIntervalIndex >= 0 && newIntervalIndex !== countdownPlayedForInterval.value) {
+      const intervalDuration = currentIntervalInfo.interval?.duration || 0;
+      const intervalEndTime = currentIntervalInfo.startTime + intervalDuration;
+      const timeUntilEnd = intervalEndTime - newElapsedSeconds;
+
+      // Trigger countdown when 3 seconds remain (only once per interval)
+      if (timeUntilEnd <= 3.0 && timeUntilEnd > 2.9) {
         audioSettings.playIntervalSound();
+        countdownPlayedForInterval.value = newIntervalIndex;
       }
     }
   }

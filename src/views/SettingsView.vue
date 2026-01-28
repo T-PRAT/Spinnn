@@ -207,50 +207,35 @@ function testSound(soundId) {
         <!-- Audio -->
         <div class="p-6">
           <h4 class="text-base font-medium text-foreground mb-4">{{ t('settings.audio.title') }}</h4>
-          <p class="text-sm text-muted-foreground mb-4">
+          <p class="text-sm text-muted-foreground mb-3">
             {{ t('settings.audio.description') }}
           </p>
 
-          <div class="space-y-2">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div
               v-for="sound in audioSettings.availableSounds"
               :key="sound.id"
               @click="selectSound(sound.id)"
+              @dblclick="testSound(sound.id)"
               :class="[
-                'flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all',
+                'relative p-3 rounded-lg border-2 cursor-pointer transition-all text-center',
                 audioSettings.selectedSound.value === sound.id
-                  ? 'border-primary bg-primary/5'
+                  ? 'border-primary bg-primary/10'
                   : 'border-border hover:border-primary/50 hover:bg-muted/20'
               ]"
             >
-              <div class="flex-1">
-                <div class="flex items-center gap-2">
-                  <div
-                    :class="[
-                      'w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all',
-                      audioSettings.selectedSound.value === sound.id
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground'
-                    ]"
-                  >
-                    <div
-                      v-if="audioSettings.selectedSound.value === sound.id"
-                      class="w-2 h-2 rounded-full bg-primary-foreground"
-                    ></div>
-                  </div>
-                  <div>
-                    <div class="text-sm font-medium text-foreground">{{ sound.name }}</div>
-                    <div class="text-xs text-muted-foreground">{{ sound.description }}</div>
-                  </div>
-                </div>
+              <div class="flex flex-col items-center gap-1">
+                <div class="text-xs font-semibold text-foreground">{{ sound.name }}</div>
+                <div class="text-[10px] text-muted-foreground">{{ sound.description }}</div>
+                <button
+                  v-if="sound.id !== 'none'"
+                  @click.stop="testSound(sound.id)"
+                  class="mt-1 px-2 py-0.5 text-[10px] bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded transition-colors"
+                  title="Test"
+                >
+                  ▶
+                </button>
               </div>
-              <button
-                v-if="sound.id !== 'none'"
-                @click.stop="testSound(sound.id)"
-                class="ml-3 px-3 py-1 text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded transition-colors"
-              >
-                {{ t('common.buttons.test') }}
-              </button>
             </div>
           </div>
         </div>
