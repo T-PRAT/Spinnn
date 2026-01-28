@@ -2,8 +2,6 @@
 ** [Home][Workout][Summary][Settings][General]**
 
 ## A
-- [General] trouver un meilleur nom
-- [General] faire un logo
 - [Workout] meilleur sons intervalle
 
 ## B
@@ -37,6 +35,7 @@
 
 
 ## Done
+- [General] faire un logo
 - [Workout] ajouter barre de progression de l'intervalle en cours
 - [Workout] mettre P cible et Pmax en dessous puissance (et pareil pour FC)
 - [General] customizer le dashboard

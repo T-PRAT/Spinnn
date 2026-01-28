@@ -19,13 +19,11 @@ npm install          # Alternative if bun is not available
 bun dev              # Start Vite dev server with HMR at http://localhost:5173
 ```
 
-### Testing
+### E2E Testing (Smoke Tests)
 ```bash
-bun test             # Run unit tests with Vitest
-bun test:ui          # Run tests with Vitest UI
-bun test:coverage    # Generate coverage report (80% threshold)
-bun test:e2e         # Run Playwright E2E tests
+bun test:e2e         # Run Playwright smoke tests
 bun test:e2e:ui      # Run Playwright tests with UI
+bun test:e2e:debug   # Run Playwright tests in debug mode
 ```
 
 ### Build
@@ -47,7 +45,7 @@ bun run preview      # Preview production build locally
 - **Data Visualization:** D3.js 7.9.0
 - **Hardware Integration:** Web Bluetooth API + Garmin FIT SDK 21.178.0
 - **State Management:** Singleton composables (no Vuex/Pinia)
-- **Testing:** Vitest 3.0.7 + Playwright 1.50.1
+- **E2E Testing:** Playwright 1.50.1 (smoke tests only)
 
 ### State Management Pattern
 
@@ -271,31 +269,30 @@ The application persists data with the `spinnn_` prefix:
 - Touch-friendly UI elements
 - Custom scrollbar styling
 
-## Testing
+## E2E Testing (Smoke Tests)
 
-### Unit Testing (Vitest)
-- Configuration: `vitest.config.js`
-- Test files located in `src/**/__tests__/` directories
-- Uses Happy DOM for DOM simulation
-- Coverage target: 80% for all metrics (statements, branches, functions, lines)
-- Current test coverage:
-  - `src/utils/__tests__/bluetoothParser.test.js` - BLE data parsing
-  - `src/composables/__tests__/useWorkoutSession.test.js` - Session lifecycle and data recording
+The application uses Playwright for smoke testing critical user flows. This provides fast, high-value testing without the complexity of unit tests for hardware-integrated features.
 
-### E2E Testing (Playwright)
+### Test Coverage
 - Configuration: `playwright.config.js`
-- Test file: `tests/e2e/workoutFlow.spec.js`
-- Tests user journey and navigation
-- Run with `bun test:e2e` or `bun test:e2e:ui`
+- Test file: `tests/e2e/smoke.spec.js`
+- 3 critical smoke tests:
+  1. **Navigation flow** - Setup → Workout → Summary (core user journey)
+  2. **Settings persistence** - FTP configuration saves to localStorage
+  3. **Mock mode** - Device simulation works for development
 
-### Test Commands
+### Test Execution
 ```bash
-bun test              # Run unit tests in watch mode
-bun test:run          # Run unit tests once
-bun test:ui           # Run tests with Vitest UI
-bun test:coverage     # Generate coverage report
-bun test:e2e          # Run Playwright E2E tests
+bun test:e2e         # Run smoke tests
+bun test:e2e:ui      # Run with Playwright UI
+bun test:e2e:debug   # Debug mode
 ```
+
+### Test Strategy
+- Smoke tests are run manually before releases
+- Tests cover happy paths for critical features
+- Mock mode is used to avoid hardware dependencies
+- Execution time < 30 seconds
 
 ## Browser Requirements
 
