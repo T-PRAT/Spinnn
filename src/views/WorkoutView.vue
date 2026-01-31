@@ -39,10 +39,9 @@ let lastTargetPower = 0;
 const autoPauseEnabled = ref(true);
 const powerActiveSeconds = ref(0);
 const powerInactiveSeconds = ref(0);
-const POWER_START_THRESHOLD = 0; // start immediately when power > 0
-const POWER_PAUSE_THRESHOLD = 5; // seconds of power = 0 to auto-pause
+const POWER_START_THRESHOLD = 0;
+const POWER_PAUSE_THRESHOLD = 5;
 
-// Configuration des métriques par slot
 const defaultMetricsConfig = {
   1: "speed",
   2: "distance",
@@ -71,7 +70,6 @@ if (savedMetricsConfig) {
   }
 }
 
-// Métriques disponibles
 const availableMetrics = [
   { id: "power", label: "Puissance" },
   { id: "heartRate", label: "FC" },
@@ -451,7 +449,6 @@ watch(
   () => session.isWorkoutComplete.value,
   (isComplete) => {
     if (isComplete && !appState.mockModeActive.value && trainer.ftmsSupported.value) {
-      // Passer en mode passif pour ne plus imposer de résistance cible
       if (trainer.controlMode.value !== ControlMode.PASSIVE) {
         trainer.setControlMode(ControlMode.PASSIVE);
       }

@@ -320,7 +320,6 @@ function getIntervalColor(type, power) {
 }
 
 function smoothData(data, windowSize = 3) {
-  // Applique une moyenne mobile pour lisser les courbes affichées
   if (!data || data.length === 0) return [];
   if (data.length < windowSize) return data;
 
@@ -350,10 +349,8 @@ function updateChart(data) {
   if (!svg || !xScale || !yScalePower || !yScaleHR || !yScaleCadence) return;
   if (!data || data.length === 0) return;
 
-  // Transformation function for power values
   const transformPower = (power) => Math.sqrt(power);
 
-  // Lisser les données pour l'affichage uniquement
   const smoothedData = smoothData(data, 2);
   if (smoothedData.length === 0) return;
 

@@ -506,7 +506,6 @@ export function useBluetoothTrainer() {
 
       return true;
     } catch (err) {
-      // Ne pas afficher l'erreur si l'utilisateur a annulé la sélection
       if (!err.message.includes('User cancelled')) {
         error.value = err.message;
       }
