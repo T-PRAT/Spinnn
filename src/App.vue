@@ -22,9 +22,7 @@ function updateTitle() {
   }
 }
 
-// Initialiser le thème au montage
 onMounted(() => {
-  // Le thème est déjà appliqué par le composable useTheme
   updateTitle();
 });
 

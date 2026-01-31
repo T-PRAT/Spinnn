@@ -1,18 +1,15 @@
 import { ref, watch } from 'vue';
 
-const isDark = ref(true); // Dark mode par défaut
+const isDark = ref(true);
 
-// Charger le thème depuis localStorage au démarrage
 const stored = localStorage.getItem('spinnn_theme');
 if (stored) {
   isDark.value = stored === 'dark';
 } else {
-  // Par défaut, mode sombre
   isDark.value = true;
   localStorage.setItem('spinnn_theme', 'dark');
 }
 
-// Appliquer le thème initial
 if (typeof document !== 'undefined') {
   if (isDark.value) {
     document.documentElement.classList.add('dark');

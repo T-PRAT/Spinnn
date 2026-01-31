@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="/public/Logo.png" alt="Spinnn Logo" width="48"> Spinnn
+# <img src="/public/Logo-bg.png" alt="Spinnn Logo" width="48"> Spinnn
 
 *A modern web application for cycling workouts*
 
@@ -12,7 +12,7 @@
 
 ## Why Spinnn?
 
-Spinnn is a progressive web application for executing cycling workouts with real-time monitoring. Connect your Bluetooth sensors (heart rate monitor, smart trainer) and track your power, heart rate, cadence, and speed during your sessions.
+Spinnn is a web application for executing cycling workouts with real-time monitoring. Connect your Bluetooth sensors (heart rate monitor, smart trainer) and track your power, heart rate, cadence.. during your sessions.
 
 ### Features
 

@@ -146,7 +146,6 @@ const currentIntervalDuration = computed(() => {
 	return 0;
 });
 
-// Format interval text parts (e.g., "3m", "à", "200W")
 const intervalDurationText = computed(() => {
 	const duration = currentIntervalDuration.value;
 	const totalMinutes = Math.floor(duration / 60);

@@ -324,8 +324,6 @@ bun test:e2e:debug   # Debug mode
 
 6. **Session Recovery:** Active workouts persist across page refreshes. The app attempts to recover sessions automatically.
 
-7. **French Language:** The UI uses French labels and text. When adding new UI text, maintain French language consistency.
-
 ## Recommended IDE Setup
 
 [VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) extension (disable Vetur if installed).
