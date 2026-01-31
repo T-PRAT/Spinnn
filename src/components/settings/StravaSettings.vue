@@ -109,21 +109,6 @@ function toggleAutoUpload() {
         </button>
       </div>
 
-      <!-- Sport type selector -->
-      <div class="p-4 bg-muted/30 rounded-lg">
-        <div class="text-sm font-medium text-foreground mb-2">{{ t('settings.strava.sportType') }}</div>
-        <div class="text-xs text-muted-foreground mb-3">{{ t('settings.strava.sportTypeDescription') }}</div>
-        <select
-          :value="strava.selectedSportType.value"
-          @change="strava.setSportType($event.target.value)"
-          class="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option v-for="sport in strava.SPORT_TYPES" :key="sport.value" :value="sport.value">
-            {{ sport.label }}
-          </option>
-        </select>
-      </div>
-
       <!-- Strava info -->
       <div class="pt-2 border-t border-border">
         <p class="text-xs text-muted-foreground">
