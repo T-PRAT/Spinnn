@@ -13,7 +13,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const isConnected = ref(false);
 const athlete = ref(null);
 const autoUploadEnabled = ref(false);
-const selectedSportType = ref('VirtualRide');
 
 // State parameter for CSRF protection
 let pendingState = null;
@@ -23,11 +22,6 @@ function loadFromStorage() {
   try {
     const storedAutoUpload = localStorage.getItem('spinnn_strava_auto_upload');
     autoUploadEnabled.value = storedAutoUpload === 'true';
-
-    const storedSportType = localStorage.getItem('spinnn_strava_sport_type');
-    if (storedSportType) {
-      selectedSportType.value = storedSportType;
-    }
   } catch (e) {
     console.warn('Failed to load Strava settings from storage:', e);
   }
@@ -51,17 +45,6 @@ function generateState() {
 // Load settings on module initialization
 loadFromStorage();
 
-// Available sport types from Strava API
-const SPORT_TYPES = [
-  { value: 'VirtualRide', label: 'Virtual Ride' },
-  { value: 'Workout', label: 'Workout' },
-  { value: 'Ride', label: 'Ride' },
-  { value: 'EBikeRide', label: 'E-Bike Ride' },
-  { value: 'GravelRide', label: 'Gravel Ride' },
-  { value: 'MountainBikeRide', label: 'Mountain Bike Ride' },
-  { value: 'HighIntensityIntervalTraining', label: 'HIIT' }
-];
-
 export function useStrava() {
   const { t } = useI18n();
 
@@ -73,7 +56,7 @@ export function useStrava() {
   async function checkStatus() {
     try {
       const response = await fetch(`${API_URL}/api/strava/status`, {
-        credentials: 'include', // Important: send cookies
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -84,7 +67,6 @@ export function useStrava() {
       isConnected.value = data.connected;
       athlete.value = data.athlete;
 
-      console.log('Strava status:', data.connected ? 'connected' : 'disconnected');
       return data;
     } catch (error) {
       console.error('Failed to check Strava status:', error);
@@ -96,12 +78,10 @@ export function useStrava() {
 
   // Initiate OAuth flow
   function connect() {
-    // Generate state for CSRF protection
     const state = generateState();
     pendingState = state;
     sessionStorage.setItem('strava_oauth_state', state);
 
-    // Build authorization URL (no PKCE needed - backend handles everything)
     const params = new URLSearchParams({
       client_id: STRAVA_CONFIG.clientId,
       redirect_uri: `${window.location.origin}/strava-callback`,
@@ -110,56 +90,39 @@ export function useStrava() {
       state: state,
     });
 
-    const authUrl = `${STRAVA_CONFIG.authorizationUrl}?${params.toString()}`;
-
-    // Redirect to Strava
-    window.location.href = authUrl;
+    window.location.href = `${STRAVA_CONFIG.authorizationUrl}?${params.toString()}`;
   }
 
   // Handle OAuth callback
   async function handleCallback(code, state) {
-    // Verify state to prevent CSRF
     const storedState = sessionStorage.getItem('strava_oauth_state');
 
     if (!storedState || state !== storedState) {
       throw new Error(t('settings.strava.errorInvalidState') || 'Invalid OAuth state');
     }
 
-    // Clear sessionStorage
     sessionStorage.removeItem('strava_oauth_state');
 
     try {
-      // Check if client ID is configured
       if (!STRAVA_CONFIG.clientId || STRAVA_CONFIG.clientId === 'YOUR_CLIENT_ID') {
         throw new Error('Strava Client ID is not configured. Please set VITE_STRAVA_CLIENT_ID in your .env file.');
       }
 
-      // Send code to backend for exchange
       const response = await fetch(`${API_URL}/api/strava/oauth/exchange`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Important: send/receive cookies
-        body: JSON.stringify({
-          code: code,
-          state: state,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ code, state }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        console.error('OAuth exchange failed:', error);
         throw new Error(error.error || 'Failed to connect to Strava');
       }
 
       const data = await response.json();
-
-      // Update local state
       isConnected.value = true;
       athlete.value = data.athlete;
-
-      console.log(`✅ Connected to Strava: ${data.athlete.username || data.athlete.firstname}`);
 
       return data;
     } catch (error) {
@@ -182,52 +145,40 @@ export function useStrava() {
 
       isConnected.value = false;
       athlete.value = null;
-
-      console.log('✅ Disconnected from Strava');
     } catch (error) {
       console.error('Failed to disconnect from Strava:', error);
       throw error;
     }
   }
 
-  // Check upload status by polling
-  async function checkUploadStatus(uploadId) {
-    const response = await fetch(`${API_URL}/api/strava/upload/${uploadId}`, {
-      method: 'GET',
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to check upload status');
-    }
-
-    return await response.json();
-  }
-
-  // Poll upload status until complete
+  // Poll upload status until complete (merged checkUploadStatus + pollUploadStatus)
   async function pollUploadStatus(uploadId, onProgress) {
-    const maxAttempts = 30; // 30 seconds max
-    const pollInterval = 1000; // 1 second (recommended by Strava)
+    const maxAttempts = 30;
+    const pollInterval = 1000;
 
     for (let i = 0; i < maxAttempts; i++) {
-      const status = await checkUploadStatus(uploadId);
+      const response = await fetch(`${API_URL}/api/strava/upload/${uploadId}`, {
+        credentials: 'include',
+      });
 
-      // Check if there's an error
+      if (!response.ok) {
+        throw new Error('Failed to check upload status');
+      }
+
+      const status = await response.json();
+
       if (status.error) {
         throw new Error(status.error);
       }
 
-      // Check if activity is ready
       if (status.activity_id) {
         return status;
       }
 
-      // Still processing - call progress callback if provided
       if (onProgress) {
         onProgress(status);
       }
 
-      // Wait before polling again
       await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
 
@@ -237,27 +188,24 @@ export function useStrava() {
   // Upload FIT file to Strava via backend
   async function uploadWorkout(fitFile, metadata) {
     try {
-      // Create FormData for multipart upload
       const formData = new FormData();
       formData.append('file', fitFile, metadata.filename || 'workout.fit');
       formData.append('name', metadata.name || 'Spinnn Workout');
       formData.append('description', metadata.description || '');
-      formData.append('sport_type', metadata.sportType || selectedSportType.value || 'VirtualRide');
+      formData.append('sport_type', 'VirtualRide');
       formData.append('trainer', metadata.trainer ? '1' : '0');
       formData.append('commute', metadata.commute ? '1' : '0');
       formData.append('data_type', 'fit');
 
-      // Send to backend API
       const response = await fetch(`${API_URL}/api/strava/upload`, {
         method: 'POST',
-        credentials: 'include', // Important: send session cookie
+        credentials: 'include',
         body: formData,
       });
 
       if (!response.ok) {
         const error = await response.json();
 
-        // Handle not authenticated error
         if (response.status === 401) {
           isConnected.value = false;
           athlete.value = null;
@@ -269,59 +217,17 @@ export function useStrava() {
 
       const uploadData = await response.json();
 
-      // Check for immediate errors
       if (uploadData.error) {
         throw new Error(uploadData.error);
       }
 
-      // Poll for completion since uploads are asynchronous
-      const finalStatus = await pollUploadStatus(uploadData.id, metadata.onProgress);
-
-      // Save to upload history
-      if (finalStatus.activity_id) {
-        saveToUploadHistory({
-          activityId: finalStatus.activity_id,
-          name: metadata.name || 'Spinnn Workout',
-          uploadedAt: new Date().toISOString(),
-          sportType: metadata.sportType || selectedSportType.value || 'VirtualRide'
-        });
-      }
-
-      return finalStatus;
+      return await pollUploadStatus(uploadData.id, metadata.onProgress);
     } catch (error) {
       console.error('Failed to upload to Strava:', error);
       throw error;
     }
   }
 
-  // Upload history tracking
-  function getUploadHistory() {
-    try {
-      const stored = localStorage.getItem('spinnn_strava_upload_history');
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function saveToUploadHistory(upload) {
-    try {
-      const history = getUploadHistory();
-      history.unshift(upload);
-      // Keep only last 50 uploads
-      const trimmed = history.slice(0, 50);
-      localStorage.setItem('spinnn_strava_upload_history', JSON.stringify(trimmed));
-    } catch (e) {
-      console.warn('Failed to save upload history:', e);
-    }
-  }
-
-  function setSportType(sportType) {
-    selectedSportType.value = sportType;
-    localStorage.setItem('spinnn_strava_sport_type', sportType);
-  }
-
-  // Toggle auto-upload
   function setAutoUpload(enabled) {
     autoUploadEnabled.value = enabled;
     saveAutoUploadToStorage();
@@ -334,21 +240,14 @@ export function useStrava() {
     username,
     athleteId,
     autoUploadEnabled,
-    selectedSportType,
-
-    // Constants
-    SPORT_TYPES,
 
     // Methods
     checkStatus,
     connect,
     disconnect,
     handleCallback,
-    checkUploadStatus,
     pollUploadStatus,
     uploadWorkout,
     setAutoUpload,
-    setSportType,
-    getUploadHistory,
   };
 }
