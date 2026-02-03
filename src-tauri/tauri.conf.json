@@ -18,7 +18,8 @@
         "minWidth": 800,
         "minHeight": 600,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "devtools": true
       }
     ],
     "security": {
@@ -27,7 +28,8 @@
         "enable": true,
         "scope": ["**"]
       }
-    }
+    },
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": true,
