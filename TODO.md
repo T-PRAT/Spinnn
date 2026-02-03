@@ -3,6 +3,7 @@
 
 ## A
 - [Workout] meilleur sons intervalle
+- [Workout] Impossible modifier puissance quand entrainement terminé
 
 ## B
 - [Workout] monter baisser la puissance de l'entrainement en cours
@@ -14,6 +15,9 @@
 - [General] dashboard en mode paysage tablette
 - [Workout] séparateur dans le graphique, surtout pour intervalles même zone
 - [Workout] titre fenêtre - surtout attention pause
+- [Workout] Bouton mute rapide pour audio
+- [Workout] Code couleur modulation puissance (+5% vert, -5% rouge sur valeur cible)
+- [Workout] Cacher barre de progression quand pas d'intervalle actif
 
 ## C
 - [Workout] indication quel capteur connecté en séance
@@ -27,6 +31,8 @@
 - [General] Remplacer couleurs hardcodées par variables CSS
 - [Workout] Fix ramp graphique dans mauvais sense
 - [Settings] Vitesse très faible pour puissance
+- [General] 404 errors sur routes (/settings, /workout, etc.) - rafraîchissement ET navigation
+- [Workout] Cases à cocher données peu visibles/problématiques pendant workout
 
 ## IRL test TODO
 - [Workout] bouton aller prochain intervalle
@@ -41,5 +47,6 @@
 - [General] customizer le dashboard
 - [General] refonte dashboard
 - [Workout] Changer FTP pendant séance ✓
+- [Workout] Format d'affichage ramp incorrect (devrait afficher "5m de 170 à 200W") ✓
 
 ## Ideas

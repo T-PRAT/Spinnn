@@ -222,6 +222,8 @@ export default {
 			passive: "Free ride",
 		},
 		intervalPowerConnector: "at",
+		intervalPowerConnectorRamp: "from",
+		intervalPowerRangeTo: "to",
 		strava: {
 			upload: "Upload to Strava",
 			uploading: "Uploading...",

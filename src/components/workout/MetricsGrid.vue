@@ -1,8 +1,8 @@
 <script setup>
-import { computed } from 'vue';
-import MetricCard from './MetricCard.vue';
-import { useAppState } from '@/composables/useAppState';
-import { useI18n } from '@/composables/useI18n';
+import { computed } from "vue";
+import MetricCard from "./MetricCard.vue";
+import { useAppState } from "@/composables/useAppState";
+import { useI18n } from "@/composables/useI18n";
 
 const appState = useAppState();
 const { t } = useI18n();
@@ -38,7 +38,7 @@ const props = defineProps({
 	},
 });
 
-const emit = defineEmits(['configure']);
+const emit = defineEmits(["configure"]);
 
 // Function to find current interval
 const currentInterval = computed(() => {
@@ -66,24 +66,36 @@ function getIntervalColor(type, power) {
 
 	// Get CSS variable values from computed style
 	const computedStyle = getComputedStyle(document.documentElement);
-	if (powerPercent <= zones.z1.max) return computedStyle.getPropertyValue("--zone-z1").trim();
-	if (powerPercent <= zones.z2.max) return computedStyle.getPropertyValue("--zone-z2").trim();
-	if (powerPercent <= zones.z3.max) return computedStyle.getPropertyValue("--zone-z3").trim();
-	if (powerPercent <= zones.z4.max) return computedStyle.getPropertyValue("--zone-z4").trim();
-	if (powerPercent <= zones.z5.max) return computedStyle.getPropertyValue("--zone-z5").trim();
-	if (powerPercent <= zones.z6.max) return computedStyle.getPropertyValue("--zone-z6").trim();
+	if (powerPercent <= zones.z1.max)
+		return computedStyle.getPropertyValue("--zone-z1").trim();
+	if (powerPercent <= zones.z2.max)
+		return computedStyle.getPropertyValue("--zone-z2").trim();
+	if (powerPercent <= zones.z3.max)
+		return computedStyle.getPropertyValue("--zone-z3").trim();
+	if (powerPercent <= zones.z4.max)
+		return computedStyle.getPropertyValue("--zone-z4").trim();
+	if (powerPercent <= zones.z5.max)
+		return computedStyle.getPropertyValue("--zone-z5").trim();
+	if (powerPercent <= zones.z6.max)
+		return computedStyle.getPropertyValue("--zone-z6").trim();
 	return computedStyle.getPropertyValue("--zone-z7").trim();
 }
 
 // Progress bar color (based on current interval)
 const progressColor = computed(() => {
-	if (!currentInterval.value) return 'var(--primary)';
+	if (!currentInterval.value) return "var(--primary)";
 
 	let power = currentInterval.value.power;
 
 	// For ramp intervals, use average of start and end power
-	if (currentInterval.value.powerStart !== undefined && currentInterval.value.powerEnd !== undefined) {
-		power = (currentInterval.value.powerStart + currentInterval.value.powerEnd) / 2;
+	if (
+		currentInterval.value.powerStart !== undefined &&
+		currentInterval.value.powerEnd !== undefined
+	) {
+		power =
+			(currentInterval.value.powerStart +
+				currentInterval.value.powerEnd) /
+			2;
 	}
 
 	return getIntervalColor(currentInterval.value.type, power);
@@ -160,12 +172,41 @@ const intervalDurationText = computed(() => {
 	}
 });
 
+// Check if current interval is a ramp
+const isRampInterval = computed(() => {
+	const interval = currentInterval.value;
+	return (
+		interval &&
+		interval.powerStart !== undefined &&
+		interval.powerEnd !== undefined
+	);
+});
+
+// For ramp intervals: start power
+const rampPowerStart = computed(() => {
+	if (!isRampInterval.value) return null;
+	const interval = currentInterval.value;
+	return Math.round(interval.powerStart * appState.ftp.value);
+});
+
+// For ramp intervals: end power
+const rampPowerEnd = computed(() => {
+	if (!isRampInterval.value) return null;
+	const interval = currentInterval.value;
+	return Math.round(interval.powerEnd * appState.ftp.value);
+});
+
+// For normal intervals: target power
 const intervalPowerText = computed(() => {
+	if (isRampInterval.value) return null; // Not used for ramps
 	return `${props.currentTargetPower || 0}W`;
 });
 
 const intervalConnector = computed(() => {
-	return t('workout.intervalPowerConnector');
+	if (isRampInterval.value) {
+		return t("workout.intervalPowerConnectorRamp");
+	}
+	return t("workout.intervalPowerConnector");
 });
 </script>
 
@@ -191,27 +232,53 @@ const intervalConnector = computed(() => {
 			<div
 				class="bg-card rounded-lg p-1 md:p-4 text-center border border-border h-full flex flex-col justify-center"
 			>
-				<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-2">
-					{{ t('workout.powerLabel') }}
+				<div
+					class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-2"
+				>
+					{{ t("workout.powerLabel") }}
 				</div>
-				<div class="text-3xl md:text-8xl font-bold text-chart-1 mb-0.5 md:mb-2 leading-none">
+				<div
+					class="text-3xl md:text-8xl font-bold text-chart-1 mb-0.5 md:mb-2 leading-none"
+				>
 					{{ currentMetrics.power
-					}}<span class="text-sm md:text-2xl ml-0.5 md:ml-1">{{ t('metrics.watts') }}</span>
+					}}<span class="text-sm md:text-2xl ml-0.5 md:ml-1">{{
+						t("metrics.watts")
+					}}</span>
 				</div>
 				<hr class="border-border opacity-50" />
-				<div class="grid grid-cols-2 gap-1 md:gap-4 mt-1 md:mt-3 text-center">
+				<div
+					class="grid grid-cols-2 gap-1 md:gap-4 mt-1 md:mt-3 text-center"
+				>
 					<div>
-						<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">{{ t('workout.powerInterval') }}</div>
-						<div class="text-sm md:text-xl lg:text-2xl font-bold text-chart-1">
+						<div
+							class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1"
+						>
+							{{ t("workout.powerInterval") }}
+						</div>
+						<div
+							class="text-sm md:text-xl lg:text-2xl font-bold text-chart-1"
+						>
 							{{ session.intervalPower.value
-							}}<span class="text-[10px] md:text-sm ml-0.5 md:ml-1">{{ t('metrics.watts') }}</span>
+							}}<span
+								class="text-[10px] md:text-sm ml-0.5 md:ml-1"
+								>{{ t("metrics.watts") }}</span
+							>
 						</div>
 					</div>
 					<div>
-						<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">{{ t('workout.powerMax') }}</div>
-						<div class="text-sm md:text-xl lg:text-2xl font-bold text-chart-1">
+						<div
+							class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1"
+						>
+							{{ t("workout.powerMax") }}
+						</div>
+						<div
+							class="text-sm md:text-xl lg:text-2xl font-bold text-chart-1"
+						>
 							{{ session.maxPower.value
-							}}<span class="text-[10px] md:text-sm ml-0.5 md:ml-1">{{ t('metrics.watts') }}</span>
+							}}<span
+								class="text-[10px] md:text-sm ml-0.5 md:ml-1"
+								>{{ t("metrics.watts") }}</span
+							>
 						</div>
 					</div>
 				</div>
@@ -223,25 +290,53 @@ const intervalConnector = computed(() => {
 			<div
 				class="bg-card rounded-lg p-1 md:p-4 text-center border border-border h-full flex flex-col justify-center"
 			>
-				<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-2">{{ t('workout.heartRateLabel') }}</div>
-				<div class="text-3xl md:text-8xl font-bold text-destructive mb-0.5 md:mb-2 leading-none">
+				<div
+					class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-2"
+				>
+					{{ t("workout.heartRateLabel") }}
+				</div>
+				<div
+					class="text-3xl md:text-8xl font-bold text-destructive mb-0.5 md:mb-2 leading-none"
+				>
 					{{ currentMetrics.heartRate
-					}}<span class="text-sm md:text-2xl ml-0.5 md:ml-1">{{ t('metrics.bpm') }}</span>
+					}}<span class="text-sm md:text-2xl ml-0.5 md:ml-1">{{
+						t("metrics.bpm")
+					}}</span>
 				</div>
 				<hr class="border-border opacity-50" />
-				<div class="grid grid-cols-2 gap-1 md:gap-4 mt-1 md:mt-3 text-center">
+				<div
+					class="grid grid-cols-2 gap-1 md:gap-4 mt-1 md:mt-3 text-center"
+				>
 					<div>
-						<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">{{ t('workout.heartRateInterval') }}</div>
-						<div class="text-sm md:text-xl lg:text-2xl font-bold text-destructive">
+						<div
+							class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1"
+						>
+							{{ t("workout.heartRateInterval") }}
+						</div>
+						<div
+							class="text-sm md:text-xl lg:text-2xl font-bold text-destructive"
+						>
 							{{ session.intervalHeartRate.value
-							}}<span class="text-[10px] md:text-sm ml-0.5 md:ml-1">{{ t('metrics.bpm') }}</span>
+							}}<span
+								class="text-[10px] md:text-sm ml-0.5 md:ml-1"
+								>{{ t("metrics.bpm") }}</span
+							>
 						</div>
 					</div>
 					<div>
-						<div class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1">{{ t('workout.heartRateMax') }}</div>
-						<div class="text-sm md:text-xl lg:text-2xl font-bold text-destructive">
+						<div
+							class="text-[9px] md:text-xs text-muted-foreground mb-0.5 md:mb-1"
+						>
+							{{ t("workout.heartRateMax") }}
+						</div>
+						<div
+							class="text-sm md:text-xl lg:text-2xl font-bold text-destructive"
+						>
 							{{ session.maxHeartRate.value
-							}}<span class="text-[10px] md:text-sm ml-0.5 md:ml-1">{{ t('metrics.bpm') }}</span>
+							}}<span
+								class="text-[10px] md:text-sm ml-0.5 md:ml-1"
+								>{{ t("metrics.bpm") }}</span
+							>
 						</div>
 					</div>
 				</div>
@@ -261,32 +356,81 @@ const intervalConnector = computed(() => {
 		</div>
 
 		<!-- Interval progress bar row -->
-		<div class="col-span-6 bg-card rounded-lg border border-border p-1 md:p-3">
+		<div
+			class="col-span-6 bg-card rounded-lg border border-border p-1 md:p-3"
+		>
 			<div class="flex items-center gap-1 md:gap-3">
 				<!-- Left: Duration + Power text -->
 				<div class="flex-shrink-0 text-left min-w-fit">
-					<div class="bg-muted/50 border border-border rounded px-1.5 py-1 md:px-3 md:py-1.5">
-						<div class="text-sm md:text-lg text-foreground flex items-baseline gap-1 md:gap-1.5">
-							<span class="font-bold tabular-nums">{{ intervalDurationText }}</span>
-							<span class="font-normal text-muted-foreground">{{ intervalConnector }}</span>
-							<span class="font-bold tabular-nums">{{ intervalPowerText }}</span>
+					<div
+						class="bg-muted/50 border border-border rounded px-1.5 py-1 md:px-3 md:py-1.5"
+					>
+						<!-- Normal interval display -->
+						<div
+							v-if="!isRampInterval"
+							class="text-sm md:text-lg text-foreground flex items-baseline gap-1 md:gap-1.5"
+						>
+							<span class="font-bold tabular-nums">{{
+								intervalDurationText
+							}}</span>
+							<span class="font-normal text-muted-foreground">{{
+								intervalConnector
+							}}</span>
+							<span class="font-bold tabular-nums">{{
+								intervalPowerText
+							}}</span>
+						</div>
+						<!-- Ramp interval display -->
+						<div
+							v-else
+							class="text-sm md:text-lg text-foreground flex items-baseline gap-1 md:gap-1.5"
+						>
+							<span class="font-bold tabular-nums">{{
+								intervalDurationText
+							}}</span>
+							<span class="font-normal text-muted-foreground">{{
+								intervalConnector
+							}}</span>
+							<span class="font-bold tabular-nums">{{
+								rampPowerStart
+							}}</span>
+							<span class="font-normal text-muted-foreground">{{
+								t("workout.intervalPowerRangeTo")
+							}}</span>
+							<span class="font-bold tabular-nums"
+								>{{ rampPowerEnd }}W</span
+							>
 						</div>
 					</div>
 				</div>
 
 				<!-- Center: Progress bar -->
-				<div class="flex-1 h-2 md:h-4 bg-muted rounded-full overflow-hidden relative">
+				<div
+					class="flex-1 h-2 md:h-4 bg-muted rounded-full overflow-hidden relative"
+				>
 					<div
 						class="absolute top-0 left-0 bottom-0 transition-all duration-75 ease-out"
-						:style="{ width: `${intervalProgress}%`, backgroundColor: progressColor }"
+						:style="{
+							width: `${intervalProgress}%`,
+							backgroundColor: progressColor,
+						}"
 					></div>
 				</div>
 
 				<!-- Right: Remaining seconds countdown -->
 				<div class="flex-shrink-0 text-right min-w-fit">
-					<div class="bg-muted/50 border border-border rounded px-1.5 py-1 md:px-3 md:py-1.5">
-						<div class="text-lg md:text-2xl font-bold tabular-nums text-foreground">
-							{{ Math.round(currentIntervalDuration - currentIntervalElapsed) }}s
+					<div
+						class="bg-muted/50 border border-border rounded px-1.5 py-1 md:px-3 md:py-1.5"
+					>
+						<div
+							class="text-lg md:text-2xl font-bold tabular-nums text-foreground"
+						>
+							{{
+								Math.round(
+									currentIntervalDuration -
+										currentIntervalElapsed,
+								)
+							}}s
 						</div>
 					</div>
 				</div>

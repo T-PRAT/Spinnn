@@ -145,6 +145,8 @@ export default {
   },
   // Interval progress text
   intervalPowerConnector: 'à',
+  intervalPowerConnectorRamp: 'de',
+  intervalPowerRangeTo: 'à',
   // Strava upload
   strava: {
     upload: 'Envoyer vers Strava',
