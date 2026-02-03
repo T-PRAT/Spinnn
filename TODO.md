@@ -16,7 +16,6 @@
 - [Workout] séparateur dans le graphique, surtout pour intervalles même zone
 - [Workout] titre fenêtre - surtout attention pause
 - [Workout] Bouton mute rapide pour audio
-- [Workout] Code couleur modulation puissance (+5% vert, -5% rouge sur valeur cible)
 - [Workout] Cacher barre de progression quand pas d'intervalle actif
 
 ## C
@@ -48,5 +47,6 @@
 - [General] refonte dashboard
 - [Workout] Changer FTP pendant séance ✓
 - [Workout] Format d'affichage ramp incorrect (devrait afficher "5m de 170 à 200W") ✓
+- [Workout] Code couleur modulation puissance (+5% vert, -5% rouge sur valeur) ✓
 
 ## Ideas

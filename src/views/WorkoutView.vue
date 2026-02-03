@@ -672,7 +672,12 @@ const rightSlots = computed(() => [
               <button
                 @click="resetCurrentInterval"
                 :disabled="session.isWorkoutComplete.value || powerAdjustments.currentIntervalOffset.value === 0"
-                class="px-1.5 py-1.5 text-[9px] md:text-xs font-bold bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-w-[2rem] text-center flex items-center justify-center transition-all"
+                class="px-1.5 py-1.5 text-[9px] md:text-xs font-bold bg-muted hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-w-[2rem] text-center flex items-center justify-center transition-all"
+                :class="{
+                  'text-green-600': powerAdjustments.currentIntervalOffset.value > 0,
+                  'text-destructive': powerAdjustments.currentIntervalOffset.value < 0,
+                  'text-muted-foreground': powerAdjustments.currentIntervalOffset.value === 0
+                }"
                 :title="t('workout.currentOffset')"
               >
                 {{ powerAdjustments.formattedCurrentOffset.value }}
@@ -707,7 +712,12 @@ const rightSlots = computed(() => [
               <button
                 @click="resetGlobalWorkout"
                 :disabled="session.isWorkoutComplete.value || powerAdjustments.globalOffset.value === 0"
-                class="px-1.5 py-1.5 text-[9px] md:text-xs font-bold bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-w-[2rem] text-center flex items-center justify-center transition-all"
+                class="px-1.5 py-1.5 text-[9px] md:text-xs font-bold bg-muted hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-w-[2rem] text-center flex items-center justify-center transition-all"
+                :class="{
+                  'text-green-600': powerAdjustments.globalOffset.value > 0,
+                  'text-destructive': powerAdjustments.globalOffset.value < 0,
+                  'text-muted-foreground': powerAdjustments.globalOffset.value === 0
+                }"
                 :title="t('workout.globalOffset')"
               >
                 {{ powerAdjustments.formattedGlobalOffset.value }}
