@@ -2,7 +2,7 @@ import { ref } from 'vue';
 import { Connectable, ConnectionStatus } from '../utils/Connectable.js';
 import { smartTrainerFilter, SERVICES, CHARACTERISTICS } from '../utils/web-ble.js';
 import { xf } from '../utils/EventDispatcher.js';
-import { parseCyclingPowerMeasurement, calculateCadence, calculateSpeed } from '../utils/bluetoothParser.js';
+import { parseCyclingPowerMeasurement, calculateCadence, calculateSpeed, calculateSpeedFromPower } from '../utils/bluetoothParser.js';
 
 /**
  * Smart Trainer Bluetooth Composable
@@ -71,11 +71,9 @@ let isInitialized = false;
 let ftmsControlPoint = null;
 let ftmsServer = null;
 
-// State for cadence/speed calculations
+// State for cadence calculations
 let lastCrankRevs = null;
 let lastCrankTime = null;
-let lastWheelRevs = null;
-let lastWheelTime = null;
 
 export function useBluetoothTrainer() {
 
@@ -168,8 +166,6 @@ export function useBluetoothTrainer() {
     speed.value = 0;
     lastCrankRevs = null;
     lastCrankTime = null;
-    lastWheelRevs = null;
-    lastWheelTime = null;
   }
 
   /**
@@ -198,6 +194,14 @@ export function useBluetoothTrainer() {
       lastCrankTime = data.lastCrankEventTime;
     }
 
+    // Calculate speed from power (more reliable for indoor trainers)
+    // Using physics-based approximation: 200W ≈ 33 km/h
+    speed.value = calculateSpeedFromPower(power.value);
+
+    // Note: Wheel revolution-based speed calculation removed because smart trainers
+    // often use incorrect virtual wheel circumference, leading to unrealistic speeds.
+    // Previous implementation kept for reference:
+    /*
     if (data.wheelRevolutions !== null && data.lastWheelEventTime !== null) {
       if (lastWheelRevs !== null && lastWheelTime !== null) {
         const calculatedSpeed = calculateSpeed(
@@ -206,7 +210,6 @@ export function useBluetoothTrainer() {
           data.lastWheelEventTime,
           lastWheelTime
         );
-        // Only update speed if we got a valid value (> 0)
         if (calculatedSpeed > 0) {
           speed.value = calculatedSpeed;
         }
@@ -214,6 +217,7 @@ export function useBluetoothTrainer() {
       lastWheelRevs = data.wheelRevolutions;
       lastWheelTime = data.lastWheelEventTime;
     }
+    */
 
     // Dispatch to event system for other components
     xf.dispatch('power', {
@@ -273,14 +277,27 @@ export function useBluetoothTrainer() {
     }
 
     if (hasWheelData) {
+      // Parse wheel data but don't use it for speed calculation
       const wheelRevs = dataView.getUint32(offset, true);
       offset += 4;
       const wheelTime = dataView.getUint16(offset, true);
       offset += 2;
 
+      // Calculate speed from power instead of wheel revolutions
+      // (Power value should be available from cycling power service)
+      if (power.value > 0) {
+        speed.value = calculateSpeedFromPower(power.value);
+
+        xf.dispatch('speed', {
+          value: speed.value,
+          timestamp: Date.now(),
+        });
+      }
+
+      // Previous wheel-based calculation removed (see comment in handleCyclingPowerData)
+      /*
       if (lastWheelRevs !== null && lastWheelTime !== null) {
         const calculatedSpeed = calculateSpeed(wheelRevs, lastWheelRevs, wheelTime, lastWheelTime);
-        // Only update speed if we got a valid value (> 0)
         if (calculatedSpeed > 0) {
           speed.value = calculatedSpeed;
         }
@@ -288,11 +305,7 @@ export function useBluetoothTrainer() {
 
       lastWheelRevs = wheelRevs;
       lastWheelTime = wheelTime;
-
-      xf.dispatch('speed', {
-        value: speed.value,
-        timestamp: Date.now(),
-      });
+      */
     }
   }
 

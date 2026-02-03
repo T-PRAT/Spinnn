@@ -94,19 +94,37 @@ export function calculateCadence(currentRevs, lastRevs, currentTime, lastTime) {
 
 export function calculateSpeed(currentRevs, lastRevs, currentTime, lastTime, wheelCircumference = 2.105) {
   if (lastRevs === null || lastTime === null) return 0;
-  
+
   const revDelta = currentRevs - lastRevs;
   let timeDelta = currentTime - lastTime;
-  
+
   if (timeDelta < 0) {
     timeDelta += 65536;
   }
-  
+
   if (timeDelta === 0) return 0;
-  
+
   const distanceMeters = revDelta * wheelCircumference;
   const timeSeconds = timeDelta / 1024;
   const speedMps = distanceMeters / timeSeconds;
-  
+
+  return Math.max(0, speedMps);
+}
+
+/**
+ * Calculate speed from power using physics-based approximation
+ * Formula: speed ≈ (power / coefficient)^(1/3)
+ * Default: 200W ≈ 33 km/h (realistic flat road for average cyclist)
+ *
+ * @param {number} power - Power in watts
+ * @param {number} coefficient - Adjustment coefficient (default 0.25)
+ * @returns {number} Speed in m/s
+ */
+export function calculateSpeedFromPower(power, coefficient = 0.25) {
+  if (power <= 0) return 0;
+
+  // Cubic approximation: speed = (power / coefficient)^(1/3)
+  const speedMps = Math.pow(power / coefficient, 1/3);
+
   return Math.max(0, speedMps);
 }
