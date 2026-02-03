@@ -10,6 +10,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "dev:tauri": "tauri dev",
+    "build:tauri": "tauri build",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug"
@@ -26,6 +28,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.50.1",
+    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/cli": "^2.10.0",
     "@vitejs/plugin-vue": "^6.0.3",
     "vite": "^7.3.0",
     "vite-plugin-vue-devtools": "^8.0.5"

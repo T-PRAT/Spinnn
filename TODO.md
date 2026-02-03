@@ -2,7 +2,8 @@
 ** [Home][Workout][Summary][Settings][General]**
 
 ## A
-- [Workout] meilleur sons intervalle
+- [Summary] fix bad strava export
+- [Summary] mettre bon sport (virtual ride)
 
 ## B
 - [Workout] monter baisser la puissance de l'entrainement en cours
@@ -14,6 +15,8 @@
 - [General] dashboard en mode paysage tablette
 - [Workout] séparateur dans le graphique, surtout pour intervalles même zone
 - [Workout] titre fenêtre - surtout attention pause
+- [Settings] ouvrir settings modal dans le workout
+
 
 ## C
 - [Workout] indication quel capteur connecté en séance
@@ -35,6 +38,7 @@
 
 
 ## Done
+- [Workout] meilleur sons intervalle
 - [General] faire un logo
 - [Workout] ajouter barre de progression de l'intervalle en cours
 - [Workout] mettre P cible et Pmax en dessous puissance (et pareil pour FC)
@@ -43,3 +47,22 @@
 - [Workout] Changer FTP pendant séance ✓
 
 ## Ideas
+
+## Tauri Desktop App (In Progress)
+- [x] Initialize Tauri project
+- [x] Create Bluetooth module structure (src-tauri/src/ble.rs)
+- [x] Add platform detection utility (src/utils/platform.js)
+- [x] Create Bluetooth factory composables for web/desktop abstraction
+- [x] Update Vite config for Tauri compatibility
+- [x] Add Tauri dev/build scripts to package.json
+- [ ] Install system dependencies for Tauri on Linux:
+  ```bash
+  # Arch Linux
+  sudo pacman -S webkit2gtk-4.1 libdbus openssl-dev
+  ```
+- [ ] Implement btleplug integration for native Bluetooth on desktop
+- [ ] Test Bluetooth device discovery and connection
+- [ ] Add event listeners for heart rate, power, and CSC data streaming
+- [ ] Update existing components to use Bluetooth factory
+- [ ] Test on Windows and macOS
+- [ ] Create release builds for all platforms

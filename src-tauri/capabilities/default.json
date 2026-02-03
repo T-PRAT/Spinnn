@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "enables the default permissions and custom Bluetooth commands",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:events:allow-listen",
+    "core:events:allow-unlisten"
+  ]
+}

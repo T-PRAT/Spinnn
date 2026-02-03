@@ -17,4 +17,11 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  // Tauri expects a fixed port, so we use strictPort
+  server: {
+    strictPort: true,
+    port: 5173,
+  },
+  // Clear screen is disabled for Tauri's development mode
+  clearScreen: false,
 })
