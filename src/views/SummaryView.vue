@@ -34,10 +34,12 @@ const stats = computed(() => {
   const validPower = data.filter(d => d.power > 0);
   const validHR = data.filter(d => d.heartRate > 0);
   const validCadence = data.filter(d => d.cadence > 0);
+  const validSpeed = data.filter(d => d.speed > 0);
 
   const totalPower = validPower.reduce((sum, d) => sum + d.power, 0);
   const totalHR = validHR.reduce((sum, d) => sum + d.heartRate, 0);
   const totalCadence = validCadence.reduce((sum, d) => sum + d.cadence, 0);
+  const totalSpeed = validSpeed.reduce((sum, d) => sum + d.speed, 0);
   const lastPoint = data[data.length - 1];
 
   // Use active elapsed seconds (actual training time, excluding pauses)
@@ -50,6 +52,8 @@ const stats = computed(() => {
     avgHeartRate: validHR.length > 0 ? Math.round(totalHR / validHR.length) : 0,
     maxHeartRate: Math.max(...data.map(d => d.heartRate || 0)),
     avgCadence: validCadence.length > 0 ? Math.round(totalCadence / validCadence.length) : 0,
+    avgSpeed: validSpeed.length > 0 ? totalSpeed / validSpeed.length : 0,
+    maxSpeed: Math.max(...data.map(d => d.speed || 0)),
     distance: ((lastPoint?.distance || 0) / 1000).toFixed(2),
     dataPoints: data.length,
     normalizedPower: calculateNormalizedPower(data),
@@ -119,6 +123,11 @@ function downloadFIT() {
     maxHeartRate: stats.value.maxHeartRate,
     avgCadence: stats.value.avgCadence,
     normalizedPower: stats.value.normalizedPower,
+    intensityFactor: parseFloat(stats.value.intensityFactor),
+    trainingStressScore: stats.value.tss,
+    totalCalories: session.energy.value,
+    avgSpeed: stats.value.avgSpeed,
+    maxSpeed: stats.value.maxSpeed,
   };
 
   const fitData = createFitFile(sessionData, fitStats);
@@ -161,6 +170,11 @@ async function uploadToStrava() {
       maxHeartRate: stats.value.maxHeartRate,
       avgCadence: stats.value.avgCadence,
       normalizedPower: stats.value.normalizedPower,
+      intensityFactor: parseFloat(stats.value.intensityFactor),
+      trainingStressScore: stats.value.tss,
+      totalCalories: session.energy.value,
+      avgSpeed: stats.value.avgSpeed,
+      maxSpeed: stats.value.maxSpeed,
     };
 
     const fitData = createFitFile(sessionData, fitStats);

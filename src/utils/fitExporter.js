@@ -29,7 +29,7 @@ const SPORT = {
 
 // Sub-sport types
 const SUB_SPORT = {
-  INDOOR_CYCLING: 6,
+  VIRTUAL_ACTIVITY: 58, // For Strava "Virtual ride" classification
 };
 
 // Event types
@@ -89,16 +89,19 @@ export function createFitFile(sessionData, stats) {
     event: EVENT.LAP,
     eventType: EVENT_TYPE.STOP,
     sport: SPORT.CYCLING,
-    subSport: SUB_SPORT.INDOOR_CYCLING,
+    subSport: SUB_SPORT.VIRTUAL_ACTIVITY,
     totalElapsedTime: stats.durationSeconds,
     totalTimerTime: stats.durationSeconds,
     totalDistance: stats.distanceMeters || 0,
+    totalCalories: stats.totalCalories > 0 ? stats.totalCalories : undefined,
     avgHeartRate: stats.avgHeartRate > 0 ? stats.avgHeartRate : undefined,
     maxHeartRate: stats.maxHeartRate > 0 ? stats.maxHeartRate : undefined,
     avgCadence: stats.avgCadence > 0 ? stats.avgCadence : undefined,
     avgPower: stats.avgPower > 0 ? stats.avgPower : undefined,
     maxPower: stats.maxPower > 0 ? stats.maxPower : undefined,
     normalizedPower: stats.normalizedPower > 0 ? stats.normalizedPower : undefined,
+    avgSpeed: stats.avgSpeed > 0 ? stats.avgSpeed : undefined,
+    maxSpeed: stats.maxSpeed > 0 ? stats.maxSpeed : undefined,
   });
 
   // 4. Session Message (summary of the session)
@@ -109,16 +112,22 @@ export function createFitFile(sessionData, stats) {
     event: EVENT.SESSION,
     eventType: EVENT_TYPE.STOP,
     sport: SPORT.CYCLING,
-    subSport: SUB_SPORT.INDOOR_CYCLING,
+    subSport: SUB_SPORT.VIRTUAL_ACTIVITY,
+    sessionName: sessionData.workoutName || 'Spinnn Workout',
     totalElapsedTime: stats.durationSeconds,
     totalTimerTime: stats.durationSeconds,
     totalDistance: stats.distanceMeters || 0,
+    totalCalories: stats.totalCalories > 0 ? stats.totalCalories : undefined,
     avgHeartRate: stats.avgHeartRate > 0 ? stats.avgHeartRate : undefined,
     maxHeartRate: stats.maxHeartRate > 0 ? stats.maxHeartRate : undefined,
     avgCadence: stats.avgCadence > 0 ? stats.avgCadence : undefined,
     avgPower: stats.avgPower > 0 ? stats.avgPower : undefined,
     maxPower: stats.maxPower > 0 ? stats.maxPower : undefined,
     normalizedPower: stats.normalizedPower > 0 ? stats.normalizedPower : undefined,
+    intensityFactor: stats.intensityFactor > 0 ? stats.intensityFactor : undefined,
+    trainingStressScore: stats.trainingStressScore > 0 ? stats.trainingStressScore : undefined,
+    avgSpeed: stats.avgSpeed > 0 ? stats.avgSpeed : undefined,
+    maxSpeed: stats.maxSpeed > 0 ? stats.maxSpeed : undefined,
     firstLapIndex: 0,
     numLaps: 1,
   });
