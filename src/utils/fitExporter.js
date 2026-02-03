@@ -19,6 +19,7 @@ const MESG_NUM = {
   SESSION: 18,
   RECORD: 20,
   LAP: 19,
+  DEVICE_INFO: 23,
   ACTIVITY: 34,
 };
 
@@ -66,7 +67,19 @@ export function createFitFile(sessionData, stats) {
     timeCreated: startTime,
   });
 
-  // 2. Record Messages (one per data point)
+  // 2. Device Info Message (identifies the device that created the file)
+  encoder.writeMesg({
+    mesgNum: MESG_NUM.DEVICE_INFO,
+    timestamp: startTime,
+    deviceIndex: 0, // Creator device (the app itself)
+    manufacturer: DEVICE.MANUFACTURER,
+    product: DEVICE.PRODUCT,
+    serialNumber: DEVICE.SERIAL_NUMBER,
+    softwareVersion: 100, // Version 1.00 (scaled by 100)
+    sourceType: 5, // local_device_type (web app)
+  });
+
+  // 3. Record Messages (one per data point)
   for (const point of sessionData.dataPoints) {
     const recordTime = new Date(startTime.getTime() + point.timestamp * 1000);
 
@@ -81,7 +94,7 @@ export function createFitFile(sessionData, stats) {
     });
   }
 
-  // 3. Lap Message (required for valid activity)
+  // 4. Lap Message (required for valid activity)
   encoder.writeMesg({
     mesgNum: MESG_NUM.LAP,
     timestamp: endTime,
@@ -104,7 +117,7 @@ export function createFitFile(sessionData, stats) {
     maxSpeed: stats.maxSpeed > 0 ? stats.maxSpeed : undefined,
   });
 
-  // 4. Session Message (summary of the session)
+  // 5. Session Message (summary of the session)
   encoder.writeMesg({
     mesgNum: MESG_NUM.SESSION,
     timestamp: endTime,
@@ -113,7 +126,6 @@ export function createFitFile(sessionData, stats) {
     eventType: EVENT_TYPE.STOP,
     sport: SPORT.CYCLING,
     subSport: SUB_SPORT.VIRTUAL_ACTIVITY,
-    sessionName: sessionData.workoutName || 'Spinnn Workout',
     totalElapsedTime: stats.durationSeconds,
     totalTimerTime: stats.durationSeconds,
     totalDistance: stats.distanceMeters || 0,
@@ -132,7 +144,7 @@ export function createFitFile(sessionData, stats) {
     numLaps: 1,
   });
 
-  // 5. Activity Message (container for sessions)
+  // 6. Activity Message (container for sessions)
   encoder.writeMesg({
     mesgNum: MESG_NUM.ACTIVITY,
     timestamp: endTime,
