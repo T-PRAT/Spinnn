@@ -1,9 +1,10 @@
 // Bluetooth module for Tauri
 // Provides cross-platform BLE functionality using btleplug
 
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::sync::Mutex;
 use thiserror::Error;
 
@@ -210,7 +211,7 @@ pub async fn connect_device(device_id: String) -> Result<ConnectionInfo, BleErro
 }
 
 /// Disconnect from a BLE device
-pub async fn disconnect_device(device_id: String) -> Result<(), BleError> {
+pub async fn disconnect_device(_device_id: String) -> Result<(), BleError> {
     if !is_bluetooth_available() {
         return Err(BleError::NotAvailable);
     }
@@ -220,7 +221,7 @@ pub async fn disconnect_device(device_id: String) -> Result<(), BleError> {
 }
 
 /// Subscribe to heart rate measurements
-pub async fn subscribe_heart_rate(device_id: String) -> Result<(), BleError> {
+pub async fn subscribe_heart_rate(_device_id: String) -> Result<(), BleError> {
     if !is_bluetooth_available() {
         return Err(BleError::NotAvailable);
     }
@@ -230,7 +231,7 @@ pub async fn subscribe_heart_rate(device_id: String) -> Result<(), BleError> {
 }
 
 /// Subscribe to power measurements
-pub async fn subscribe_power(device_id: String) -> Result<(), BleError> {
+pub async fn subscribe_power(_device_id: String) -> Result<(), BleError> {
     if !is_bluetooth_available() {
         return Err(BleError::NotAvailable);
     }
@@ -240,7 +241,7 @@ pub async fn subscribe_power(device_id: String) -> Result<(), BleError> {
 }
 
 /// Subscribe to CSC measurements
-pub async fn subscribe_csc(device_id: String) -> Result<(), BleError> {
+pub async fn subscribe_csc(_device_id: String) -> Result<(), BleError> {
     if !is_bluetooth_available() {
         return Err(BleError::NotAvailable);
     }
@@ -250,7 +251,7 @@ pub async fn subscribe_csc(device_id: String) -> Result<(), BleError> {
 }
 
 /// Set target power on FTMS device
-pub async fn set_target_power(device_id: String, watts: i16) -> Result<(), BleError> {
+pub async fn set_target_power(_device_id: String, _watts: i16) -> Result<(), BleError> {
     // FTMS command for setting target power
     // This would write to the Fitness Machine Control Point characteristic
     Ok(())
@@ -258,18 +259,18 @@ pub async fn set_target_power(device_id: String, watts: i16) -> Result<(), BleEr
 
 /// Set simulation parameters (grade, wind resistance, etc.)
 pub async fn set_simulation(
-    device_id: String,
-    grade: f32,
-    wind_speed: f32,
-    crr: f32,
-    cw: f32,
+    _device_id: String,
+    _grade: f32,
+    _wind_speed: f32,
+    _crr: f32,
+    _cw: f32,
 ) -> Result<(), BleError> {
     // FTMS Indoor Bike Simulation command
     Ok(())
 }
 
 /// Set resistance level
-pub async fn set_resistance(device_id: String, level: u8) -> Result<(), BleError> {
+pub async fn set_resistance(_device_id: String, _level: u8) -> Result<(), BleError> {
     // FTMS Set Target Resistance command
     Ok(())
 }

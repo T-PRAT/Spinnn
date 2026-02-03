@@ -21,7 +21,7 @@ tauri-build = { version = "2.5.4", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
-tauri = { version = "2.10.0", features = ["devtools"] }
+tauri = { version = "2.10.0", features = ["protocol-asset", "devtools"] }
 tauri-plugin-log = "2"
 tokio = { version = "1.42", features = ["sync", "rt-multi-thread", "macros"] }
 uuid = { version = "1.11", features = ["v4"] }

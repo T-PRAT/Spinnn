@@ -7,9 +7,6 @@ use ble::*;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize BLE state
-    let ble_state = BleState::new();
-
     tauri::Builder::default()
         .setup(|app| {
             if cfg!(debug_assertions) {
