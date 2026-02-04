@@ -16,10 +16,13 @@ import { useMockDevices } from "../composables/useMockDevices";
 import { useAudioSettings } from "../composables/useAudioSettings";
 import { useI18n } from "@/composables/useI18n";
 import { usePowerAdjustments } from "@/composables/usePowerAdjustments";
+import { useStorage } from "@/composables/useStorage";
 import {
 	getTargetPowerAtTime,
 	getAdjustedTargetPowerAtTime,
 } from "../data/sampleWorkouts";
+
+const storage = useStorage();
 
 const router = useRouter();
 const appState = useAppState();
@@ -61,20 +64,12 @@ const defaultMetricsConfig = {
 	10: "energy",
 };
 
-const metricsConfig = ref({ ...defaultMetricsConfig });
-
-// Charger la configuration depuis localStorage
-const savedMetricsConfig = localStorage.getItem("spinnn_metrics_config");
-if (savedMetricsConfig) {
-	try {
-		metricsConfig.value = {
-			...defaultMetricsConfig,
-			...JSON.parse(savedMetricsConfig),
-		};
-	} catch (e) {
-		console.warn("Failed to load metrics config", e);
-	}
-}
+// Load metrics config from storage
+const savedMetricsConfig = storage.getMetricsConfig();
+const metricsConfig = ref({
+	...defaultMetricsConfig,
+	...(savedMetricsConfig || {})
+});
 
 const availableMetrics = [
 	{ id: "power", label: "Puissance" },
@@ -195,10 +190,7 @@ const selectedMetricId = computed(() => {
 function selectMetric(metricId) {
 	if (selectedSlotId.value) {
 		metricsConfig.value[selectedSlotId.value] = metricId;
-		localStorage.setItem(
-			"spinnn_metrics_config",
-			JSON.stringify(metricsConfig.value),
-		);
+		storage.setMetricsConfig(metricsConfig.value);
 	}
 	showMetricConfig.value = false;
 }

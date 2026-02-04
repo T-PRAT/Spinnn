@@ -1,13 +1,13 @@
 import { ref, watch } from 'vue';
+import { useStorage } from './useStorage';
 
-const isDark = ref(true);
+const storage = useStorage();
+const storedTheme = storage.getTheme();
+const isDark = ref(storedTheme !== 'light'); // Default to dark if no preference
 
-const stored = localStorage.getItem('spinnn_theme');
-if (stored) {
-  isDark.value = stored === 'dark';
-} else {
-  isDark.value = true;
-  localStorage.setItem('spinnn_theme', 'dark');
+// Initialize theme in localStorage if not set
+if (!storedTheme) {
+  storage.setTheme('dark');
 }
 
 if (typeof document !== 'undefined') {
@@ -21,25 +21,27 @@ if (typeof document !== 'undefined') {
 export function useTheme() {
   function toggleTheme() {
     isDark.value = !isDark.value;
+    const theme = isDark.value ? 'dark' : 'light';
+
+    storage.setTheme(theme);
 
     if (isDark.value) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('spinnn_theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('spinnn_theme', 'light');
     }
   }
 
   function setTheme(dark) {
     isDark.value = dark;
+    const theme = dark ? 'dark' : 'light';
+
+    storage.setTheme(theme);
 
     if (dark) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('spinnn_theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('spinnn_theme', 'light');
     }
   }
 

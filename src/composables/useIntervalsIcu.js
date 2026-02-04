@@ -1,5 +1,7 @@
 import { ref, readonly } from 'vue';
+import { useStorage } from './useStorage';
 
+const storage = useStorage();
 const API_BASE_URL = 'https://intervals.icu/api/v1';
 
 // Singleton state
@@ -8,29 +10,27 @@ const athleteId = ref(null);
 const isConnected = ref(false);
 
 // Load from localStorage on module init
-const storedApiKey = localStorage.getItem('spinnn_intervals_api_key');
-const storedAthleteId = localStorage.getItem('spinnn_intervals_athlete_id');
-if (storedApiKey && storedAthleteId) {
-  apiKey.value = storedApiKey;
-  athleteId.value = storedAthleteId;
+const credentials = storage.getIntervalsCredentials();
+if (credentials) {
+  apiKey.value = credentials.apiKey;
+  athleteId.value = credentials.athleteId;
   isConnected.value = true;
 }
 
 export function useIntervalsIcu() {
   function setCredentials(key, id) {
-    apiKey.value = key;
-    athleteId.value = id;
-    isConnected.value = true;
-    localStorage.setItem('spinnn_intervals_api_key', key);
-    localStorage.setItem('spinnn_intervals_athlete_id', id);
+    if (storage.setIntervalsCredentials(key, id)) {
+      apiKey.value = key;
+      athleteId.value = id;
+      isConnected.value = true;
+    }
   }
 
   function disconnect() {
+    storage.clearIntervalsCredentials();
     apiKey.value = null;
     athleteId.value = null;
     isConnected.value = false;
-    localStorage.removeItem('spinnn_intervals_api_key');
-    localStorage.removeItem('spinnn_intervals_athlete_id');
   }
 
   async function makeRequest(endpoint) {

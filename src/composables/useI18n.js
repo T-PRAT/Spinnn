@@ -1,26 +1,30 @@
 import { ref, watch } from 'vue';
 import { useI18n as useVueI18n } from 'vue-i18n';
+import { useStorage } from './useStorage';
+
+const storage = useStorage();
 
 // Module-level state for locale (singleton pattern)
-const currentLocale = ref('fr');
 const supportedLocales = ['fr', 'en'];
 
 // Load locale from localStorage or detect from browser
-const storedLocale = localStorage.getItem('spinnn_locale');
+const storedLocale = storage.getLocale();
+let initialLocale = 'fr';
+
 if (storedLocale && supportedLocales.includes(storedLocale)) {
-  currentLocale.value = storedLocale;
+  initialLocale = storedLocale;
 } else {
   // Auto-detect browser language
   const browserLang = navigator.language || navigator.languages?.[0] || 'fr';
   const detectedLocale = browserLang.split('-')[0]; // 'en-US' -> 'en'
   if (supportedLocales.includes(detectedLocale)) {
-    currentLocale.value = detectedLocale;
-  } else {
-    currentLocale.value = 'fr'; // fallback to French
+    initialLocale = detectedLocale;
   }
   // Save the detected/fallback locale
-  localStorage.setItem('spinnn_locale', currentLocale.value);
+  storage.setLocale(initialLocale);
 }
+
+const currentLocale = ref(initialLocale);
 
 export function useI18n() {
   let t;
@@ -54,9 +58,11 @@ export function useI18n() {
       console.warn(`Unsupported locale: ${newLocale}. Supported: ${supportedLocales.join(', ')}`);
       return false;
     }
-    currentLocale.value = newLocale;
-    localStorage.setItem('spinnn_locale', newLocale);
-    return true;
+    if (storage.setLocale(newLocale)) {
+      currentLocale.value = newLocale;
+      return true;
+    }
+    return false;
   };
 
   const getLocale = () => {

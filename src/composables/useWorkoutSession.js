@@ -1,5 +1,8 @@
 import { ref, computed } from 'vue';
 import { flattenIntervals, getCurrentIntervalIndex } from '@/utils/workoutHelpers';
+import { useStorage } from './useStorage';
+
+const storage = useStorage();
 
 // Singleton state - shared across all components
 const isActive = ref(false);
@@ -17,38 +20,34 @@ let actualStartTime = null; // Real start time for precise elapsed calculation
 let accumulatedPausedTime = 0; // Total time spent paused
 let pauseStartTime = null; // When the current pause started
 
-// Storage key for workout persistence
-const WORKOUT_STORAGE_KEY = 'spinnn_active_workout';
-
 // Load saved workout state on module init
 function loadWorkoutState() {
-  const savedState = localStorage.getItem(WORKOUT_STORAGE_KEY);
+  const savedState = storage.getWorkoutSession();
   if (savedState) {
     try {
-      const parsed = JSON.parse(savedState);
       // Check if the saved workout is less than 24 hours old
-      const savedTime = new Date(parsed.savedAt);
+      const savedTime = new Date(savedState.savedAt);
       const now = new Date();
       const hoursDiff = (now - savedTime) / (1000 * 60 * 60);
 
-      if (hoursDiff < 24 && parsed.isActive) {
-        workout.value = parsed.workout;
-        elapsedSeconds.value = parsed.elapsedSeconds;
-        dataPoints.value = parsed.dataPoints || [];
-        ftp.value = parsed.ftp;
+      if (hoursDiff < 24 && savedState.isActive) {
+        workout.value = savedState.workout;
+        elapsedSeconds.value = savedState.elapsedSeconds;
+        dataPoints.value = savedState.dataPoints || [];
+        ftp.value = savedState.ftp;
         isPaused.value = true; // Always resume in paused state
         isActive.value = true;
-        startTime.value = new Date(parsed.startTime);
-        lastDistance = parsed.lastDistance || 0;
+        startTime.value = new Date(savedState.startTime);
+        lastDistance = savedState.lastDistance || 0;
 
         return true;
       } else {
         // Clear old workout state
-        localStorage.removeItem(WORKOUT_STORAGE_KEY);
+        storage.clearWorkoutSession();
       }
     } catch (e) {
       console.error('Failed to load workout state:', e);
-      localStorage.removeItem(WORKOUT_STORAGE_KEY);
+      storage.clearWorkoutSession();
     }
   }
   return false;
@@ -57,7 +56,7 @@ function loadWorkoutState() {
 // Save current workout state
 function saveWorkoutState() {
   if (!isActive.value || !workout.value) {
-    localStorage.removeItem(WORKOUT_STORAGE_KEY);
+    storage.clearWorkoutSession();
     return;
   }
 
@@ -73,12 +72,12 @@ function saveWorkoutState() {
     savedAt: new Date().toISOString()
   };
 
-  localStorage.setItem(WORKOUT_STORAGE_KEY, JSON.stringify(state));
+  storage.setWorkoutSession(state);
 }
 
 // Clear saved workout state
 function clearWorkoutState() {
-  localStorage.removeItem(WORKOUT_STORAGE_KEY);
+  storage.clearWorkoutSession();
 }
 
 // Auto-load saved state on module init (when app starts)

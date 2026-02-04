@@ -1,5 +1,8 @@
 import { ref, computed } from 'vue';
 import { useI18n } from './useI18n';
+import { useStorage } from './useStorage';
+
+const storage = useStorage();
 
 const STRAVA_CONFIG = {
   clientId: import.meta.env.VITE_STRAVA_CLIENT_ID || 'YOUR_CLIENT_ID',
@@ -12,27 +15,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 // Module-level state for singleton pattern
 const isConnected = ref(false);
 const athlete = ref(null);
-const autoUploadEnabled = ref(false);
+const autoUploadEnabled = ref(storage.getStravaAutoUpload());
 
 // State parameter for CSRF protection
 let pendingState = null;
 
-// Load from localStorage on module initialization
-function loadFromStorage() {
-  try {
-    const storedAutoUpload = localStorage.getItem('spinnn_strava_auto_upload');
-    autoUploadEnabled.value = storedAutoUpload === 'true';
-  } catch (e) {
-    console.warn('Failed to load Strava settings from storage:', e);
-  }
-}
-
 function saveAutoUploadToStorage() {
-  try {
-    localStorage.setItem('spinnn_strava_auto_upload', String(autoUploadEnabled.value));
-  } catch (e) {
-    console.warn('Failed to save Strava auto-upload setting to storage:', e);
-  }
+  storage.setStravaAutoUpload(autoUploadEnabled.value);
 }
 
 // Generate random state for CSRF protection
@@ -43,7 +32,7 @@ function generateState() {
 }
 
 // Load settings on module initialization
-loadFromStorage();
+// Auto-upload setting already loaded from storage during ref initialization
 
 export function useStrava() {
   const { t } = useI18n();

@@ -1,25 +1,21 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
+import { useStorage } from '@/composables/useStorage';
+import { DEFAULT_FTP } from '@/constants/zones';
 
-const FTP_STORAGE_KEY = 'spinnn_ftp';
-const DEFAULT_FTP = 200;
+const storage = useStorage();
 
-const ftp = ref(DEFAULT_FTP);
+const ftp = ref(storage.getFtp());
 const showTooltip = ref(false);
 
 const emit = defineEmits(['update:ftp']);
 
 onMounted(() => {
-  const storedFtp = localStorage.getItem(FTP_STORAGE_KEY);
-  if (storedFtp) {
-    ftp.value = parseInt(storedFtp, 10);
-  }
   emit('update:ftp', ftp.value);
 });
 
 watch(ftp, (newValue) => {
-  if (newValue > 0) {
-    localStorage.setItem(FTP_STORAGE_KEY, newValue.toString());
+  if (newValue > 0 && storage.setFtp(newValue)) {
     emit('update:ftp', newValue);
   }
 });

@@ -1,29 +1,17 @@
 import { ref, computed, readonly } from 'vue';
 import { DEFAULT_POWER_ZONES, DEFAULT_FTP } from '@/constants/zones';
+import { useStorage } from './useStorage';
+
+const storage = useStorage();
 
 // Singleton state - shared across all components
 const currentStep = ref(1);
 const selectedWorkout = ref(null);
-const ftp = ref(DEFAULT_FTP);
+const ftp = ref(storage.getFtp());
 const devicesConnected = ref(false);
 const mockModeActive = ref(false);
 
-const powerZones = ref({ ...DEFAULT_POWER_ZONES });
-
-// Load FTP and zones from localStorage on module init
-const storedFtp = localStorage.getItem('spinnn_ftp');
-if (storedFtp) {
-  ftp.value = parseInt(storedFtp, 10);
-}
-
-const storedZones = localStorage.getItem('spinnn_power_zones');
-if (storedZones) {
-  try {
-    powerZones.value = JSON.parse(storedZones);
-  } catch (e) {
-    console.error('Failed to parse stored zones:', e);
-  }
-}
+const powerZones = ref(storage.getPowerZones());
 
 export function useAppState() {
   const canStartWorkout = computed(() => {
@@ -44,18 +32,22 @@ export function useAppState() {
   }
 
   function setFtp(value) {
-    ftp.value = value;
-    localStorage.setItem('spinnn_ftp', value.toString());
+    if (storage.setFtp(value)) {
+      ftp.value = value;
+    }
   }
 
   function setPowerZones(zones) {
-    powerZones.value = zones;
-    localStorage.setItem('spinnn_power_zones', JSON.stringify(zones));
+    if (storage.setPowerZones(zones)) {
+      powerZones.value = zones;
+    }
   }
 
   function resetPowerZones() {
-    powerZones.value = { ...DEFAULT_POWER_ZONES };
-    localStorage.setItem('spinnn_power_zones', JSON.stringify(DEFAULT_POWER_ZONES));
+    const defaultZones = { ...DEFAULT_POWER_ZONES };
+    if (storage.setPowerZones(defaultZones)) {
+      powerZones.value = defaultZones;
+    }
   }
 
   function goToStep(step) {

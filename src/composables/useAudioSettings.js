@@ -1,18 +1,11 @@
 import { ref, readonly } from 'vue';
+import { useStorage } from './useStorage';
 
-const STORAGE_KEYS = {
-  ENABLED: 'spinnn_interval_sound_enabled',
-  SELECTED: 'spinnn_selected_sound'
-};
+const storage = useStorage();
+const audioSettings = storage.getAudioSettings();
 
-const intervalSoundEnabled = ref(true);
-const selectedSound = ref('soft');
-
-const storedEnabled = localStorage.getItem(STORAGE_KEYS.ENABLED);
-if (storedEnabled !== null) intervalSoundEnabled.value = storedEnabled === 'true';
-
-const storedSelected = localStorage.getItem(STORAGE_KEYS.SELECTED);
-if (storedSelected) selectedSound.value = storedSelected;
+const intervalSoundEnabled = ref(audioSettings.enabled);
+const selectedSound = ref(audioSettings.selectedSound);
 
 export const availableSounds = [
   { id: 'none', name: 'Aucun', description: 'Désactiver' },
@@ -69,12 +62,13 @@ function playCountdown(soundId) {
 export function useAudioSettings() {
   function setIntervalSoundEnabled(enabled) {
     intervalSoundEnabled.value = enabled;
-    localStorage.setItem(STORAGE_KEYS.ENABLED, enabled.toString());
+    storage.setAudioEnabled(enabled);
   }
 
   function setSelectedSound(soundId) {
-    selectedSound.value = soundId;
-    localStorage.setItem(STORAGE_KEYS.SELECTED, soundId);
+    if (storage.setAudioSelected(soundId)) {
+      selectedSound.value = soundId;
+    }
   }
 
   function playIntervalSound() {
