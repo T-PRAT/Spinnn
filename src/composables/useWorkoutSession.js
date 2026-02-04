@@ -237,6 +237,13 @@ export function useWorkoutSession() {
 
   const formattedWorkoutDuration = computed(() => {
     if (!workout.value) return '0:00';
+
+    // Free ride mode: show infinity symbol
+    if (workout.value.isFreeRide) {
+      return '∞';
+    }
+
+    // Structured workout: show actual duration
     const mins = Math.floor(workout.value.duration / 60);
     const secs = workout.value.duration % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -253,6 +260,13 @@ export function useWorkoutSession() {
 
   const isWorkoutComplete = computed(() => {
     if (!workout.value) return false;
+
+    // Free ride mode: never completes
+    if (workout.value.isFreeRide) {
+      return false;
+    }
+
+    // Structured workout: completes when elapsed time reaches duration
     return elapsedSeconds.value >= workout.value.duration;
   });
 

@@ -5,6 +5,8 @@ export default {
   heartRateMonitor: 'Cardio (HRM)',
   smartTrainer: 'Smart Trainer',
   mockMode: 'Mode simulation',
+  mockModeEnabled: 'Mode simulation activé',
+  enableMockMode: 'Activer Mode Simulation',
   mockHRM: 'Mock HR Monitor',
   mockTrainer: 'Mock Smart Trainer',
   connectHRM: 'Connecter Cardio',

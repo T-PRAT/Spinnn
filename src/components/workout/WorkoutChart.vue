@@ -11,6 +11,7 @@ const props = defineProps({
   ftp: { type: Number, default: 200 },
   workout: { type: Object, default: null },
   elapsedSeconds: { type: Number, default: 0 },
+  targetPower: { type: Number, default: 0 }, // Current target power (for free ride mode)
 });
 
 const chartRef = ref(null);
@@ -110,7 +111,11 @@ function initChart() {
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  const totalDuration = props.workout?.duration || 3600;
+  // For free ride mode, use a fixed duration (1 hour) or elapsed time + buffer
+  const totalDuration = props.workout?.isFreeRide
+    ? Math.max(3600, props.elapsedSeconds + 600) // At least 1 hour, or elapsed + 10min buffer
+    : (props.workout?.duration || 3600);
+
   xScale = d3.scaleLinear().domain([0, totalDuration]).range([0, width]);
 
   // Calculate max power from workout intervals
@@ -153,7 +158,7 @@ function initChart() {
   yScaleCadence = d3.scaleLinear().domain([0, 120]).range([height, height * 0.5]);
 
   // Draw workout profile background
-  if (props.workout?.intervals) {
+  if (props.workout?.intervals && !props.workout?.isFreeRide) {
     drawWorkoutProfile();
   }
 
