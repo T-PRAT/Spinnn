@@ -6,8 +6,8 @@ export const workoutCategories = [
     workouts: [
       {
         id: 'endurance-easy',
-        name: 'Sortie facile',
-        description: '45min @ 65% FTP - Recuperation active',
+        name: 'Easy Ride',
+        description: '45min @ 65% FTP - Active recovery',
         duration: 2700,
         difficulty: 'Easy',
         intervals: [
@@ -18,8 +18,8 @@ export const workoutCategories = [
       },
       {
         id: 'endurance-moderate',
-        name: 'Endurance classique',
-        description: '60min @ 70% FTP - Base aerobique',
+        name: 'Classic Endurance',
+        description: '60min @ 70% FTP - Aerobic base',
         duration: 3600,
         difficulty: 'Easy',
         intervals: [
@@ -30,8 +30,8 @@ export const workoutCategories = [
       },
       {
         id: 'endurance-long',
-        name: 'Sortie longue',
-        description: '90min @ 68% FTP - Endurance fondamentale',
+        name: 'Long Ride',
+        description: '90min @ 68% FTP - Fundamental endurance',
         duration: 5400,
         difficulty: 'Moderate',
         intervals: [
@@ -50,7 +50,7 @@ export const workoutCategories = [
       {
         id: 'tempo-sweet-spot',
         name: 'Sweet Spot',
-        description: '3x10min @ 88% FTP - Seuil inferieur',
+        description: '3x10min @ 88% FTP - Below threshold',
         duration: 2700,
         difficulty: 'Moderate',
         intervals: [
@@ -65,31 +65,31 @@ export const workoutCategories = [
       },
       {
         id: 'tempo-threshold',
-        name: 'Seuil continu',
-        description: '2x20min @ 95% FTP - Travail au seuil',
+        name: 'Continuous Threshold',
+        description: '2x20min @ 95% FTP - Threshold work',
         duration: 3300,
         difficulty: 'Hard',
         intervals: [
           { type: 'warmup', duration: 600, powerStart: 0.5, powerEnd: 0.8 },
-          { type: 'work', duration: 1200, power: 0.95, name: 'Bloc 1' },
+          { type: 'work', duration: 1200, power: 0.95, name: 'Block 1' },
           { type: 'recovery', duration: 300, power: 0.6 },
-          { type: 'work', duration: 1200, power: 0.95, name: 'Bloc 2' },
+          { type: 'work', duration: 1200, power: 0.95, name: 'Block 2' },
           { type: 'cooldown', duration: 600, powerStart: 0.8, powerEnd: 0.5 }
         ]
       },
       {
         id: 'tempo-pyramid',
-        name: 'Pyramide tempo',
-        description: '8-12-8min @ 90% FTP - Progression pyramidale',
+        name: 'Tempo Pyramid',
+        description: '8-12-8min @ 90% FTP - Pyramid progression',
         duration: 3000,
         difficulty: 'Moderate',
         intervals: [
           { type: 'warmup', duration: 600, powerStart: 0.5, powerEnd: 0.75 },
-          { type: 'work', duration: 480, power: 0.90, name: 'Montee' },
+          { type: 'work', duration: 480, power: 0.90, name: 'Climb' },
           { type: 'recovery', duration: 240, power: 0.6 },
           { type: 'work', duration: 720, power: 0.90, name: 'Plateau' },
           { type: 'recovery', duration: 240, power: 0.6 },
-          { type: 'work', duration: 480, power: 0.90, name: 'Descente' },
+          { type: 'work', duration: 480, power: 0.90, name: 'Descent' },
           { type: 'cooldown', duration: 240, powerStart: 0.75, powerEnd: 0.5 }
         ]
       }
@@ -102,8 +102,8 @@ export const workoutCategories = [
     workouts: [
       {
         id: 'vo2-classic',
-        name: 'VO2 classique',
-        description: '5x3min @ 120% FTP - Intensite maximale',
+        name: 'Classic VO2',
+        description: '5x3min @ 120% FTP - Max intensity',
         duration: 2400,
         difficulty: 'Hard',
         intervals: [
@@ -122,8 +122,8 @@ export const workoutCategories = [
       },
       {
         id: 'vo2-short',
-        name: 'VO2 court',
-        description: '8x2min @ 125% FTP - Intervalles courts',
+        name: 'Short VO2',
+        description: '8x2min @ 125% FTP - Short intervals',
         duration: 2700,
         difficulty: 'Hard',
         intervals: [
@@ -148,19 +148,19 @@ export const workoutCategories = [
       },
       {
         id: 'vo2-long',
-        name: 'VO2 long',
-        description: '4x4min @ 115% FTP - Intervalles prolonges',
+        name: 'Long VO2',
+        description: '4x4min @ 115% FTP - Extended intervals',
         duration: 2700,
         difficulty: 'Hard',
         intervals: [
           { type: 'warmup', duration: 600, powerStart: 0.5, powerEnd: 0.7 },
-          { type: 'work', duration: 240, power: 1.15, name: 'Bloc 1' },
+          { type: 'work', duration: 240, power: 1.15, name: 'Block 1' },
           { type: 'recovery', duration: 240, power: 0.5 },
-          { type: 'work', duration: 240, power: 1.15, name: 'Bloc 2' },
+          { type: 'work', duration: 240, power: 1.15, name: 'Block 2' },
           { type: 'recovery', duration: 240, power: 0.5 },
-          { type: 'work', duration: 240, power: 1.15, name: 'Bloc 3' },
+          { type: 'work', duration: 240, power: 1.15, name: 'Block 3' },
           { type: 'recovery', duration: 240, power: 0.5 },
-          { type: 'work', duration: 240, power: 1.15, name: 'Bloc 4' },
+          { type: 'work', duration: 240, power: 1.15, name: 'Block 4' },
           { type: 'cooldown', duration: 300, powerStart: 0.7, powerEnd: 0.5 }
         ]
       }
@@ -173,18 +173,18 @@ export const workoutCategories = [
     workouts: [
       {
         id: 'test-short',
-        name: 'Test 3min',
-        description: '3min - Rampe + intervalles pour tests',
+        name: '3min Test',
+        description: '3min - Ramp + intervals for testing',
         duration: 180,
         difficulty: 'Moderate',
         intervals: [
-          { type: 'warmup', duration: 20, powerStart: 0.5, powerEnd: 0.75, name: 'Rampe' },
+          { type: 'warmup', duration: 20, powerStart: 0.5, powerEnd: 0.75, name: 'Ramp' },
           { type: 'work', duration: 30, power: 0.90, name: 'Interval 1' },
-          { type: 'recovery', duration: 20, power: 0.60, name: 'Repos' },
+          { type: 'recovery', duration: 20, power: 0.60, name: 'Rest' },
           { type: 'work', duration: 30, power: 1.00, name: 'Interval 2' },
-          { type: 'recovery', duration: 20, power: 0.60, name: 'Repos' },
+          { type: 'recovery', duration: 20, power: 0.60, name: 'Rest' },
           { type: 'work', duration: 30, power: 1.10, name: 'Interval 3' },
-          { type: 'cooldown', duration: 30, powerStart: 0.7, powerEnd: 0.5, name: 'Retour calme' }
+          { type: 'cooldown', duration: 30, powerStart: 0.7, powerEnd: 0.5, name: 'Cooldown' }
         ]
       }
     ]
@@ -219,8 +219,8 @@ export function getTargetPowerAtTime(workout, elapsedSeconds, ftp) {
 }
 
 /**
- * Obtenir l'index de l'intervalle actuel à un moment donné
- * Utilisé pour détecter les changements d'intervalle
+ * Get the current interval index at a given time
+ * Used to detect interval changes
  */
 export function getCurrentIntervalIndex(workout, elapsedSeconds) {
   let currentTime = 0;
