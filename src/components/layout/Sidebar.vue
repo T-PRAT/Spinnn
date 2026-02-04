@@ -14,14 +14,9 @@ const router = useRouter();
 const route = useRoute();
 const session = useWorkoutSession();
 
-let t;
-try {
-	const i18n = useVueI18n();
-	t = i18n.t;
-} catch (e) {
-	console.warn("i18n not available:", e);
-	t = (key) => key;
-}
+// Get i18n translation function (fallback to key if not available)
+const i18n = useVueI18n();
+const t = i18n?.t || ((key) => key);
 
 const isMobileMenuOpen = ref(false);
 
@@ -29,74 +24,43 @@ const isMobileMenuOpen = ref(false);
 const isCollapsed = computed(() => route?.name === "workout");
 
 const navItems = computed(() => {
-	try {
-		const items = [
-			{
-				name: (t && t("navigation.home")) || "Accueil",
-				route: "setup",
-				icon: "home",
-				always: true,
-			},
-			{
-				name: (t && t("navigation.workout")) || "Entraînement",
-				route: "workout",
-				icon: "play",
-				condition: session.isActive.value,
-			},
-			{
-				name: (t && t("navigation.history")) || "Historique",
-				route: "history",
-				icon: "history",
-				always: true,
-			},
-		].filter((item) => item.always || item.condition);
+	const items = [
+		{
+			name: t("navigation.home") || "Accueil",
+			route: "setup",
+			icon: "home",
+			always: true,
+		},
+		{
+			name: t("navigation.workout") || "Entraînement",
+			route: "workout",
+			icon: "play",
+			condition: session.isActive.value,
+		},
+		{
+			name: t("navigation.history") || "Historique",
+			route: "history",
+			icon: "history",
+			always: true,
+		},
+	];
 
-		// Ensure all items have required properties
-		return items.filter(item => item && item.name && item.route && item.icon);
-	} catch (e) {
-		console.error("Error in navItems:", e);
-		return [
-			{ name: "Accueil", route: "setup", icon: "home", always: true },
-			{
-				name: "Historique",
-				route: "history",
-				icon: "history",
-				always: true,
-			},
-		];
-	}
+	return items.filter((item) => item.always || item.condition);
 });
 
-const settingsItem = computed(() => {
-	try {
-		const name = (t && t("navigation.settings")) || "Paramètres";
-		return {
-			name: name || "Paramètres",
-			route: "settings",
-			icon: "settings",
-		};
-	} catch (e) {
-		console.error("Error in settingsItem:", e);
-		return { name: "Paramètres", route: "settings", icon: "settings" };
-	}
-});
+const settingsItem = computed(() => ({
+	name: t("navigation.settings") || "Paramètres",
+	route: "settings",
+	icon: "settings",
+}));
 
-// Safe combined navigation items for mobile (ensures no undefined values)
-const mobileNavItems = computed(() => {
-	const items = [...navItems.value];
-	if (settingsItem.value && settingsItem.value.name && settingsItem.value.route && settingsItem.value.icon) {
-		items.push(settingsItem.value);
-	}
-	// Double-check that all items are valid
-	return items.filter(item => item && item.name && item.route && item.icon);
-});
+// Combined navigation items for mobile
+const mobileNavItems = computed(() => [...navItems.value, settingsItem.value]);
 
 function navigate(routeName) {
-	if (!routeName) {
-		console.error("navigate called with undefined routeName");
-		return;
+	if (routeName) {
+		router.push({ name: routeName });
 	}
-	router.push({ name: routeName });
 	isMobileMenuOpen.value = false;
 }
 
