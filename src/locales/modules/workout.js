@@ -165,4 +165,20 @@ export default {
   adjustGlobalDown: 'Diminuer globalement (-5%)',
   currentOffset: 'Ajustement tour',
   globalOffset: 'Ajustement global',
+  // Free ride mode
+  freeRide: {
+    name: 'Sortie Libre',
+    description: 'Roulez librement sans intervalles structurés',
+    startButton: 'Démarrer Sortie Libre',
+    targetPower: 'Puissance Cible',
+    quickAdjust: 'Ajustement Rapide',
+    adjustDown10: '-10W',
+    adjustUp10: '+10W',
+    adjustDown5: '-5W',
+    adjustUp5: '+5W',
+    setPower: 'Définir Puissance',
+    powerRange: '{min}W - {max}W',
+    transitioned: '🚴 Mode Libre activé',
+    infinity: '∞',
+  },
 };

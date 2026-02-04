@@ -322,10 +322,13 @@ const intervalConnector = computed(() => {
 			/>
 		</div>
 
-		<!-- Interval progress bar row -->
+		<!-- Interval progress bar row - ONLY for structured workouts -->
 		<div
+			v-if="workout && !workout.isFreeRide"
 			class="col-span-6 bg-card rounded-lg border border-border p-1 md:p-3"
 		>
+			<!-- Note: In free ride mode, this entire section is hidden -->
+			<!-- The workout chart remains visible above -->
 			<div class="flex items-center gap-1 md:gap-3">
 				<!-- Left: Duration + Power text -->
 				<div class="flex-shrink-0 text-left min-w-fit">

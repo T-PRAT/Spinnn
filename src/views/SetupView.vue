@@ -9,11 +9,13 @@ import { useAppState } from "../composables/useAppState";
 import { useWorkoutSession } from "../composables/useWorkoutSession";
 import { useIntervalsIcu } from "../composables/useIntervalsIcu";
 import { useI18n } from "@/composables/useI18n";
+import { useFreeRide } from "@/composables/useFreeRide";
 
 const router = useRouter();
 const appState = useAppState();
 const session = useWorkoutSession();
 const intervals = useIntervalsIcu();
+const freeRide = useFreeRide();
 const { t } = useI18n();
 
 const isDeviceReady = ref(false);
@@ -122,6 +124,35 @@ const canResume = computed(() => {
   return hasPendingWorkout.value && isDeviceReady.value;
 });
 
+function startFreeRide() {
+  // Require devices to be ready
+  if (!isDeviceReady.value) return;
+
+  // Clear any saved workout state before starting free ride
+  session.clearWorkoutState();
+
+  // Create free ride workout
+  const freeRideWorkout = freeRide.createFreeRideWorkout();
+  appState.setWorkout(freeRideWorkout);
+
+  // Get saved power or default to 55% FTP
+  const savedPower = freeRide.getTargetPower();
+  const startPower = savedPower || Math.round(appState.ftp.value * 0.55);
+  freeRide.setTargetPower(startPower);
+
+  // Start free ride session
+  session.start(freeRideWorkout, appState.ftp.value);
+  appState.startWorkout();
+  router.push({ name: "workout" });
+}
+
+function enableMockMode() {
+  // Enable mock mode through device connector
+  if (deviceConnector.value) {
+    deviceConnector.value.enableMockMode();
+  }
+}
+
 function startWorkout() {
   // If there's a pending workout, we can resume even if devices aren't "ready" yet
   // because the workout was already in progress
@@ -228,6 +259,43 @@ function dismissPendingWorkout() {
             </button>
           </div>
           <IntervalsTodayWorkout ref="intervalsWorkoutRef" @workout-selected="handleWorkoutSelected" />
+        </div>
+
+        <div class="border-t border-border pt-6 space-y-3">
+          <!-- Free Ride Button -->
+          <button
+            @click="startFreeRide"
+            :disabled="!isDeviceReady"
+            :class="[
+              'w-full px-4 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2',
+              isDeviceReady
+                ? 'bg-chart-1 hover:bg-chart-1/90 text-primary-foreground hover:scale-[1.02] shadow-md'
+                : 'bg-muted text-muted-foreground cursor-not-allowed',
+            ]"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            {{ t('workout.freeRide.startButton') }}
+          </button>
+
+          <!-- Mock Mode Button -->
+          <button
+            @click="enableMockMode"
+            :disabled="deviceConnector?.useMockMode?.value"
+            :class="[
+              'w-full px-4 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2',
+              !deviceConnector?.useMockMode?.value
+                ? 'bg-accent hover:bg-accent/90 text-accent-foreground hover:scale-[1.02] shadow-md'
+                : 'bg-muted text-muted-foreground cursor-not-allowed',
+            ]"
+          >
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+            </svg>
+            <span v-if="deviceConnector?.useMockMode?.value">{{ t('device.mockModeEnabled') }}</span>
+            <span v-else>{{ t('device.enableMockMode') }}</span>
+          </button>
         </div>
       </div>
     </div>

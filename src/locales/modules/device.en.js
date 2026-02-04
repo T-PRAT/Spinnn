@@ -1,0 +1,25 @@
+export default {
+  title: 'Devices',
+  bluetoothNotAvailable: 'Bluetooth not available',
+  bluetoothNotAvailableHint: 'Use Chrome/Edge over HTTPS or localhost',
+  heartRateMonitor: 'Heart Rate Monitor',
+  smartTrainer: 'Smart Trainer',
+  mockMode: 'Simulation Mode',
+  mockModeEnabled: 'Simulation Mode Enabled',
+  enableMockMode: 'Enable Simulation Mode',
+  mockHRM: 'Mock HR Monitor',
+  mockTrainer: 'Mock Smart Trainer',
+  connectHRM: 'Connect HRM',
+  connectTrainer: 'Connect Trainer',
+  connecting: 'Connecting',
+  disconnect: 'Disconnect',
+  reconnect: 'Reconnect last device',
+  reconnecting: 'Reconnecting',
+  autoReconnect: 'Auto-reconnecting',
+  cancelReconnect: 'Cancel reconnect',
+  connectionFailed: 'Connection failed',
+  // Metrics
+  powerLabel: 'Power',
+  cadenceLabel: 'Cadence',
+  speedLabel: 'Speed'
+};

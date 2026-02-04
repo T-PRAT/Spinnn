@@ -20,7 +20,8 @@ export const STORAGE_KEYS = {
   AUDIO_ENABLED: 'spinnn_audio_enabled',
   AUDIO_SELECTED: 'spinnn_audio_selected',
   METRICS_CONFIG: 'spinnn_metrics_config',
-  WORKOUT_SESSION: 'spinnn_active_workout'
+  WORKOUT_SESSION: 'spinnn_active_workout',
+  FREE_RIDE_TARGET_POWER: 'spinnn_freeride_target_power'
 };
 
 /**
@@ -247,6 +248,34 @@ export function useStorage() {
   }
 
   // ============================================================================
+  // Free Ride Mode
+  // ============================================================================
+
+  function getFreeRideTargetPower() {
+    const stored = localStorage.getItem(STORAGE_KEYS.FREE_RIDE_TARGET_POWER);
+    if (stored) {
+      const value = parseInt(stored, 10);
+      if (!isNaN(value) && value > 0) {
+        return value;
+      }
+    }
+    return null; // No saved power, will use default (55% FTP)
+  }
+
+  function setFreeRideTargetPower(power) {
+    if (typeof power !== 'number' || power <= 0) {
+      logger.warn('Invalid free ride target power:', power);
+      return false;
+    }
+    localStorage.setItem(STORAGE_KEYS.FREE_RIDE_TARGET_POWER, power.toString());
+    return true;
+  }
+
+  function clearFreeRideTargetPower() {
+    localStorage.removeItem(STORAGE_KEYS.FREE_RIDE_TARGET_POWER);
+  }
+
+  // ============================================================================
   // Return public API
   // ============================================================================
 
@@ -290,6 +319,11 @@ export function useStorage() {
     getWorkoutSession,
     setWorkoutSession,
     clearWorkoutSession,
+
+    // Free Ride
+    getFreeRideTargetPower,
+    setFreeRideTargetPower,
+    clearFreeRideTargetPower,
 
     // Export keys for direct access if needed
     KEYS: STORAGE_KEYS

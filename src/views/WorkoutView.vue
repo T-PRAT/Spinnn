@@ -5,6 +5,7 @@ import WorkoutChart from "../components/workout/WorkoutChart.vue";
 import MetricsGrid from "../components/workout/MetricsGrid.vue";
 import MetricConfigModal from "../components/workout/MetricConfigModal.vue";
 import DeviceStatusButton from "../components/device/DeviceStatusButton.vue";
+import FreeRidePowerControl from "../components/workout/FreeRidePowerControl.vue";
 import { useAppState } from "../composables/useAppState";
 import { useWorkoutSession } from "../composables/useWorkoutSession";
 import { useBluetoothHRM } from "../composables/useBluetoothHRM";
@@ -17,6 +18,7 @@ import { useAudioSettings } from "../composables/useAudioSettings";
 import { useI18n } from "@/composables/useI18n";
 import { usePowerAdjustments } from "@/composables/usePowerAdjustments";
 import { useStorage } from "@/composables/useStorage";
+import { useFreeRide } from "@/composables/useFreeRide";
 import {
 	getTargetPowerAtTime,
 	getAdjustedTargetPowerAtTime,
@@ -32,10 +34,12 @@ const trainer = useBluetoothTrainer();
 const mockDevices = useMockDevices();
 const audioSettings = useAudioSettings();
 const powerAdjustments = usePowerAdjustments();
+const freeRide = useFreeRide();
 const { t } = useI18n();
 
 const showStopConfirmation = ref(false);
 const showReconnectMenu = ref(false);
+const showFreeRideToast = ref(false);
 const currentIntervalIndex = ref(-1);
 const countdownPlayedForInterval = ref(-1); // Track which interval had countdown played
 const showMetricConfig = ref(false);
@@ -111,10 +115,17 @@ const controlModes = computed(() => [
 	},
 ]);
 
-// Current target power based on workout interval
+// Current target power based on workout interval or free ride
 const currentTargetPower = computed(() => {
 	if (!appState.selectedWorkout.value) return 0;
-	if (session.isWorkoutComplete.value) return 0; // Free ride after completion
+
+	// Free ride mode: use free ride target power
+	if (appState.selectedWorkout.value.isFreeRide) {
+		return freeRide.targetPower.value;
+	}
+
+	// Structured workout: use workout target power
+	if (session.isWorkoutComplete.value) return 0; // Workout completed
 	return getAdjustedTargetPowerAtTime(
 		appState.selectedWorkout.value,
 		session.elapsedSeconds.value,
@@ -168,6 +179,51 @@ async function changeControlMode(mode) {
 		// Default to 50% resistance
 		await trainer.setResistance(50);
 	}
+}
+
+// Handle free ride power changes
+function handleFreeRidePowerChange(newPower) {
+	freeRide.setTargetPower(newPower);
+
+	// Immediately send to trainer if ERG mode is active
+	if (!appState.mockModeActive.value &&
+	    trainer.controlMode.value === ControlMode.ERG &&
+	    trainer.hasControl.value) {
+		trainer.setTargetPower(newPower);
+		lastTargetPower = newPower;
+	}
+}
+
+// Transition to free ride after structured workout completes
+function transitionToFreeRide() {
+	if (!appState.selectedWorkout.value || appState.selectedWorkout.value.isFreeRide) {
+		return; // Already in free ride mode or no workout
+	}
+
+	// Calculate smart starting power from last interval
+	const lastIntervalPower = session.intervalPower.value;
+	const startPower = freeRide.calculateStartingPower(lastIntervalPower);
+
+	// Create and set free ride workout
+	const freeRideWorkout = freeRide.createFreeRideWorkout();
+	appState.setWorkout(freeRideWorkout);
+
+	// Set target power
+	freeRide.setTargetPower(startPower);
+
+	// Send to trainer if ERG mode is active
+	if (!appState.mockModeActive.value &&
+	    trainer.controlMode.value === ControlMode.ERG &&
+	    trainer.hasControl.value) {
+		trainer.setTargetPower(startPower);
+		lastTargetPower = startPower;
+	}
+
+	// Show transition toast
+	showFreeRideToast.value = true;
+	setTimeout(() => {
+		showFreeRideToast.value = false;
+	}, 3000);
 }
 
 function openMetricConfig(slotId) {
@@ -491,18 +547,18 @@ const progressPercentage = computed(() => {
 	);
 });
 
-// Switch to PASSIVE mode when workout completes (no more target resistance)
+// Transition to free ride or switch to PASSIVE when workout completes
 watch(
 	() => session.isWorkoutComplete.value,
 	(isComplete) => {
-		if (
-			isComplete &&
-			!appState.mockModeActive.value &&
-			trainer.ftmsSupported.value
-		) {
-			if (trainer.controlMode.value !== ControlMode.PASSIVE) {
-				trainer.setControlMode(ControlMode.PASSIVE);
+		if (isComplete) {
+			// Check if already in free ride mode
+			if (appState.selectedWorkout.value && appState.selectedWorkout.value.isFreeRide) {
+				return; // Already in free ride, do nothing
 			}
+
+			// Auto-transition to free ride mode
+			transitionToFreeRide();
 		}
 	},
 );
@@ -597,6 +653,16 @@ const rightSlots = computed(() => [
 </script>
 
 <template>
+	<!-- Free Ride Transition Toast -->
+	<transition name="fade">
+		<div
+			v-if="showFreeRideToast"
+			class="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground px-6 py-3 rounded-lg shadow-lg pointer-events-none"
+		>
+			{{ t('workout.freeRide.transitioned') }}
+		</div>
+	</transition>
+
 	<div class="flex flex-col h-full overflow-hidden">
 		<!-- 1. Barre principale avec progression intégrée -->
 		<div class="mx-0.5 mt-0.5 md:mx-2 md:mt-2 shrink-0">
@@ -672,13 +738,15 @@ const rightSlots = computed(() => [
 		<!-- 3. Graphique principal -->
 		<div class="px-0.5 pb-0.5 md:px-2 md:pb-2 shrink-0">
 			<div
-				class="bg-card rounded-lg border border-border h-[120px] md:h-[250px]"
+				class="bg-card rounded-lg border border-border"
+				:class="appState.selectedWorkout.value?.isFreeRide ? 'h-[80px] md:h-[100px]' : 'h-[120px] md:h-[250px]'"
 			>
 				<WorkoutChart
 					:data-points="session.dataPoints.value"
 					:ftp="appState.ftp.value"
 					:workout="appState.selectedWorkout.value"
 					:elapsed-seconds="session.elapsedSeconds.value"
+					:target-power="currentTargetPower"
 				/>
 			</div>
 		</div>
@@ -698,9 +766,9 @@ const rightSlots = computed(() => [
 			</div>
 		</div>
 
-		<!-- Workout complete - continuation message -->
+		<!-- Workout complete - continuation message - NOT shown in free ride mode -->
 		<div
-			v-if="session.isWorkoutComplete.value && session.isActive.value"
+			v-if="session.isWorkoutComplete.value && session.isActive.value && !appState.selectedWorkout.value?.isFreeRide"
 			class="mx-0.5 md:mx-2 mb-0.5 md:mb-2 shrink-0"
 		>
 			<div
@@ -762,8 +830,11 @@ const rightSlots = computed(() => [
 					</div>
 				</div>
 
-				<!-- Power adjustment buttons -->
-				<div class="flex gap-1 md:gap-2 flex-shrink-0">
+				<!-- Power adjustment buttons - ONLY for structured workouts -->
+				<div
+					v-if="!appState.selectedWorkout.value?.isFreeRide"
+					class="flex gap-1 md:gap-2 flex-shrink-0"
+				>
 					<!-- Current interval adjustment -->
 					<div class="flex flex-col items-center gap-0.5">
 						<span
@@ -917,6 +988,20 @@ const rightSlots = computed(() => [
 					</div>
 				</div>
 
+				<!-- Free Ride Power Control - ONLY for free ride mode -->
+				<div
+					v-if="appState.selectedWorkout.value?.isFreeRide"
+					class="flex gap-2 md:gap-3 flex-shrink-0 items-center"
+				>
+					<FreeRidePowerControl
+						:current-power="currentTargetPower"
+						:ftp="appState.ftp.value"
+						:min-power="50"
+						:max-power="appState.ftp.value * 1.5"
+						@power-change="handleFreeRidePowerChange"
+					/>
+				</div>
+
 				<!-- Center: Empty space -->
 				<div class="flex-1"></div>
 
@@ -963,6 +1048,7 @@ const rightSlots = computed(() => [
 					</button>
 
 					<button
+						v-if="!appState.selectedWorkout.value?.isFreeRide"
 						@click="skipToNextInterval"
 						:disabled="
 							!findNextIntervalStartTime() ||

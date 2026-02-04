@@ -1,8 +1,8 @@
 import common from "./modules/common.js";
 import navigation from "./modules/navigation.js";
-import workout from "./modules/workout.js";
+import workout from "./modules/workout.en.js";
 import metrics from "./modules/metrics.js";
-import device from "./modules/device.js";
+import device from "./modules/device.en.js";
 import settings from "./modules/settings.js";
 import history from './modules/history.en.js';
 
