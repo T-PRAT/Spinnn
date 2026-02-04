@@ -14,17 +14,23 @@ const props = defineProps({
 });
 
 const chartRef = ref(null);
+
+// D3 Chart State - organized for clarity
+// SVG and Scales
 let svg = null;
 let xScale = null;
 let yScalePower = null;
 let yScaleHR = null;
 let yScaleCadence = null;
-let resizeObserver = null;
-let isChartInitialized = false;
 
+// Chart dimensions and layout
 const margin = { top: 8, right: 8, bottom: 8, left: 8 };
 let width = 800;
 let height = 500;
+
+// Chart lifecycle management
+let resizeObserver = null;
+let isChartInitialized = false;
 
 function getResponsiveHeight() {
   return 250;

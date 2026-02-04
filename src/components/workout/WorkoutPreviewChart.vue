@@ -21,10 +21,13 @@ const tooltip = ref({
   interval: null,
 });
 
+// D3 Chart State - organized for clarity
+// SVG and Scales
 let svg = null;
 let xScale = null;
 let yScalePower = null;
 
+// Chart dimensions and layout
 const margin = { top: 0, right: 0, bottom: 0, left: 0 };
 let width = 800;
 const height = props.tall ? 60 : 40;
