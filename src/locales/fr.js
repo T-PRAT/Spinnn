@@ -4,6 +4,7 @@ import workout from './modules/workout.js';
 import metrics from './modules/metrics.js';
 import device from './modules/device.js';
 import settings from './modules/settings.js';
+import history from './modules/history.js';
 
 export default {
   common,
@@ -11,5 +12,6 @@ export default {
   workout,
   metrics,
   device,
-  settings
+  settings,
+  history
 };

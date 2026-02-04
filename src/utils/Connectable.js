@@ -1,3 +1,5 @@
+import { logger } from '@/utils/logger';
+
 /**
  * Connectable - Base class for Bluetooth device connections
  * Inspired by OK's architecture - handles GATT connection, auto-reconnect, and state management
@@ -10,9 +12,6 @@
  * - Event-driven architecture
  */
 
-import { xf } from './EventDispatcher.js';
-import { isBluetoothAvailable, supportsGetDevices, getPairedDeviceById, shortUuidToFull } from './web-ble.js';
-import { DEFAULT_RECONNECT_DELAY, DEFAULT_RECONNECT_TIMEOUT } from '@/constants/bluetooth';
 
 /**
  * Connection status enum
@@ -113,7 +112,7 @@ export class Connectable {
     // Prevent concurrent connection attempts
     if (this.status === ConnectionStatus.connecting ||
         this.status === ConnectionStatus.reconnecting) {
-      console.warn(`[${this.config.name}] Connection already in progress`);
+      logger.warn(`[${this.config.name}] Connection already in progress`);
       return;
     }
 
@@ -164,7 +163,7 @@ export class Connectable {
         name: this.deviceName,
       });
 
-      console.log(`[${this.config.name}] Connected to ${this.deviceName}`);
+      logger.debug(`[${this.config.name}] Connected to ${this.deviceName}`);
 
       // Call connected callback if provided
       if (this.config.onConnected) {
@@ -174,7 +173,7 @@ export class Connectable {
       return this.device;
 
     } catch (error) {
-      console.error(`[${this.config.name}] Connection failed:`, error);
+      logger.error(`[${this.config.name}] Connection failed:`, error);
       this.status = ConnectionStatus.disconnected;
       xf.dispatch(`${this.config.name}:status`, this.status);
       xf.dispatch(`${this.config.name}:error`, error);
@@ -197,7 +196,7 @@ export class Connectable {
     }
 
     const filter = this.config.filter();
-    console.log(`[${this.config.name}] Requesting device with filter:`, filter);
+    logger.debug(`[${this.config.name}] Requesting device with filter:`, filter);
 
     this.device = await navigator.bluetooth.requestDevice(filter);
     return this.device;
@@ -222,7 +221,7 @@ export class Connectable {
     }
 
     const device = matchingDevices[0];
-    console.log(`[${this.config.name}] Watching for device: ${device.name || device.id}`);
+    logger.debug(`[${this.config.name}] Watching for device: ${device.name || device.id}`);
 
     // Set up abort controller for watch
     this.watchAbortController = new AbortController();
@@ -286,10 +285,10 @@ export class Connectable {
           config: serviceConfig,
         });
 
-        console.log(`[${this.config.name}] Service ${serviceConfig.name} set up successfully`);
+        logger.debug(`[${this.config.name}] Service ${serviceConfig.name} set up successfully`);
 
       } catch (error) {
-        console.error(`[${this.config.name}] Failed to set up service ${serviceConfig.name}:`, error);
+        logger.error(`[${this.config.name}] Failed to set up service ${serviceConfig.name}:`, error);
 
         if (serviceConfig.onError) {
           serviceConfig.onError(error);
@@ -302,7 +301,7 @@ export class Connectable {
    * Handle device disconnection
    */
   handleDisconnect() {
-    console.log(`[${this.config.name}] Device disconnected`);
+    logger.debug(`[${this.config.name}] Device disconnected`);
 
     this.status = ConnectionStatus.disconnected;
     xf.dispatch(`${this.config.name}:status`, this.status);
@@ -333,7 +332,7 @@ export class Connectable {
       clearTimeout(this.reconnectTimer);
     }
 
-    console.log(`[${this.config.name}] Scheduling reconnect in ${this.config.reconnectDelay}ms`);
+    logger.debug(`[${this.config.name}] Scheduling reconnect in ${this.config.reconnectDelay}ms`);
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
@@ -349,7 +348,7 @@ export class Connectable {
       return;
     }
 
-    console.log(`[${this.config.name}] Attempting to reconnect...`);
+    logger.debug(`[${this.config.name}] Attempting to reconnect...`);
 
     try {
       // Try direct reconnection first
@@ -362,7 +361,7 @@ export class Connectable {
         return;
       }
     } catch (error) {
-      console.warn(`[${this.config.name}] Direct reconnection failed:`, error.message);
+      logger.warn(`[${this.config.name}] Direct reconnection failed:`, error.message);
     }
 
     // Fall back to watchAdvertisements if available
@@ -373,7 +372,7 @@ export class Connectable {
         deviceId: this.deviceId,
       });
     } catch (error) {
-      console.error(`[${this.config.name}] Reconnection with watch failed:`, error);
+      logger.error(`[${this.config.name}] Reconnection with watch failed:`, error);
 
       // Schedule another attempt
       if (this.config.autoReconnect) {
@@ -386,7 +385,7 @@ export class Connectable {
    * Disconnect from device
    */
   async disconnect() {
-    console.log(`[${this.config.name}] Disconnecting...`);
+    logger.debug(`[${this.config.name}] Disconnecting...`);
 
     this.status = ConnectionStatus.disconnecting;
     xf.dispatch(`${this.config.name}:status`, this.status);
@@ -433,10 +432,10 @@ export class Connectable {
           serviceInfo.handler
         );
         serviceInfo.characteristic.stopNotifications().catch(err => {
-          console.warn(`[${this.config.name}] Failed to stop notifications:`, err);
+          logger.warn(`[${this.config.name}] Failed to stop notifications:`, err);
         });
       } catch (error) {
-        console.warn(`[${this.config.name}] Error cleaning up service ${name}:`, error);
+        logger.warn(`[${this.config.name}] Error cleaning up service ${name}:`, error);
       }
     }
 

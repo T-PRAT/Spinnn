@@ -4,6 +4,7 @@ import workout from "./modules/workout.js";
 import metrics from "./modules/metrics.js";
 import device from "./modules/device.js";
 import settings from "./modules/settings.js";
+import history from './modules/history.en.js';
 
 export default {
 	common: {

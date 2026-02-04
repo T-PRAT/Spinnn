@@ -1,3 +1,5 @@
+import { logger } from '@/utils/logger';
+
 /**
  * Web Bluetooth Utility Module
  * Based on OK's architecture - provides UUIDs, filters, and browser detection
@@ -91,7 +93,7 @@ export async function getPairedDevices() {
     const devices = await navigator.bluetooth.getDevices();
     return devices;
   } catch (error) {
-    console.error('Failed to get paired devices:', error);
+    logger.error('Failed to get paired devices:', error);
     throw error;
   }
 }
@@ -106,7 +108,7 @@ export async function getPairedDeviceById(deviceId) {
     const devices = await getPairedDevices();
     return devices.find(device => device.id === deviceId) || null;
   } catch (error) {
-    console.error(`Failed to get device ${deviceId}:`, error);
+    logger.error(`Failed to get device ${deviceId}:`, error);
     return null;
   }
 }

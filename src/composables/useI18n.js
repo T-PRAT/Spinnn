@@ -1,6 +1,8 @@
+
 import { ref, watch } from 'vue';
 import { useI18n as useVueI18n } from 'vue-i18n';
 import { useStorage } from './useStorage';
+import { logger } from '@/utils/logger';
 
 const storage = useStorage();
 
@@ -44,7 +46,7 @@ export function useI18n() {
     }, { immediate: true });
   } catch (e) {
     // Fallback if vue-i18n is not ready yet
-    console.warn('vue-i18n not ready yet, using fallback translations');
+    logger.warn('vue-i18n not ready yet, using fallback translations');
     t = (key) => key;
     locale = { value: currentLocale.value };
 
@@ -55,7 +57,7 @@ export function useI18n() {
 
   const setLocale = (newLocale) => {
     if (!supportedLocales.includes(newLocale)) {
-      console.warn(`Unsupported locale: ${newLocale}. Supported: ${supportedLocales.join(', ')}`);
+      logger.warn(`Unsupported locale: ${newLocale}. Supported: ${supportedLocales.join(', ')}`);
       return false;
     }
     if (storage.setLocale(newLocale)) {

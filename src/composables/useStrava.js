@@ -1,6 +1,8 @@
+
 import { ref, computed } from 'vue';
 import { useI18n } from './useI18n';
 import { useStorage } from './useStorage';
+import { logger } from '@/utils/logger';
 
 const storage = useStorage();
 
@@ -58,7 +60,7 @@ export function useStrava() {
 
       return data;
     } catch (error) {
-      console.error('Failed to check Strava status:', error);
+      logger.error('Failed to check Strava status:', error);
       isConnected.value = false;
       athlete.value = null;
       return { connected: false, athlete: null };
@@ -115,7 +117,7 @@ export function useStrava() {
 
       return data;
     } catch (error) {
-      console.error('Failed to handle Strava callback:', error);
+      logger.error('Failed to handle Strava callback:', error);
       throw error;
     }
   }
@@ -135,7 +137,7 @@ export function useStrava() {
       isConnected.value = false;
       athlete.value = null;
     } catch (error) {
-      console.error('Failed to disconnect from Strava:', error);
+      logger.error('Failed to disconnect from Strava:', error);
       throw error;
     }
   }
@@ -212,7 +214,7 @@ export function useStrava() {
 
       return await pollUploadStatus(uploadData.id, metadata.onProgress);
     } catch (error) {
-      console.error('Failed to upload to Strava:', error);
+      logger.error('Failed to upload to Strava:', error);
       throw error;
     }
   }

@@ -2,12 +2,10 @@
 ** [Home][Workout][Summary][Settings][General]**
 
 ## A
-- [Workout] meilleur sons intervalle
 - [Workout] Impossible modifier puissance quand entrainement terminé
+- [Settings] Nom des zones en anglais
 
 ## B
-- [Workout] monter baisser la puissance de l'entrainement en cours
-- [Workout] monter baisser la puissance de l'intervalle en cours
 - [Summary] ajouter une image(graphique) a l'export
 - [Summary] export strava
 - [Summary] verifier .fit (appareil, activité...)
@@ -28,14 +26,10 @@
 
 ## Fixes
 - [General] Remplacer couleurs hardcodées par variables CSS
-- [Workout] Fix ramp graphique dans mauvais sense
-- [Settings] Vitesse très faible pour puissance
 - [General] 404 errors sur routes (/settings, /workout, etc.) - rafraîchissement ET navigation
 - [Workout] Cases à cocher données peu visibles/problématiques pendant workout
 
 ## IRL test TODO
-- [Workout] bouton aller prochain intervalle
-- [Workout] Drop dans la courbe de cadence inexpliqué
 - [Workout] Pause auto trop rapide
 
 
@@ -47,6 +41,13 @@
 - [General] refonte dashboard
 - [Workout] Changer FTP pendant séance ✓
 - [Workout] Format d'affichage ramp incorrect (devrait afficher "5m de 170 à 200W") ✓
-- [Workout] Code couleur modulation puissance (+5% vert, -5% rouge sur valeur) ✓
+- [Workout] Code couleur modulation puissance (+5% vert, -5% rouge sur valeur cible) ✓
+- [Workout] monter baisser la puissance de l'entrainement en cours
+- [Workout] monter baisser la puissance de l'intervalle en cours
+- [Workout] Drop dans la courbe de cadence inexpliqué
+- [Workout] bouton aller prochain intervalle
+- [Workout] Fix ramp graphique dans mauvais sense
+- [Workout] meilleur sons intervalle
+- [Settings] Vitesse très faible pour puissance
 
 ## Ideas

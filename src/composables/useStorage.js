@@ -4,6 +4,7 @@
  */
 
 import { DEFAULT_POWER_ZONES, DEFAULT_FTP } from '@/constants/zones';
+import { logger } from '@/utils/logger';
 
 /**
  * Storage keys with 'spinnn_' prefix
@@ -44,7 +45,7 @@ export function useStorage() {
 
   function setFtp(value) {
     if (typeof value !== 'number' || value <= 0) {
-      console.warn('Invalid FTP value:', value);
+      logger.warn('Invalid FTP value:', value);
       return false;
     }
     localStorage.setItem(STORAGE_KEYS.FTP, value.toString());
@@ -65,7 +66,7 @@ export function useStorage() {
           return zones;
         }
       } catch (e) {
-        console.error('Failed to parse power zones:', e);
+        logger.error('Failed to parse power zones:', e);
       }
     }
     return { ...DEFAULT_POWER_ZONES };
@@ -73,7 +74,7 @@ export function useStorage() {
 
   function setPowerZones(zones) {
     if (!zones || typeof zones !== 'object') {
-      console.warn('Invalid power zones:', zones);
+      logger.warn('Invalid power zones:', zones);
       return false;
     }
     localStorage.setItem(STORAGE_KEYS.POWER_ZONES, JSON.stringify(zones));
@@ -98,7 +99,7 @@ export function useStorage() {
 
   function setTheme(theme) {
     if (theme !== 'dark' && theme !== 'light') {
-      console.warn('Invalid theme:', theme);
+      logger.warn('Invalid theme:', theme);
       return false;
     }
     localStorage.setItem(STORAGE_KEYS.THEME, theme);
@@ -115,7 +116,7 @@ export function useStorage() {
 
   function setLocale(locale) {
     if (!locale || typeof locale !== 'string') {
-      console.warn('Invalid locale:', locale);
+      logger.warn('Invalid locale:', locale);
       return false;
     }
     localStorage.setItem(STORAGE_KEYS.LOCALE, locale);
@@ -138,7 +139,7 @@ export function useStorage() {
 
   function setIntervalsCredentials(apiKey, athleteId) {
     if (!apiKey || !athleteId) {
-      console.warn('Invalid Intervals.icu credentials');
+      logger.warn('Invalid Intervals.icu credentials');
       return false;
     }
     localStorage.setItem(STORAGE_KEYS.INTERVALS_API_KEY, apiKey);
@@ -184,7 +185,7 @@ export function useStorage() {
 
   function setAudioSelected(soundId) {
     if (!soundId || typeof soundId !== 'string') {
-      console.warn('Invalid audio sound ID:', soundId);
+      logger.warn('Invalid audio sound ID:', soundId);
       return false;
     }
     localStorage.setItem(STORAGE_KEYS.AUDIO_SELECTED, soundId);
@@ -201,7 +202,7 @@ export function useStorage() {
       try {
         return JSON.parse(stored);
       } catch (e) {
-        console.error('Failed to parse metrics config:', e);
+        logger.error('Failed to parse metrics config:', e);
       }
     }
     return null;
@@ -209,7 +210,7 @@ export function useStorage() {
 
   function setMetricsConfig(config) {
     if (!config || typeof config !== 'object') {
-      console.warn('Invalid metrics config:', config);
+      logger.warn('Invalid metrics config:', config);
       return false;
     }
     localStorage.setItem(STORAGE_KEYS.METRICS_CONFIG, JSON.stringify(config));
@@ -226,7 +227,7 @@ export function useStorage() {
       try {
         return JSON.parse(stored);
       } catch (e) {
-        console.error('Failed to parse workout session:', e);
+        logger.error('Failed to parse workout session:', e);
       }
     }
     return null;
@@ -234,7 +235,7 @@ export function useStorage() {
 
   function setWorkoutSession(session) {
     if (!session || typeof session !== 'object') {
-      console.warn('Invalid workout session:', session);
+      logger.warn('Invalid workout session:', session);
       return false;
     }
     localStorage.setItem(STORAGE_KEYS.WORKOUT_SESSION, JSON.stringify(session));

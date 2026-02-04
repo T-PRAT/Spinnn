@@ -8,6 +8,7 @@ import { getCurrentIntervalIndex } from '@/utils/workoutHelpers';
 import { useStorage } from './useStorage';
 import { useWorkoutData } from './useWorkoutData';
 import { useWorkoutStats } from './useWorkoutStats';
+import { logger } from '@/utils/logger';
 
 const storage = useStorage();
 const workoutData = useWorkoutData();
@@ -50,7 +51,7 @@ function loadWorkoutState() {
         storage.clearWorkoutSession();
       }
     } catch (e) {
-      console.error('Failed to load workout state:', e);
+      logger.error('Failed to load workout state:', e);
       storage.clearWorkoutSession();
     }
   }

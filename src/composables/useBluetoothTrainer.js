@@ -1,8 +1,10 @@
+
 import { ref } from 'vue';
 import { Connectable, ConnectionStatus } from '../utils/Connectable.js';
 import { smartTrainerFilter, SERVICES, CHARACTERISTICS } from '../utils/web-ble.js';
 import { xf } from '../utils/EventDispatcher.js';
 import { parseCyclingPowerMeasurement, calculateCadence, calculateSpeed, calculateSpeedFromPower } from '../utils/bluetoothParser.js';
+import { logger } from '@/utils/logger';
 
 /**
  * Smart Trainer Bluetooth Composable
@@ -198,27 +200,6 @@ export function useBluetoothTrainer() {
     // Using physics-based approximation: 200W ≈ 33 km/h
     speed.value = calculateSpeedFromPower(power.value);
 
-    // Note: Wheel revolution-based speed calculation removed because smart trainers
-    // often use incorrect virtual wheel circumference, leading to unrealistic speeds.
-    // Previous implementation kept for reference:
-    /*
-    if (data.wheelRevolutions !== null && data.lastWheelEventTime !== null) {
-      if (lastWheelRevs !== null && lastWheelTime !== null) {
-        const calculatedSpeed = calculateSpeed(
-          data.wheelRevolutions,
-          lastWheelRevs,
-          data.lastWheelEventTime,
-          lastWheelTime
-        );
-        if (calculatedSpeed > 0) {
-          speed.value = calculatedSpeed;
-        }
-      }
-      lastWheelRevs = data.wheelRevolutions;
-      lastWheelTime = data.lastWheelEventTime;
-    }
-    */
-
     // Dispatch to event system for other components
     xf.dispatch('power', {
       value: power.value,
@@ -293,19 +274,6 @@ export function useBluetoothTrainer() {
           timestamp: Date.now(),
         });
       }
-
-      // Previous wheel-based calculation removed (see comment in handleCyclingPowerData)
-      /*
-      if (lastWheelRevs !== null && lastWheelTime !== null) {
-        const calculatedSpeed = calculateSpeed(wheelRevs, lastWheelRevs, wheelTime, lastWheelTime);
-        if (calculatedSpeed > 0) {
-          speed.value = calculatedSpeed;
-        }
-      }
-
-      lastWheelRevs = wheelRevs;
-      lastWheelTime = wheelTime;
-      */
     }
   }
 
@@ -323,14 +291,14 @@ export function useBluetoothTrainer() {
       ftmsControlPoint.addEventListener('characteristicvaluechanged', handleFTMSResponse);
 
       ftmsSupported.value = true;
-      console.log('[Trainer] FTMS Control Point setup successful');
+      logger.debug('[Trainer] FTMS Control Point setup successful');
 
       // Request control automatically
       await requestControl();
 
       return true;
     } catch (err) {
-      console.warn('[Trainer] FTMS not supported or setup failed:', err.message);
+      logger.warn('[Trainer] FTMS not supported or setup failed:', err.message);
       ftmsSupported.value = false;
       return false;
     }
@@ -348,14 +316,14 @@ export function useBluetoothTrainer() {
       const result = data.getUint8(2);
 
       const resultName = Object.keys(FTMS_RESULTS).find(k => FTMS_RESULTS[k] === result) || 'UNKNOWN';
-      console.log(`[Trainer] FTMS Response: opcode=${requestOpcode}, result=${resultName}`);
+      logger.debug(`[Trainer] FTMS Response: opcode=${requestOpcode}, result=${resultName}`);
 
       if (requestOpcode === FTMS_OPCODES.REQUEST_CONTROL) {
         hasControl.value = (result === FTMS_RESULTS.SUCCESS);
         if (hasControl.value) {
-          console.log('[Trainer] Control granted');
+          logger.debug('[Trainer] Control granted');
         } else {
-          console.warn('[Trainer] Control request failed:', resultName);
+          logger.warn('[Trainer] Control request failed:', resultName);
         }
       }
     }
@@ -366,7 +334,7 @@ export function useBluetoothTrainer() {
    */
   async function requestControl() {
     if (!ftmsControlPoint) {
-      console.warn('[Trainer] FTMS not available');
+      logger.warn('[Trainer] FTMS not available');
       return false;
     }
 
@@ -375,10 +343,10 @@ export function useBluetoothTrainer() {
       const view = new DataView(buffer);
       view.setUint8(0, FTMS_OPCODES.REQUEST_CONTROL);
       await ftmsControlPoint.writeValue(buffer);
-      console.log('[Trainer] Requested control');
+      logger.debug('[Trainer] Requested control');
       return true;
     } catch (err) {
-      console.error('[Trainer] Failed to request control:', err);
+      logger.error('[Trainer] Failed to request control:', err);
       return false;
     }
   }
@@ -389,7 +357,7 @@ export function useBluetoothTrainer() {
    */
   async function setTargetPower(watts) {
     if (!ftmsControlPoint || !hasControl.value) {
-      console.warn('[Trainer] Cannot set power - no control');
+      logger.warn('[Trainer] Cannot set power - no control');
       return false;
     }
 
@@ -405,10 +373,10 @@ export function useBluetoothTrainer() {
 
       targetPower.value = clampedWatts;
       controlMode.value = ControlMode.ERG;
-      console.log(`[Trainer] Set target power: ${clampedWatts}W`);
+      logger.debug(`[Trainer] Set target power: ${clampedWatts}W`);
       return true;
     } catch (err) {
-      console.error('[Trainer] Failed to set target power:', err);
+      logger.error('[Trainer] Failed to set target power:', err);
       return false;
     }
   }
@@ -422,7 +390,7 @@ export function useBluetoothTrainer() {
    */
   async function setSimulation(grade, windSpeed = 0, crr = 0.004, cw = 0.51) {
     if (!ftmsControlPoint || !hasControl.value) {
-      console.warn('[Trainer] Cannot set simulation - no control');
+      logger.warn('[Trainer] Cannot set simulation - no control');
       return false;
     }
 
@@ -441,10 +409,10 @@ export function useBluetoothTrainer() {
 
       targetGrade.value = clampedGrade;
       controlMode.value = ControlMode.SIM;
-      console.log(`[Trainer] Set simulation: grade=${clampedGrade}%`);
+      logger.debug(`[Trainer] Set simulation: grade=${clampedGrade}%`);
       return true;
     } catch (err) {
-      console.error('[Trainer] Failed to set simulation:', err);
+      logger.error('[Trainer] Failed to set simulation:', err);
       return false;
     }
   }
@@ -455,7 +423,7 @@ export function useBluetoothTrainer() {
    */
   async function setResistance(level) {
     if (!ftmsControlPoint || !hasControl.value) {
-      console.warn('[Trainer] Cannot set resistance - no control');
+      logger.warn('[Trainer] Cannot set resistance - no control');
       return false;
     }
 
@@ -471,10 +439,10 @@ export function useBluetoothTrainer() {
 
       targetResistance.value = clampedLevel;
       controlMode.value = ControlMode.RESISTANCE;
-      console.log(`[Trainer] Set resistance: ${clampedLevel}%`);
+      logger.debug(`[Trainer] Set resistance: ${clampedLevel}%`);
       return true;
     } catch (err) {
-      console.error('[Trainer] Failed to set resistance:', err);
+      logger.error('[Trainer] Failed to set resistance:', err);
       return false;
     }
   }
@@ -486,7 +454,7 @@ export function useBluetoothTrainer() {
   function setControlMode(mode) {
     if (Object.values(ControlMode).includes(mode)) {
       controlMode.value = mode;
-      console.log(`[Trainer] Control mode set to: ${mode}`);
+      logger.debug(`[Trainer] Control mode set to: ${mode}`);
     }
   }
 

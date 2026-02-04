@@ -1,10 +1,12 @@
+import { logger } from '@/utils/logger';
+
 /**
  * Event Dispatcher System
  * Simple pub/sub pattern for BLE data streaming (inspired by OK's xf dispatcher)
  *
  * Usage:
  *   xf.dispatch('heartRate', { value: 120, timestamp: Date.now() });
- *   xf.sub('heartRate', (data) => console.log('HR:', data.value));
+ *   xf.sub('heartRate', (data) => logger.debug('HR:', data.value));
  *   xf.unsub('heartRate', handler);
  */
 
@@ -59,7 +61,7 @@ class EventDispatcher {
         try {
           callback(data);
         } catch (error) {
-          console.error(`Error in event handler for "${event}":`, error);
+          logger.error(`Error in event handler for "${event}":`, error);
         }
       });
     }
