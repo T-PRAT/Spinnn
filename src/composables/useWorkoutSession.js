@@ -1,21 +1,26 @@
+/**
+ * Workout session management
+ * Handles session state, timing, pause/resume, and persistence
+ */
+
 import { ref, computed } from 'vue';
-import { flattenIntervals, getCurrentIntervalIndex } from '@/utils/workoutHelpers';
+import { getCurrentIntervalIndex } from '@/utils/workoutHelpers';
 import { useStorage } from './useStorage';
+import { useWorkoutData } from './useWorkoutData';
+import { useWorkoutStats } from './useWorkoutStats';
 
 const storage = useStorage();
+const workoutData = useWorkoutData();
 
 // Singleton state - shared across all components
 const isActive = ref(false);
 const startTime = ref(null);
 const elapsedSeconds = ref(0);
-const dataPoints = ref([]);
 const workout = ref(null);
 const ftp = ref(200);
 const isPaused = ref(false);
 
 let intervalId = null;
-let lastDistance = 0;
-let dataPointIndex = 0;
 let actualStartTime = null; // Real start time for precise elapsed calculation
 let accumulatedPausedTime = 0; // Total time spent paused
 let pauseStartTime = null; // When the current pause started
@@ -33,12 +38,11 @@ function loadWorkoutState() {
       if (hoursDiff < 24 && savedState.isActive) {
         workout.value = savedState.workout;
         elapsedSeconds.value = savedState.elapsedSeconds;
-        dataPoints.value = savedState.dataPoints || [];
+        workoutData.loadDataPoints(savedState.dataPoints || [], savedState.lastDistance || 0);
         ftp.value = savedState.ftp;
         isPaused.value = true; // Always resume in paused state
         isActive.value = true;
         startTime.value = new Date(savedState.startTime);
-        lastDistance = savedState.lastDistance || 0;
 
         return true;
       } else {
@@ -64,11 +68,11 @@ function saveWorkoutState() {
     isActive: isActive.value,
     startTime: startTime.value.toISOString(),
     elapsedSeconds: elapsedSeconds.value,
-    dataPoints: dataPoints.value,
+    dataPoints: workoutData.dataPoints.value,
     workout: workout.value,
     ftp: ftp.value,
     isPaused: isPaused.value,
-    lastDistance: lastDistance,
+    lastDistance: workoutData.getDistance(),
     savedAt: new Date().toISOString()
   };
 
@@ -90,6 +94,13 @@ export function useWorkoutSession() {
     loadWorkoutState();
   }
 
+  // Create stats composable with current refs
+  const stats = useWorkoutStats(workoutData.dataPoints, workout, elapsedSeconds);
+
+  // ============================================================================
+  // Session Control
+  // ============================================================================
+
   function start(selectedWorkout, userFtp) {
     if (isActive.value) return;
 
@@ -100,9 +111,7 @@ export function useWorkoutSession() {
     accumulatedPausedTime = 0;
     pauseStartTime = null;
     elapsedSeconds.value = 0;
-    dataPoints.value = [];
-    lastDistance = 0;
-    dataPointIndex = 0;
+    workoutData.reset();
     isActive.value = true;
 
     saveWorkoutState();
@@ -132,11 +141,9 @@ export function useWorkoutSession() {
     startTime.value = null;
     actualStartTime = null;
     elapsedSeconds.value = 0;
-    dataPoints.value = [];
+    workoutData.reset();
     workout.value = null;
     isPaused.value = false;
-    lastDistance = 0;
-    dataPointIndex = 0;
     accumulatedPausedTime = 0;
     pauseStartTime = null;
   }
@@ -173,7 +180,13 @@ export function useWorkoutSession() {
     }, 100);
   }
 
-  // Manually set elapsed time (used for skipping intervals)
+  // ============================================================================
+  // Data Recording
+  // ============================================================================
+
+  /**
+   * Manually set elapsed time (used for skipping intervals)
+   */
   function setElapsedSeconds(seconds) {
     if (!isActive.value) return;
 
@@ -188,28 +201,23 @@ export function useWorkoutSession() {
     saveWorkoutState();
   }
 
+  /**
+   * Record a new data point during workout
+   */
   function recordDataPoint(data) {
     if (!isActive.value) return;
 
-    const distanceIncrement = data.speed > 0 ? data.speed * 1 : 0;
-    lastDistance += distanceIncrement;
-
-    dataPoints.value.push({
-      timestamp: elapsedSeconds.value,
-      power: data.power || 0,
-      heartRate: data.heartRate || 0,
-      cadence: data.cadence || 0,
-      speed: data.speed || 0,
-      distance: Math.round(lastDistance)
-    });
-
-    dataPointIndex++;
+    const shouldSave = workoutData.recordDataPoint(data, elapsedSeconds.value, isActive.value);
 
     // Save state every 10 data points (every 10 seconds)
-    if (dataPoints.value.length % 10 === 0) {
+    if (shouldSave) {
       saveWorkoutState();
     }
   }
+
+  // ============================================================================
+  // Computed Properties
+  // ============================================================================
 
   const formattedElapsedTime = computed(() => {
     // Use active elapsed time (time actually spent training, not including skips)
@@ -221,9 +229,9 @@ export function useWorkoutSession() {
 
   // Active elapsed time: actual training time (based on recorded data points, excluding pauses)
   const activeElapsedSeconds = computed(() => {
-    if (dataPoints.value.length === 0) return 0;
+    if (!workoutData.dataPoints.value || workoutData.dataPoints.value.length === 0) return 0;
     // Each data point represents 1 second of active training
-    return dataPoints.value.length;
+    return workoutData.dataPoints.value.length;
   });
 
   const formattedWorkoutDuration = computed(() => {
@@ -238,8 +246,8 @@ export function useWorkoutSession() {
     endTime: isActive.value ? null : new Date(startTime.value.getTime() + elapsedSeconds.value * 1000),
     ftp: ftp.value,
     workoutName: workout.value?.name || 'Unknown',
-    totalDistance: lastDistance,
-    dataPoints: dataPoints.value
+    totalDistance: workoutData.getDistance(),
+    dataPoints: workoutData.dataPoints.value
   }));
 
   const isWorkoutComplete = computed(() => {
@@ -247,148 +255,36 @@ export function useWorkoutSession() {
     return elapsedSeconds.value >= workout.value.duration;
   });
 
-  // Helper function to flatten intervals (including nested repeat blocks)
-
-  // Calculate interval power (average power in current interval)
-  const intervalPower = computed(() => {
-    if (!workout.value || dataPoints.value.length === 0) return 0;
-
-    const currentInterval = getCurrentIntervalIndex(elapsedSeconds.value, workout.value);
-    if (currentInterval.index === -1) return 0;
-
-    const startTime = currentInterval.startTime;
-    const endTime = startTime + (currentInterval.interval?.duration || 0);
-
-    // Filter data points within current interval
-    const intervalData = dataPoints.value.filter(point =>
-      point.timestamp >= startTime && point.timestamp <= endTime
-    );
-
-    if (intervalData.length === 0) return 0;
-
-    // Calculate average power
-    const totalPower = intervalData.reduce((sum, point) => sum + point.power, 0);
-    return Math.round(totalPower / intervalData.length);
-  });
-
-  // Calculate interval heart rate (average HR in current interval)
-  const intervalHeartRate = computed(() => {
-    if (!workout.value || dataPoints.value.length === 0) return 0;
-
-    const currentInterval = getCurrentIntervalIndex(elapsedSeconds.value, workout.value);
-    if (currentInterval.index === -1) return 0;
-
-    const startTime = currentInterval.startTime;
-    const endTime = startTime + (currentInterval.interval?.duration || 0);
-
-    // Filter data points within current interval
-    const intervalData = dataPoints.value.filter(point =>
-      point.timestamp >= startTime && point.timestamp <= endTime
-    );
-
-    if (intervalData.length === 0) return 0;
-
-    // Calculate average heart rate
-    const totalHR = intervalData.reduce((sum, point) => sum + point.heartRate, 0);
-    return Math.round(totalHR / intervalData.length);
-  });
-
-  // Calculate remaining time in current interval
-  const intervalRemainingTime = computed(() => {
-    if (!workout.value) return 0;
-
-    const currentInterval = getCurrentIntervalIndex(elapsedSeconds.value, workout.value);
-    if (currentInterval.index === -1) return 0;
-
-    const startTime = currentInterval.startTime;
-    const endTime = startTime + (currentInterval.interval?.duration || 0);
-    const remaining = endTime - elapsedSeconds.value;
-
-    return Math.max(0, Math.round(remaining));
-  });
-
-  const formattedIntervalRemainingTime = computed(() => {
-    const remaining = intervalRemainingTime.value;
-    const mins = Math.floor(remaining / 60);
-    const secs = remaining % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  });
-
-  // Calculate energy expended in kcal
-  // Formula: Energy (kJ) = Power (W) × Time (s) / 1000
-  // Energy (kcal) ≈ Energy (kJ) × 0.239
-  const energy = computed(() => {
-    if (dataPoints.value.length === 0) return 0;
-
-    // Sum of power readings over time gives total work in joules
-    // Each data point represents 1 second, so we sum all power values
-    const totalWorkJoules = dataPoints.value.reduce((sum, point) => sum + (point.power || 0), 0);
-
-    // Convert to kJ then to kcal (1 kJ ≈ 0.239 kcal)
-    const totalWorkKJ = totalWorkJoules / 1000;
-    return Math.round(totalWorkKJ * 0.239);
-  });
-
-  // Average power for entire session
-  const avgPower = computed(() => {
-    if (dataPoints.value.length === 0) return 0;
-    const totalPower = dataPoints.value.reduce((sum, point) => sum + (point.power || 0), 0);
-    return totalPower / dataPoints.value.length;
-  });
-
-  // Average heart rate for entire session
-  const avgHeartRate = computed(() => {
-    const validHR = dataPoints.value.filter(point => point.heartRate > 0);
-    if (validHR.length === 0) return 0;
-    const totalHR = validHR.reduce((sum, point) => sum + point.heartRate, 0);
-    return totalHR / validHR.length;
-  });
-
-  // Average cadence for entire session
-  const avgCadence = computed(() => {
-    const validCadence = dataPoints.value.filter(point => point.cadence > 0);
-    if (validCadence.length === 0) return 0;
-    const totalCadence = validCadence.reduce((sum, point) => sum + point.cadence, 0);
-    return totalCadence / validCadence.length;
-  });
-
-  // Maximum power for entire session
-  const maxPower = computed(() => {
-    if (dataPoints.value.length === 0) return 0;
-    return Math.max(...dataPoints.value.map(point => point.power || 0));
-  });
-
-  // Maximum heart rate for entire session
-  const maxHeartRate = computed(() => {
-    const validHR = dataPoints.value.filter(point => point.heartRate > 0);
-    if (validHR.length === 0) return 0;
-    return Math.max(...validHR.map(point => point.heartRate));
-  });
+  // ============================================================================
+  // Return Public API
+  // ============================================================================
 
   return {
+    // State
     isActive,
     startTime,
     elapsedSeconds,
     activeElapsedSeconds,
-    dataPoints,
+    dataPoints: workoutData.dataPoints,
     workout,
     ftp,
     isPaused,
+
+    // Formatted values
     formattedElapsedTime,
     formattedWorkoutDuration,
+
+    // Session data
     sessionData,
     isWorkoutComplete,
-    intervalPower,
-    intervalHeartRate,
-    intervalRemainingTime,
-    formattedIntervalRemainingTime,
-    energy,
-    avgPower,
-    avgHeartRate,
-    avgCadence,
-    maxPower,
-    maxHeartRate,
+
+    // Statistics (from useWorkoutStats)
+    ...stats,
+
+    // Helpers
     getCurrentIntervalIndex,
+
+    // Control methods
     start,
     stop,
     reset,
@@ -396,6 +292,8 @@ export function useWorkoutSession() {
     resume,
     setElapsedSeconds,
     recordDataPoint,
+
+    // Persistence
     loadWorkoutState,
     clearWorkoutState
   };
