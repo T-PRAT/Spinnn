@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, onBeforeUnmount } from "vue";
 import * as d3 from "d3";
 import { useAppState } from "../../composables/useAppState";
+import { getIntervalColor } from "@/utils/workoutHelpers";
 
 const appState = useAppState();
 
@@ -233,7 +234,7 @@ function drawWorkoutProfile() {
       svg
         .append("polygon")
         .attr("points", `${visualStartX},${startY} ${visualEndX},${endY} ${visualEndX},${height} ${visualStartX},${height}`)
-        .attr("fill", getIntervalColor(interval.type, power))
+        .attr("fill", getIntervalColor(interval.type, power, appState.powerZones.value))
         .attr("opacity", 0.2);
     } else {
       // Draw rectangle for steady power intervals
@@ -245,7 +246,7 @@ function drawWorkoutProfile() {
         .attr("y", yScalePower(transformedPower))
         .attr("width", Math.max(0, visualWidth))
         .attr("height", Math.max(0, height - yScalePower(transformedPower)))
-        .attr("fill", getIntervalColor(interval.type, power))
+        .attr("fill", getIntervalColor(interval.type, power, appState.powerZones.value))
         .attr("opacity", 0.2);
     }
 
@@ -302,22 +303,6 @@ function drawWorkoutProfile() {
   });
 }
 
-function getIntervalColor(type, power) {
-  // Convert power to percentage (power is in decimal, e.g., 0.67 = 67%)
-  const powerPercent = (power || 0.7) * 100;
-  const zones = appState.powerZones.value;
-
-  // Determine zone based on configured power percentages
-  // Get CSS variable values from computed style
-  const computedStyle = getComputedStyle(document.documentElement);
-  if (powerPercent <= zones.z1.max) return computedStyle.getPropertyValue("--zone-z1").trim();
-  if (powerPercent <= zones.z2.max) return computedStyle.getPropertyValue("--zone-z2").trim();
-  if (powerPercent <= zones.z3.max) return computedStyle.getPropertyValue("--zone-z3").trim();
-  if (powerPercent <= zones.z4.max) return computedStyle.getPropertyValue("--zone-z4").trim();
-  if (powerPercent <= zones.z5.max) return computedStyle.getPropertyValue("--zone-z5").trim();
-  if (powerPercent <= zones.z6.max) return computedStyle.getPropertyValue("--zone-z6").trim();
-  return computedStyle.getPropertyValue("--zone-z7").trim();
-}
 
 function smoothData(data, windowSize = 3) {
   if (!data || data.length === 0) return [];

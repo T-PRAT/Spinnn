@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, onBeforeUnmount } from "vue";
 import * as d3 from "d3";
 import { useAppState } from "../../composables/useAppState";
+import { getIntervalColor, formatDurationLong } from "@/utils/workoutHelpers";
 
 const appState = useAppState();
 
@@ -130,9 +131,9 @@ function drawWorkoutProfile() {
       shape = svg
         .append("polygon")
         .attr("points", `${startX},${startY} ${endX},${endY} ${endX},${height} ${startX},${height}`)
-        .attr("fill", getIntervalColor(interval.type, power))
+        .attr("fill", getIntervalColor(interval.type, power, appState.powerZones.value))
         .attr("opacity", 0.6)
-        .attr("stroke", getIntervalColor(interval.type, power))
+        .attr("stroke", getIntervalColor(interval.type, power, appState.powerZones.value))
         .attr("stroke-width", 0.5);
     } else {
       // Draw rectangle for steady power intervals
@@ -142,9 +143,9 @@ function drawWorkoutProfile() {
         .attr("y", yScalePower(targetPower))
         .attr("width", Math.max(0, endX - startX))
         .attr("height", Math.max(0, height - yScalePower(targetPower)))
-        .attr("fill", getIntervalColor(interval.type, power))
+        .attr("fill", getIntervalColor(interval.type, power, appState.powerZones.value))
         .attr("opacity", 0.6)
-        .attr("stroke", getIntervalColor(interval.type, power))
+        .attr("stroke", getIntervalColor(interval.type, power, appState.powerZones.value))
         .attr("stroke-width", 0.5);
     }
 
@@ -180,11 +181,6 @@ function hideTooltip() {
   tooltip.value.show = false;
 }
 
-function formatDuration(seconds) {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return secs > 0 ? `${mins}min ${secs}s` : `${mins}min`;
-}
 
 function getIntervalTypeName(type) {
   const names = {
@@ -198,22 +194,6 @@ function getIntervalTypeName(type) {
   return names[type] || type;
 }
 
-function getIntervalColor(type, power) {
-  // Convert power to percentage (power is in decimal, e.g., 0.67 = 67%)
-  const powerPercent = (power || 0.7) * 100;
-  const zones = appState.powerZones.value;
-
-  // Determine zone based on configured power percentages
-  // Get CSS variable values from computed style
-  const computedStyle = getComputedStyle(document.documentElement);
-  if (powerPercent <= zones.z1.max) return computedStyle.getPropertyValue("--zone-z1").trim();
-  if (powerPercent <= zones.z2.max) return computedStyle.getPropertyValue("--zone-z2").trim();
-  if (powerPercent <= zones.z3.max) return computedStyle.getPropertyValue("--zone-z3").trim();
-  if (powerPercent <= zones.z4.max) return computedStyle.getPropertyValue("--zone-z4").trim();
-  if (powerPercent <= zones.z5.max) return computedStyle.getPropertyValue("--zone-z5").trim();
-  if (powerPercent <= zones.z6.max) return computedStyle.getPropertyValue("--zone-z6").trim();
-  return computedStyle.getPropertyValue("--zone-z7").trim();
-}
 </script>
 
 <template>
@@ -222,13 +202,13 @@ function getIntervalColor(type, power) {
     <div v-if="!compact" class="shrink-0 w-32">
       <h4 class="text-sm font-semibold text-foreground leading-tight">{{ workout?.name }}</h4>
       <div class="text-xs text-muted-foreground mt-1">
-        {{ formatDuration(workout?.duration || 0) }}
+        {{ formatDurationLong(workout?.duration || 0) }}
       </div>
     </div>
     <div v-else class="shrink-0 w-28">
       <h4 class="text-xs font-semibold text-foreground leading-tight">{{ workout?.name }}</h4>
       <div class="text-[10px] text-muted-foreground mt-0.5">
-        {{ formatDuration(workout?.duration || 0) }}
+        {{ formatDurationLong(workout?.duration || 0) }}
       </div>
     </div>
 
@@ -248,7 +228,7 @@ function getIntervalColor(type, power) {
           {{ getIntervalTypeName(tooltip.interval.type) }}
         </div>
         <div class="text-muted-foreground space-y-0.5">
-          <div>Duree: {{ formatDuration(tooltip.interval.duration) }}</div>
+          <div>Duree: {{ formatDurationLong(tooltip.interval.duration) }}</div>
           <div v-if="tooltip.interval.power !== undefined">
             Puissance: {{ Math.round(tooltip.interval.power * ftp) }}W ({{ Math.round(tooltip.interval.power * 100) }}%)
           </div>

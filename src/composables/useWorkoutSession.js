@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue';
+import { flattenIntervals, getCurrentIntervalIndex } from '@/utils/workoutHelpers';
 
 // Singleton state - shared across all components
 const isActive = ref(false);
@@ -248,47 +249,6 @@ export function useWorkoutSession() {
   });
 
   // Helper function to flatten intervals (including nested repeat blocks)
-  function flattenIntervals(intervals) {
-    const flattened = [];
-
-    function processIntervals(intervalList) {
-      intervalList.forEach(interval => {
-        if (interval.type === 'repeat' && interval.intervals) {
-          // Process repeat block
-          for (let i = 0; i < (interval.repeat || 1); i++) {
-            processIntervals(interval.intervals);
-          }
-        } else {
-          // Regular interval
-          flattened.push(interval);
-        }
-      });
-    }
-
-    processIntervals(intervals);
-    return flattened;
-  }
-
-  // Calculate current interval index based on elapsed time
-  function getCurrentIntervalIndex(elapsedSeconds, workout) {
-    if (!workout || !workout.intervals) return -1;
-
-    const flatIntervals = flattenIntervals(workout.intervals);
-    let accumulatedTime = 0;
-
-    for (let i = 0; i < flatIntervals.length; i++) {
-      const interval = flatIntervals[i];
-      const intervalDuration = interval.duration || 0;
-
-      if (elapsedSeconds < accumulatedTime + intervalDuration) {
-        return { index: i, startTime: accumulatedTime, interval };
-      }
-
-      accumulatedTime += intervalDuration;
-    }
-
-    return { index: flatIntervals.length - 1, startTime: accumulatedTime - (flatIntervals[flatIntervals.length - 1]?.duration || 0), interval: flatIntervals[flatIntervals.length - 1] };
-  }
 
   // Calculate interval power (average power in current interval)
   const intervalPower = computed(() => {

@@ -1,24 +1,14 @@
 import { ref, computed, readonly } from 'vue';
+import { DEFAULT_POWER_ZONES, DEFAULT_FTP } from '@/constants/zones';
 
 // Singleton state - shared across all components
 const currentStep = ref(1);
 const selectedWorkout = ref(null);
-const ftp = ref(200);
+const ftp = ref(DEFAULT_FTP);
 const devicesConnected = ref(false);
 const mockModeActive = ref(false);
 
-// Default power zones (as % of FTP)
-const defaultZones = {
-  z1: { min: 0, max: 55, name: 'Z1 - Récupération active' },
-  z2: { min: 56, max: 75, name: 'Z2 - Endurance' },
-  z3: { min: 76, max: 90, name: 'Z3 - Tempo' },
-  z4: { min: 91, max: 105, name: 'Z4 - Seuil' },
-  z5: { min: 106, max: 120, name: 'Z5 - VO2max' },
-  z6: { min: 121, max: 150, name: 'Z6 - Anaérobie' },
-  z7: { min: 151, max: 200, name: 'Z7 - Neuromusculaire' }
-};
-
-const powerZones = ref({ ...defaultZones });
+const powerZones = ref({ ...DEFAULT_POWER_ZONES });
 
 // Load FTP and zones from localStorage on module init
 const storedFtp = localStorage.getItem('spinnn_ftp');
@@ -64,8 +54,8 @@ export function useAppState() {
   }
 
   function resetPowerZones() {
-    powerZones.value = { ...defaultZones };
-    localStorage.setItem('spinnn_power_zones', JSON.stringify(defaultZones));
+    powerZones.value = { ...DEFAULT_POWER_ZONES };
+    localStorage.setItem('spinnn_power_zones', JSON.stringify(DEFAULT_POWER_ZONES));
   }
 
   function goToStep(step) {

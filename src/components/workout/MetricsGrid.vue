@@ -3,6 +3,7 @@ import { computed } from "vue";
 import MetricCard from "./MetricCard.vue";
 import { useAppState } from "@/composables/useAppState";
 import { useI18n } from "@/composables/useI18n";
+import { getIntervalColor as getIntervalColorHelper, getCurrentIntervalIndex } from "@/utils/workoutHelpers";
 
 const appState = useAppState();
 const { t } = useI18n();
@@ -43,43 +44,9 @@ const emit = defineEmits(["configure"]);
 // Function to find current interval
 const currentInterval = computed(() => {
 	if (!props.workout) return null;
-
-	const intervals = props.workout.intervals;
-	let currentTime = 0;
-	const elapsed = props.elapsedSeconds;
-
-	for (const interval of intervals) {
-		if (elapsed < currentTime + interval.duration) {
-			return interval;
-		}
-		currentTime += interval.duration;
-	}
-
-	return null;
+	const result = getCurrentIntervalIndex(props.elapsedSeconds, props.workout);
+	return result === -1 ? null : result.interval;
 });
-
-// Function to get current interval color (same logic as WorkoutChart)
-function getIntervalColor(type, power) {
-	// Convert power to percentage (power is in decimal, e.g., 0.67 = 67%)
-	const powerPercent = (power || 0.7) * 100;
-	const zones = appState.powerZones.value;
-
-	// Get CSS variable values from computed style
-	const computedStyle = getComputedStyle(document.documentElement);
-	if (powerPercent <= zones.z1.max)
-		return computedStyle.getPropertyValue("--zone-z1").trim();
-	if (powerPercent <= zones.z2.max)
-		return computedStyle.getPropertyValue("--zone-z2").trim();
-	if (powerPercent <= zones.z3.max)
-		return computedStyle.getPropertyValue("--zone-z3").trim();
-	if (powerPercent <= zones.z4.max)
-		return computedStyle.getPropertyValue("--zone-z4").trim();
-	if (powerPercent <= zones.z5.max)
-		return computedStyle.getPropertyValue("--zone-z5").trim();
-	if (powerPercent <= zones.z6.max)
-		return computedStyle.getPropertyValue("--zone-z6").trim();
-	return computedStyle.getPropertyValue("--zone-z7").trim();
-}
 
 // Progress bar color (based on current interval)
 const progressColor = computed(() => {
@@ -98,7 +65,7 @@ const progressColor = computed(() => {
 			2;
 	}
 
-	return getIntervalColor(currentInterval.value.type, power);
+	return getIntervalColorHelper(currentInterval.value.type, power, appState.powerZones.value);
 });
 
 // Calculate current interval progress (using elapsed for smooth animation)

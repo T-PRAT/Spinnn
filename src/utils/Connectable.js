@@ -12,6 +12,7 @@
 
 import { xf } from './EventDispatcher.js';
 import { isBluetoothAvailable, supportsGetDevices, getPairedDeviceById, shortUuidToFull } from './web-ble.js';
+import { DEFAULT_RECONNECT_DELAY, DEFAULT_RECONNECT_TIMEOUT } from '@/constants/bluetooth';
 
 /**
  * Connection status enum
@@ -53,8 +54,8 @@ export class Connectable {
   constructor(config) {
     this.config = {
       autoReconnect: true,
-      reconnectDelay: 1000,
-      reconnectTimeout: 60000,
+      reconnectDelay: DEFAULT_RECONNECT_DELAY,
+      reconnectTimeout: DEFAULT_RECONNECT_TIMEOUT,
       ...config,
     };
 

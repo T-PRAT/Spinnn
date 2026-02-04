@@ -1,3 +1,5 @@
+import { BLE_TIME_RESOLUTION, DEFAULT_WHEEL_CIRCUMFERENCE } from '@/constants/bluetooth';
+
 export function parseHeartRateMeasurement(dataView) {
   const flags = dataView.getUint8(0);
   const heartRateFormat = flags & 0x01;
@@ -87,12 +89,12 @@ export function calculateCadence(currentRevs, lastRevs, currentTime, lastTime) {
   
   if (timeDelta === 0) return 0;
   
-  const cadence = (revDelta / timeDelta) * 1024 * 60;
+  const cadence = (revDelta / timeDelta) * BLE_TIME_RESOLUTION * 60;
   
   return Math.round(Math.max(0, Math.min(255, cadence)));
 }
 
-export function calculateSpeed(currentRevs, lastRevs, currentTime, lastTime, wheelCircumference = 2.105) {
+export function calculateSpeed(currentRevs, lastRevs, currentTime, lastTime, wheelCircumference = DEFAULT_WHEEL_CIRCUMFERENCE) {
   if (lastRevs === null || lastTime === null) return 0;
 
   const revDelta = currentRevs - lastRevs;
@@ -105,7 +107,7 @@ export function calculateSpeed(currentRevs, lastRevs, currentTime, lastTime, whe
   if (timeDelta === 0) return 0;
 
   const distanceMeters = revDelta * wheelCircumference;
-  const timeSeconds = timeDelta / 1024;
+  const timeSeconds = timeDelta / BLE_TIME_RESOLUTION;
   const speedMps = distanceMeters / timeSeconds;
 
   return Math.max(0, speedMps);

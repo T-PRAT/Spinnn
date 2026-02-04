@@ -196,11 +196,8 @@ export const sampleWorkouts = workoutCategories.flatMap(category =>
   category.workouts.map(workout => ({ ...workout, category: category.id }))
 );
 
-export function formatDuration(seconds) {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
+// Re-export from workoutHelpers for backward compatibility
+export { formatDuration } from '@/utils/workoutHelpers';
 
 export function getTargetPowerAtTime(workout, elapsedSeconds, ftp) {
   let currentTime = 0;
