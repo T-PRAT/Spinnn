@@ -32,6 +32,21 @@ bun run build        # Production build to /dist directory
 bun run preview      # Preview production build locally
 ```
 
+### Backend Server
+```bash
+cd server
+bun install          # Install backend dependencies
+bun run dev          # Start backend dev server with hot reload
+bun run build        # Build TypeScript to JavaScript
+bun run start        # Start production server
+```
+
+**Environment Variables (Backend):**
+- `STRAVA_CLIENT_ID` - Strava OAuth application ID
+- `STRAVA_CLIENT_SECRET` - Strava OAuth secret
+- `FRONTEND_URL` - Frontend origin for CORS (default: http://localhost:5173)
+- `SESSION_SECRET` - Session encryption key
+
 ### Node Version Requirements
 - Requires Node.js `^20.19.0` or `>=22.12.0`
 
@@ -45,7 +60,15 @@ bun run preview      # Preview production build locally
 - **Data Visualization:** D3.js 7.9.0
 - **Hardware Integration:** Web Bluetooth API + Garmin FIT SDK 21.178.0
 - **State Management:** Singleton composables (no Vuex/Pinia)
+- **Internationalization:** vue-i18n 10.x (French + English)
+- **Icons:** @heroicons/vue 2.x
 - **E2E Testing:** Playwright 1.50.1 (smoke tests only)
+
+### Backend Server
+- **Framework:** Hono 4.x (lightweight web framework)
+- **Runtime:** Bun (Node.js-compatible)
+- **Language:** TypeScript
+- **Purpose:** OAuth 2.0 flow for Strava integration
 
 ### State Management Pattern
 
@@ -56,15 +79,36 @@ This application uses **singleton composables** for state management instead of 
 - `useAppState()` - Global application state and workflow orchestration
   - Manages current step (1: Setup, 2: Workout, 3: Summary)
   - Stores selected workout, FTP, and power zones
-  - Persists FTP and zones to localStorage with `spinnn_` prefix
+  - Persists FTP and zones via useStorage
   - Validates workout readiness via `canStartWorkout` computed property
+
+- `useStorage()` - Centralized localStorage abstraction layer
+  - Type-safe getter/setter methods for all storage keys
+  - Validation and error handling
+  - Exports `STORAGE_KEYS` constant object
+  - Enforced abstraction: all composables use this instead of direct localStorage calls
 
 - `useWorkoutSession()` - Active workout execution state
   - Tracks timing, elapsed duration, and completion status
-  - Records data points (power, HR, cadence, speed) every second
   - Manages pause/resume functionality with automatic persistence
+  - Split in Phase 3 refactoring into useWorkoutSession, useWorkoutData, useWorkoutStats
+  - Auto-saves session every 10 data points via useStorage
+
+- `useWorkoutData()` - Data point recording
+  - Records data points (power, HR, cadence, speed) every second
+  - Manages session data array
+  - Separated from useWorkoutSession in Phase 3 refactoring
+
+- `useWorkoutStats()` - Statistics calculations
   - Calculates normalized power (NP) and energy expenditure (kJ)
-  - Auto-saves session every 10 data points to localStorage
+  - Computes average/max values for all metrics
+  - Separated from useWorkoutSession in Phase 3 refactoring
+
+- `usePowerAdjustments()` - Real-time power offset adjustments
+  - Tracks interval-specific and global power offsets
+  - Auto-resets interval offset when moving to next interval
+  - Provides formatted offset percentages (+5%, -10%, etc.)
+  - Used during active workouts for intensity adjustment
 
 - `useBluetoothHRM()` - Heart rate monitor BLE connectivity
   - Implements Web Bluetooth API wrapper for HR devices
@@ -83,6 +127,13 @@ This application uses **singleton composables** for state management instead of 
   - Authenticates with Intervals.icu API
   - Fetches and parses today's planned workout from Intervals.icu (including nested repeat blocks)
 
+- `useStrava()` - Strava integration and OAuth management
+  - Backend-dependent OAuth 2.0 flow
+  - Activity upload with FIT file conversion
+  - Auto-upload toggle setting
+  - Polls upload status until completion
+  - CSRF protection via state parameter
+
 - `useMockDevices()` - Simulated device data
   - Generates mock power, HR, cadence, and speed data
   - Essential for development without BLE hardware
@@ -90,8 +141,14 @@ This application uses **singleton composables** for state management instead of 
 - `useAudioSettings()` - Audio cue configuration
   - Manages audio preferences for workout announcements
 
+- `useI18n()` - Internationalization management
+  - Supports locales: French (default), English
+  - Auto-detects browser language on first visit
+  - Syncs with vue-i18n instance
+  - Persists locale preference via useStorage
+
 - `useTheme()` - Dark/light theme management
-  - Persists theme preference to localStorage
+  - Persists theme preference via useStorage
   - Uses CSS variables and OKLch color space
 
 ### Application Flow
@@ -119,9 +176,16 @@ This application uses **singleton composables** for state management instead of 
    - Configure FTP (Functional Threshold Power)
    - Customize power zones (Z1-Z7)
    - Set Intervals.icu API credentials
+   - Connect/disconnect Strava account
+   - Manage auto-upload preferences
 
 5. **History View** (`/history`)
    - View past workout sessions (placeholder - coming soon)
+
+6. **Strava Callback View** (`/strava-callback`)
+   - OAuth callback handler for Strava integration
+   - Exchanges authorization code for access tokens
+   - Redirects to settings after successful authentication
 
 ### Directory Structure
 
@@ -129,46 +193,94 @@ This application uses **singleton composables** for state management instead of 
 src/
 ├── main.js                      # Entry point - creates Vue app
 ├── App.vue                      # Root component with routing and theme
-├── router/index.js              # Route definitions (5 routes)
+├── router/index.js              # Route definitions (6 routes)
 ├── style.css                    # Global styles with Tailwind + CSS variables
+├── constants/                   # NEW
+│   ├── bluetooth.js            # BLE config (UUIDs, timeouts, wheel circumference)
+│   └── zones.js                # Default FTP and power zone definitions
+├── locales/                     # NEW
+│   ├── en.js                   # English translations
+│   ├── fr.js                   # French translations (default)
+│   ├── index.js
+│   └── modules/
+│       ├── common.js           # Standard UI labels
+│       ├── device.js           # Bluetooth device strings
+│       ├── history.en.js       # History view (English)
+│       ├── history.js          # History view (French)
+│       ├── metrics.js          # Metrics labels
+│       ├── navigation.js       # Navigation strings
+│       ├── settings.js         # Settings pages
+│       └── workout.js          # Workout terminology
 ├── composables/                 # Singleton state management
 │   ├── useAppState.js           # Global app state
+│   ├── useStorage.js           # NEW - Centralized localStorage
 │   ├── useWorkoutSession.js     # Workout execution & persistence
+│   ├── useWorkoutData.js       # NEW - Data point recording
+│   ├── useWorkoutStats.js      # NEW - Statistics calculations
+│   ├── usePowerAdjustments.js  # NEW - Power offset adjustments
 │   ├── useBluetoothHRM.js       # HR monitor connectivity
 │   ├── useBluetoothTrainer.js   # Smart trainer connectivity
 │   ├── useIntervalsIcu.js       # API integration
+│   ├── useStrava.js            # NEW - Strava OAuth + upload
 │   ├── useMockDevices.js        # Simulated device data
 │   ├── useAudioSettings.js      # Audio cue configuration
+│   ├── useI18n.js              # NEW - Locale management
 │   └── useTheme.js              # Theme management
 ├── components/                  # Reusable Vue components
 │   ├── layout/
 │   │   ├── Sidebar.vue          # Responsive navigation (collapses during workout)
-│   │   └── StepIndicator.vue    # Progress indicator (legacy)
+│   │   ├── StepIndicator.vue    # Progress indicator (legacy)
+│   │   ├── FTPInput.vue        # NEW - FTP configuration
+│   │   ├── IntervalsTodayWorkout.vue # NEW - Fetch today's workout
+│   │   └── LiveDashboard.vue   # NEW - Real-time metrics display
 │   ├── device/
-│   │   └── DeviceConnector.vue  # BLE device management UI
+│   │   ├── DeviceConnector.vue  # BLE device management UI
+│   │   └── BluetoothDebug.vue  # NEW - BLE debugging tool
 │   ├── workout/
 │   │   ├── WorkoutSelector.vue  # Workout selection UI
 │   │   ├── WorkoutPreviewChart.vue # D3 workout preview
-│   │   └── WorkoutChart.vue     # Main workout execution chart
+│   │   ├── WorkoutChart.vue     # Main workout execution chart
+│   │   ├── MetricCard.vue      # NEW - Individual metric display
+│   │   ├── MetricConfigModal.vue # NEW - Metrics configuration
+│   │   └── MetricsGrid.vue     # NEW - Customizable metrics grid
 │   ├── charts/
 │   │   ├── PowerChart.vue       # Power visualization
 │   │   └── HeartRateChart.vue   # HR visualization
 │   └── settings/
-│       └── IntervalsSettings.vue # API configuration UI
+│       ├── IntervalsSettings.vue # API configuration UI
+│       └── StravaSettings.vue  # NEW - Strava connection UI
 ├── views/                       # Page-level components
 │   ├── SetupView.vue            # Setup/landing page
 │   ├── WorkoutView.vue          # Active workout page
 │   ├── SummaryView.vue          # Workout completion summary
 │   ├── SettingsView.vue         # Settings page
-│   └── HistoryView.vue          # Workout history (placeholder)
+│   ├── HistoryView.vue          # Workout history (placeholder)
+│   └── StravaCallbackView.vue  # NEW - OAuth callback handler
 ├── utils/
 │   ├── bluetoothParser.js       # BLE GATT data parsing utilities
 │   ├── web-ble.js               # Web Bluetooth filters
 │   ├── EventDispatcher.js       # Event system for pub/sub
 │   ├── Connectable.js           # Bluetooth connection wrapper
-│   └── fitExporter.js           # FIT file export for Garmin/Strava
+│   ├── fitExporter.js           # FIT file export for Garmin/Strava
+│   └── logger.js               # NEW - Environment-aware logging
 └── data/
     └── sampleWorkouts.js        # Built-in workout templates
+
+server/                          # NEW ENTIRE DIRECTORY
+├── src/
+│   ├── config/env.ts           # Environment configuration
+│   ├── middleware/cors.ts      # CORS middleware
+│   ├── routes/
+│   │   ├── health.ts           # Health check endpoint
+│   │   ├── index.ts            # Route aggregation
+│   │   └── strava.ts           # Strava OAuth endpoints
+│   ├── services/strava.service.ts # Strava API service
+│   ├── storage/session.ts      # Session management
+│   ├── types/strava.ts         # TypeScript types
+│   └── index.ts                # Server entry point
+├── Dockerfile                   # Container configuration
+├── package.json
+└── tsconfig.json
 ```
 
 ### Import Path Aliases
@@ -201,6 +313,77 @@ The app supports advanced trainer control via FTMS:
 - **ERG Mode:** Trainer automatically adjusts resistance to match target power
 - **Simulation Mode:** Simulates riding on a virtual course with grade/wind resistance
 - **Resistance Mode:** Direct resistance level control
+
+### Bluetooth Constants
+
+Centralized BLE configuration in `/src/constants/bluetooth.js`:
+
+**Key Constants:**
+- `BLE_TIME_RESOLUTION` - 1/1024 second units (GATT spec)
+- `DEFAULT_WHEEL_CIRCUMFERENCE` - 2.105m (700x25c tire)
+- `RECONNECT_DELAY` - 3000ms exponential backoff
+- `CONNECTION_TIMEOUT` - 30000ms
+- Service UUIDs: HRM (0x180D), Cycling Power (0x1818), CSC (0x1816), FTMS (0x1826)
+
+### Strava Integration
+
+The app supports automatic workout upload to Strava via OAuth 2.0 authentication.
+
+**Backend Server (Required):**
+- Built with Hono framework on Bun runtime
+- Handles OAuth 2.0 flow and token management
+- Provides endpoints for upload and status checking
+- Session-based authentication with secure cookies
+- Automatic token refresh mechanism
+
+**API Endpoints:**
+- `GET /api/strava/status` - Check connection status
+- `GET /api/strava/oauth/authorize` - Initiate OAuth flow
+- `GET /api/strava/oauth/exchange` - Handle OAuth callback
+- `POST /api/strava/deauthorize` - Disconnect Strava
+- `POST /api/strava/upload` - Upload FIT file
+- `GET /api/strava/upload/:id` - Check upload status
+
+**Frontend Integration:**
+- `useStrava()` composable manages OAuth state
+- Auto-upload toggle in Settings view
+- Upload polling with 30s timeout (1s intervals)
+- CSRF protection via state parameter
+
+### Internationalization (i18n)
+
+The app supports multiple languages via vue-i18n.
+
+**Supported Locales:**
+- French (fr) - Default
+- English (en)
+
+**Features:**
+- Auto-detects browser language on first visit
+- Locale preference persists via useStorage
+- Organized translation modules: common, navigation, workout, metrics, device, settings, history
+- Fallback to French if translation missing
+- `useI18n()` composable provides `t()` function and `currentLocale` ref
+
+**Translation Structure:**
+- `/src/locales/fr.js` and `/src/locales/en.js` - Main locale files
+- `/src/locales/modules/` - Modular translations by feature area
+
+### Centralized Logging
+
+The app uses a custom logger utility for environment-aware logging.
+
+**Logger Methods:**
+- `debug()` - Development only (suppressed in production)
+- `info()`, `warn()`, `error()` - Always logged
+- Auto-prefixes messages with `[Spinnn]`
+
+**Usage:**
+```javascript
+import { logger } from '@/utils/logger'
+logger.debug('BLE data received:', data)
+logger.error('Upload failed:', error)
+```
 
 ### Session Persistence
 
@@ -241,12 +424,18 @@ Workouts follow a hierarchical structure:
 
 ### LocalStorage Keys
 
-The application persists data with the `spinnn_` prefix:
+The application persists data with the `spinnn_` prefix (all keys managed via `useStorage.js`):
 - `spinnn_ftp` - User's Functional Threshold Power
 - `spinnn_power_zones` - Custom power zone definitions
 - `spinnn_theme` - Dark/light theme preference
+- `spinnn_locale` - Selected language (fr/en)
 - `spinnn_intervals_api_key` - Intervals.icu API credentials
+- `spinnn_intervals_athlete_id` - Intervals.icu athlete ID
+- `spinnn_strava_auto_upload` - Auto-upload to Strava toggle
+- `spinnn_metrics_config` - Customizable metrics display configuration
 - `spinnn_workout_session` - Active workout session (auto-saved)
+
+**Note:** All localStorage operations MUST go through `useStorage.js` (enforced abstraction layer)
 
 ### Theme System
 
@@ -300,6 +489,7 @@ bun test:e2e:debug   # Debug mode
 - Web Bluetooth API support (Chrome, Edge, Opera)
 - ES6 modules
 - LocalStorage
+- Internationalization API (for vue-i18n)
 
 ### Recommended Setup
 - **IDE:** VS Code with Vue Official extension (Volar)
@@ -312,17 +502,34 @@ bun test:e2e:debug   # Debug mode
 
 ## Important Constraints
 
-1. **Client-Side Only:** Pure SPA with no backend. All state is client-side (localStorage + memory).
+1. **Backend Dependency:** Strava integration requires the backend server running for OAuth flow. All other features work client-side only.
 
 2. **Singleton Composables:** State management uses singleton pattern - composables instantiate module-level reactive state that is shared across the app. Do NOT create new instances inside components.
 
-3. **BLE Data Rate:** Device data is collected at ~1 second intervals during workouts. This is the expected cadence for data recording.
+3. **Centralized Storage:** All localStorage operations MUST go through `useStorage.js` (enforced abstraction layer). Never use localStorage directly.
 
-4. **FTP-Relative Workouts:** Power zones and workout intensities are calculated as percentages of user's FTP value.
+4. **BLE Data Rate:** Device data is collected at ~1 second intervals during workouts. This is the expected cadence for data recording.
 
-5. **Mock Mode:** Always provide mock mode for development without hardware. The `useMockDevices()` composable generates realistic device data.
+5. **FTP-Relative Workouts:** Power zones and workout intensities are calculated as percentages of user's FTP value.
 
-6. **Session Recovery:** Active workouts persist across page refreshes. The app attempts to recover sessions automatically.
+6. **Mock Mode:** Always provide mock mode for development without hardware. The `useMockDevices()` composable generates realistic device data.
+
+7. **Session Recovery:** Active workouts persist across page refreshes. The app attempts to recover sessions automatically.
+
+8. **Locale Detection:** First-time users get browser language (fr/en), returning users get saved preference from useStorage.
+
+## Recent Refactoring (7 Phases)
+
+The codebase underwent significant architectural improvements:
+
+**Phase 1:** Extract shared utilities and constants
+**Phase 2:** Centralize localStorage with useStorage composable
+**Phase 3:** Split useWorkoutSession into 3 composables (useWorkoutSession, useWorkoutData, useWorkoutStats)
+**Phase 5:** Simplify defensive code in Sidebar.vue
+**Phase 6:** Organize D3 chart state with clear comments
+**Phase 7:** Cleanup and polish - logger + remove dead code + i18n
+
+Focus: Code organization, modularity, state management centralization, removal of dead code, improved i18n support.
 
 ## Recommended IDE Setup
 
