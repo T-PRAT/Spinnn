@@ -736,10 +736,9 @@ const rightSlots = computed(() => [
 		/>
 
 		<!-- 3. Graphique principal -->
-		<div class="px-0.5 pb-0.5 md:px-2 md:pb-2 shrink-0">
+		<div class="px-0.5 pb-0.5 md:px-2 md:pb-2 flex-1 min-h-0 flex flex-col">
 			<div
-				class="bg-card rounded-lg border border-border"
-				:class="appState.selectedWorkout.value?.isFreeRide ? 'h-[80px] md:h-[100px]' : 'h-[120px] md:h-[250px]'"
+				class="bg-card rounded-lg border border-border flex-1 min-h-[80px] md:min-h-[120px]"
 			>
 				<WorkoutChart
 					:data-points="session.dataPoints.value"

@@ -40,7 +40,7 @@ watch(() => session.isPaused.value, () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground font-sans flex overflow-x-hidden">
+  <div class="h-screen bg-background text-foreground font-sans flex overflow-x-hidden">
     <Sidebar />
     <main class="flex-1 p-2 md:p-6 overflow-y-auto">
       <router-view />
