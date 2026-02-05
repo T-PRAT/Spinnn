@@ -261,42 +261,6 @@ function dismissPendingWorkout() {
           <IntervalsTodayWorkout ref="intervalsWorkoutRef" @workout-selected="handleWorkoutSelected" />
         </div>
 
-        <div class="border-t border-border pt-6 space-y-3">
-          <!-- Free Ride Button -->
-          <button
-            @click="startFreeRide"
-            :disabled="!isDeviceReady"
-            :class="[
-              'w-full px-4 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2',
-              isDeviceReady
-                ? 'bg-chart-1 hover:bg-chart-1/90 text-primary-foreground hover:scale-[1.02] shadow-md'
-                : 'bg-muted text-muted-foreground cursor-not-allowed',
-            ]"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            {{ t('workout.freeRide.startButton') }}
-          </button>
-
-          <!-- Mock Mode Button -->
-          <button
-            @click="enableMockMode"
-            :disabled="deviceConnector?.useMockMode?.value"
-            :class="[
-              'w-full px-4 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2',
-              !deviceConnector?.useMockMode?.value
-                ? 'bg-accent hover:bg-accent/90 text-accent-foreground hover:scale-[1.02] shadow-md'
-                : 'bg-muted text-muted-foreground cursor-not-allowed',
-            ]"
-          >
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-            </svg>
-            <span v-if="deviceConnector?.useMockMode?.value">{{ t('device.mockModeEnabled') }}</span>
-            <span v-else>{{ t('device.enableMockMode') }}</span>
-          </button>
-        </div>
       </div>
     </div>
 
@@ -312,7 +276,7 @@ function dismissPendingWorkout() {
           <DeviceConnector ref="deviceConnector" @device-status-change="handleDeviceStatusChange" @data-update="handleDataUpdate" />
         </div>
 
-        <!-- Right column: Start button + Message -->
+        <!-- Right column: Start buttons + Message -->
         <div class="flex flex-col justify-center items-center space-y-4">
           <!-- Simulation mode indicator -->
           <div v-if="deviceConnector?.useMockMode?.value" class="text-center">
@@ -324,46 +288,64 @@ function dismissPendingWorkout() {
             </span>
           </div>
 
-          <!-- Start button -->
-          <button
-            @click="startWorkout"
-            :disabled="!canStart"
-            :class="[
-              'px-6 py-3 rounded-lg text-base font-bold transition-all transform whitespace-nowrap',
-              canStart
-                ? 'bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 shadow-lg'
-                : 'bg-muted text-muted-foreground cursor-not-allowed',
-            ]"
-          >
-            <span class="flex items-center justify-center gap-2">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              {{ t('workout.startButton') }}
-            </span>
-          </button>
+          <!-- Start buttons -->
+          <div class="flex flex-col items-center gap-2">
+            <!-- Start workout button -->
+            <button
+              @click="startWorkout"
+              :disabled="!canStart"
+              :class="[
+                'px-8 py-3 rounded-lg text-base font-bold transition-all transform whitespace-nowrap',
+                canStart
+                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 shadow-lg'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed',
+              ]"
+            >
+              <span class="flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                {{ t('workout.startButton') }}
+              </span>
+            </button>
 
-          <!-- Error messages -->
-          <div v-if="!canStart" class="text-center space-y-2">
-            <p v-if="!appState.selectedWorkout.value" class="text-chart-1 text-xs font-medium">{{ t('workout.selectWorkoutBelow') }}</p>
-            <div v-else-if="!isDeviceReady" class="space-y-2">
-              <p class="text-chart-1 text-xs font-medium">{{ t('workout.connectSensorsOrSim') }}</p>
-              <button
-                v-if="!deviceConnector?.useMockMode?.value"
-                @click="deviceConnector?.enableMockMode()"
-                class="px-3 py-1 bg-accent text-accent-foreground rounded text-xs font-medium hover:bg-accent/80 transition-colors"
-              >
-                {{ t('workout.activateSimulation') }}
-              </button>
-            </div>
+            <!-- Free ride button (smaller) -->
+            <button
+              @click="startFreeRide"
+              :disabled="!isDeviceReady"
+              :class="[
+                'px-4 py-1.5 rounded-md text-sm font-medium transition-all transform whitespace-nowrap',
+                isDeviceReady
+                  ? 'bg-chart-1 hover:bg-chart-1/90 text-primary-foreground hover:scale-105 shadow'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed',
+              ]"
+            >
+              <span class="flex items-center justify-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                {{ t('workout.freeRide.startButton') }}
+              </span>
+            </button>
+
           </div>
 
-          <!-- Encouragement message (only if ready) -->
-          <p v-if="canStart" class="text-sm text-muted-foreground">{{ t('workout.goodSession') }}</p>
+          <!-- Connect sensors message + mock mode toggle -->
+          <p v-if="!isDeviceReady" class="text-xs font-medium text-chart-1">
+            {{ t('workout.connectSensorsOrSim') }}
+            <button
+              v-if="!deviceConnector?.useMockMode?.value"
+              @click="deviceConnector?.enableMockMode()"
+              class="text-muted-foreground/60 hover:text-muted-foreground underline transition-colors ml-1"
+            >
+              {{ t('device.mockMode') }}
+            </button>
+          </p>
+
         </div>
       </div>
     </div>
