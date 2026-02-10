@@ -29,12 +29,12 @@ function toggleCategory(categoryId) {
 </script>
 
 <template>
-	<div class="space-y-4">
+	<div class="flex flex-col gap-4">
 		<h2 class="text-xl font-bold text-foreground">
 			{{ t('workout.predefined') }}
 		</h2>
 
-		<div class="h-92.5 max-h-150 overflow-y-auto space-y-3 pr-3">
+		<div class="flex-1 min-h-0 overflow-y-auto space-y-3 pr-3">
 			<div
 				v-for="category in workoutCategories"
 				:key="category.id"

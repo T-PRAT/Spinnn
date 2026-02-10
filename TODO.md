@@ -3,7 +3,6 @@
 
 ## A
 - [Workout] Impossible modifier puissance quand entrainement terminé
-- [Settings] Nom des zones en anglais
 
 ## B
 - [Summary] ajouter une image(graphique) a l'export
@@ -49,5 +48,6 @@
 - [Workout] Fix ramp graphique dans mauvais sense
 - [Workout] meilleur sons intervalle
 - [Settings] Vitesse très faible pour puissance
+- [Settings] Nom des zones en anglais
 
 ## Ideas

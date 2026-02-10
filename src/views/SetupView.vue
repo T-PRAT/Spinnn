@@ -183,7 +183,7 @@ function dismissPendingWorkout() {
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto space-y-3 md:space-y-6">
+  <div class="max-w-6xl mx-auto flex flex-col gap-3 md:gap-6 min-h-full">
     <!-- Pending workout banner -->
     <div v-if="hasPendingWorkout" class="bg-primary/10 border border-primary/30 rounded-lg p-3 md:p-4 space-y-2 md:space-y-3">
       <div class="flex items-start justify-between">
@@ -217,9 +217,9 @@ function dismissPendingWorkout() {
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
-      <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border">
-        <WorkoutSelector @workout-selected="handleWorkoutSelected" />
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 flex-1">
+      <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border flex flex-col">
+        <WorkoutSelector @workout-selected="handleWorkoutSelected" class="flex-1 min-h-0" />
       </div>
       <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border space-y-4 md:space-y-6">
         <div>
