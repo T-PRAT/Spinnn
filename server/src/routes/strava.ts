@@ -73,6 +73,33 @@ app.get('/status', (c) => {
 });
 
 /**
+ * GET /api/strava/oauth/authorize
+ * Generate Strava authorization URL (keeps client_id server-side)
+ */
+app.get('/oauth/authorize', (c) => {
+  const redirectUri = c.req.query('redirect_uri');
+
+  if (!redirectUri) {
+    return c.json({ error: 'Missing redirect_uri parameter' }, 400);
+  }
+
+  const state = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+
+  const params = new URLSearchParams({
+    client_id: config.stravaClientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'activity:write',
+    state,
+  });
+
+  return c.json({
+    url: `https://www.strava.com/oauth/authorize?${params.toString()}`,
+    state,
+  });
+});
+
+/**
  * POST /api/strava/oauth/exchange
  * Exchange authorization code for access token
  */

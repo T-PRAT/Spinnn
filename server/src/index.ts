@@ -5,7 +5,6 @@
 
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';
-import { serve } from 'bun';
 import { config } from './config/env.js';
 import { corsMiddleware } from './middleware/cors.js';
 import { sessionStorage } from './storage/session.js';
@@ -41,11 +40,6 @@ app.onError((err, c) => {
 // Start server
 const port = config.port;
 
-const server = serve({
-  fetch: app.fetch,
-  port,
-});
-
 console.log(`
 🚀 Spinnn API Server
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -60,15 +54,17 @@ console.log(`
 process.on('SIGINT', () => {
   console.log('\n🛑 Shutting down server...');
   sessionStorage.destroy();
-  server.stop();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('\n🛑 Shutting down server...');
   sessionStorage.destroy();
-  server.stop();
   process.exit(0);
 });
 
-export default app;
+// Export as default for Bun's built-in HMR support with --watch
+export default {
+  fetch: app.fetch,
+  port,
+};

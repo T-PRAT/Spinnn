@@ -6,12 +6,6 @@ import { logger } from '@/utils/logger';
 
 const storage = useStorage();
 
-const STRAVA_CONFIG = {
-  clientId: import.meta.env.VITE_STRAVA_CLIENT_ID || 'YOUR_CLIENT_ID',
-  authorizationUrl: 'https://www.strava.com/oauth/authorize',
-  scopes: 'activity:write'
-};
-
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Module-level state for singleton pattern
@@ -19,18 +13,8 @@ const isConnected = ref(false);
 const athlete = ref(null);
 const autoUploadEnabled = ref(storage.getStravaAutoUpload());
 
-// State parameter for CSRF protection
-let pendingState = null;
-
 function saveAutoUploadToStorage() {
   storage.setStravaAutoUpload(autoUploadEnabled.value);
-}
-
-// Generate random state for CSRF protection
-function generateState() {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 // Load settings on module initialization
@@ -68,20 +52,24 @@ export function useStrava() {
   }
 
   // Initiate OAuth flow
-  function connect() {
-    const state = generateState();
-    pendingState = state;
-    sessionStorage.setItem('strava_oauth_state', state);
+  async function connect() {
+    try {
+      const redirectUri = `${window.location.origin}/strava-callback`;
+      const response = await fetch(`${API_URL}/api/strava/oauth/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`, {
+        credentials: 'include',
+      });
 
-    const params = new URLSearchParams({
-      client_id: STRAVA_CONFIG.clientId,
-      redirect_uri: `${window.location.origin}/strava-callback`,
-      response_type: 'code',
-      scope: STRAVA_CONFIG.scopes,
-      state: state,
-    });
+      if (!response.ok) {
+        throw new Error('Failed to get authorization URL');
+      }
 
-    window.location.href = `${STRAVA_CONFIG.authorizationUrl}?${params.toString()}`;
+      const data = await response.json();
+      sessionStorage.setItem('strava_oauth_state', data.state);
+      window.location.href = data.url;
+    } catch (error) {
+      logger.error('Failed to initiate Strava OAuth:', error);
+      throw error;
+    }
   }
 
   // Handle OAuth callback
@@ -95,10 +83,6 @@ export function useStrava() {
     sessionStorage.removeItem('strava_oauth_state');
 
     try {
-      if (!STRAVA_CONFIG.clientId || STRAVA_CONFIG.clientId === 'YOUR_CLIENT_ID') {
-        throw new Error('Strava Client ID is not configured. Please set VITE_STRAVA_CLIENT_ID in your .env file.');
-      }
-
       const response = await fetch(`${API_URL}/api/strava/oauth/exchange`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
