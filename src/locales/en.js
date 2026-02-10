@@ -299,6 +299,8 @@ export default {
 	settings: {
 		title: "Settings",
 		description: "Configure your profile, preferences and integrations",
+		workoutActive: "Workout in progress: {name}",
+		returnToWorkout: "Return to workout",
 		navigation: {
 			preferences: "Preferences",
 			athlete: "Athlete",

@@ -1,6 +1,8 @@
 export default {
   title: 'Paramètres',
   description: 'Configurez votre profil, vos préférences et vos intégrations',
+  workoutActive: 'Entraînement en cours : {name}',
+  returnToWorkout: 'Retour à l\'entraînement',
   // Navigation menu
   navigation: {
     preferences: 'Préférences',

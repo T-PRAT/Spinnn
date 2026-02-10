@@ -1,14 +1,17 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useAppState } from '../composables/useAppState';
 import { useTheme } from '../composables/useTheme';
 import { useAudioSettings } from '../composables/useAudioSettings';
+import { useWorkoutSession } from '../composables/useWorkoutSession';
 import { useI18n } from '../composables/useI18n';
 import IntervalsSettings from '../components/settings/IntervalsSettings.vue';
 import StravaSettings from '../components/settings/StravaSettings.vue';
 
 const route = useRoute();
+const router = useRouter();
+const session = useWorkoutSession();
 const appState = useAppState();
 const theme = useTheme();
 const audioSettings = useAudioSettings();
@@ -155,6 +158,16 @@ function testSound(soundId) {
 
 <template>
   <div class="max-w-4xl mx-auto space-y-4">
+    <!-- Floating active workout button -->
+    <button
+      v-if="session.isActive.value"
+      @click="router.push({ name: 'workout' })"
+      class="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground text-base rounded-full font-medium shadow-lg transition-colors"
+    >
+      <span class="animate-pulse">●</span>
+      {{ t('settings.returnToWorkout') }}
+    </button>
+
     <div>
       <h2 class="text-2xl font-bold text-foreground tracking-tight">{{ t('settings.title') }}</h2>
       <p class="text-sm text-muted-foreground mt-1">{{ t('settings.description') }}</p>
