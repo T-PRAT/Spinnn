@@ -25,10 +25,34 @@ const languages = [
 ];
 
 const settingsSections = [
-  { id: 'preferences', label: 'settings.navigation.preferences', icon: '⚙️' },
-  { id: 'athlete', label: 'settings.navigation.athlete', icon: '🚴' },
-  { id: 'integrations', label: 'settings.navigation.integrations', icon: '🔗' }
+  {
+    id: 'preferences', label: 'settings.navigation.preferences', icon: '⚙️',
+    children: [
+      { id: 'language', label: 'settings.navigation.language' },
+      { id: 'appearance', label: 'settings.navigation.appearance' },
+      { id: 'audio', label: 'settings.navigation.audio' }
+    ]
+  },
+  {
+    id: 'athlete', label: 'settings.navigation.athlete', icon: '🚴',
+    children: [
+      { id: 'ftp', label: 'settings.navigation.ftp' },
+      { id: 'zones', label: 'settings.navigation.zones' }
+    ]
+  },
+  {
+    id: 'integrations', label: 'settings.navigation.integrations', icon: '🔗',
+    children: [
+      { id: 'intervals-icu', label: 'settings.navigation.intervalsIcu' },
+      { id: 'strava-section', label: 'settings.navigation.strava' }
+    ]
+  }
 ];
+
+function isSectionActive(section) {
+  if (activeSection.value === section.id) return true;
+  return section.children?.some(c => c.id === activeSection.value) || false;
+}
 
 onMounted(() => {
   localFtp.value = appState.ftp.value;
@@ -71,12 +95,18 @@ function setupIntersectionObserver() {
     }
   );
 
-  // Observe all sections
+  // Observe all sections and subsections
   settingsSections.forEach((section) => {
     const element = document.getElementById(section.id);
     if (element) {
       observer.observe(element);
     }
+    section.children?.forEach((child) => {
+      const childElement = document.getElementById(child.id);
+      if (childElement) {
+        observer.observe(childElement);
+      }
+    });
   });
 }
 
@@ -124,31 +154,48 @@ function testSound(soundId) {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto space-y-6">
-    <div class="mb-8">
+  <div class="max-w-4xl mx-auto space-y-4">
+    <div>
       <h2 class="text-2xl font-bold text-foreground tracking-tight">{{ t('settings.title') }}</h2>
+      <p class="text-sm text-muted-foreground mt-1">{{ t('settings.description') }}</p>
     </div>
 
-    <!-- Sticky Navigation Menu -->
-    <div class="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border mb-6 -mx-4 px-4">
-      <nav class="flex gap-1 overflow-x-auto py-2 scrollbar-hide">
+    <div class="flex gap-6">
+    <!-- Vertical navigation bar (left) -->
+    <nav class="hidden md:flex flex-col sticky top-6 self-start w-44 shrink-0 bg-card rounded-lg border border-border p-3 gap-1">
+      <template v-for="section in settingsSections" :key="section.id">
         <button
-          v-for="section in settingsSections"
-          :key="section.id"
           @click="scrollToSection(section.id)"
           :class="[
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all',
-            activeSection === section.id
-              ? 'bg-primary text-primary-foreground shadow-sm'
+            'flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all',
+            isSectionActive(section)
+              ? 'bg-primary/10 text-primary'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           ]"
-          :title="t(section.label) || undefined"
         >
-          <span class="text-sm">{{ section.icon }}</span>
-          <span class="hidden sm:inline">{{ t(section.label) }}</span>
+          <span class="text-base shrink-0">{{ section.icon }}</span>
+          <span class="text-xs font-medium leading-tight">{{ t(section.label) }}</span>
         </button>
-      </nav>
-    </div>
+        <div v-if="section.children" class="ml-8 space-y-0.5 mb-1">
+          <button
+            v-for="child in section.children"
+            :key="child.id"
+            @click="scrollToSection(child.id)"
+            :class="[
+              'block w-full text-left px-2 py-1 rounded text-[11px] transition-all',
+              activeSection === child.id
+                ? 'text-primary font-medium'
+                : 'text-muted-foreground hover:text-foreground'
+            ]"
+          >
+            {{ t(child.label) }}
+          </button>
+        </div>
+      </template>
+    </nav>
+
+    <!-- Main content -->
+    <div class="flex-1 min-w-0 space-y-6">
 
     <!-- PREFERENCES SECTION -->
     <div id="preferences" class="space-y-6 scroll-mt-20">
@@ -159,7 +206,7 @@ function testSound(soundId) {
         </div>
 
         <!-- Language -->
-        <div class="p-6 border-b border-border">
+        <div id="language" class="p-6 border-b border-border scroll-mt-20">
           <h4 class="text-base font-medium text-foreground mb-4">{{ t('settings.language.title') }}</h4>
           <div class="flex items-center gap-3">
             <button
@@ -180,7 +227,7 @@ function testSound(soundId) {
         </div>
 
         <!-- Appearance -->
-        <div class="p-6 border-b border-border">
+        <div id="appearance" class="p-6 border-b border-border scroll-mt-20">
           <h4 class="text-base font-medium text-foreground mb-4">{{ t('settings.appearance.title') }}</h4>
           <div class="flex items-center justify-between">
             <div>
@@ -205,7 +252,7 @@ function testSound(soundId) {
         </div>
 
         <!-- Audio -->
-        <div class="p-6">
+        <div id="audio" class="p-6 scroll-mt-20">
           <h4 class="text-base font-medium text-foreground mb-4">{{ t('settings.audio.title') }}</h4>
           <p class="text-sm text-muted-foreground mb-3">
             {{ t('settings.audio.description') }}
@@ -251,7 +298,7 @@ function testSound(soundId) {
         </div>
 
         <!-- FTP -->
-        <div class="p-6 border-b border-border">
+        <div id="ftp" class="p-6 border-b border-border scroll-mt-20">
           <h4 class="text-base font-medium text-foreground mb-4">{{ t('settings.athlete.ftp') }}</h4>
           <div class="flex items-center gap-2 mb-2">
             <label for="ftp" class="text-sm font-medium text-foreground"></label>
@@ -296,7 +343,7 @@ function testSound(soundId) {
         </div>
 
         <!-- Power Zones -->
-        <div class="p-6">
+        <div id="zones" class="p-6 scroll-mt-20">
           <div class="flex items-center justify-between mb-4">
             <h4 class="text-base font-medium text-foreground">{{ t('settings.zones.title') }}</h4>
             <button
@@ -366,15 +413,17 @@ function testSound(soundId) {
         </div>
 
         <!-- Intervals.icu -->
-        <div class="p-6 border-b border-border">
+        <div id="intervals-icu" class="p-6 border-b border-border scroll-mt-20">
           <IntervalsSettings />
         </div>
 
         <!-- Strava -->
-        <div class="p-6">
+        <div id="strava-section" class="p-6 scroll-mt-20">
           <StravaSettings />
         </div>
       </div>
+    </div>
+    </div>
     </div>
   </div>
 </template>

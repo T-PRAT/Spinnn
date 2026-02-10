@@ -298,10 +298,18 @@ export default {
 	},
 	settings: {
 		title: "Settings",
+		description: "Configure your profile, preferences and integrations",
 		navigation: {
 			preferences: "Preferences",
 			athlete: "Athlete",
 			integrations: "Integrations",
+			language: "Language",
+			appearance: "Appearance",
+			audio: "Audio",
+			ftp: "FTP",
+			zones: "Zones",
+			intervalsIcu: "Intervals.icu",
+			strava: "Strava",
 		},
 		preferences: {
 			title: "Preferences",

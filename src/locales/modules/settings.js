@@ -1,10 +1,18 @@
 export default {
   title: 'Paramètres',
+  description: 'Configurez votre profil, vos préférences et vos intégrations',
   // Navigation menu
   navigation: {
     preferences: 'Préférences',
     athlete: 'Profil athlète',
-    integrations: 'Intégrations'
+    integrations: 'Intégrations',
+    language: 'Langue',
+    appearance: 'Apparence',
+    audio: 'Audio',
+    ftp: 'FTP',
+    zones: 'Zones',
+    intervalsIcu: 'Intervals.icu',
+    strava: 'Strava'
   },
   // Preferences
   preferences: {
