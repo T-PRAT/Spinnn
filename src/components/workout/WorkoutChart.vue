@@ -162,6 +162,20 @@ function initChart() {
     drawWorkoutProfile();
   }
 
+  // Free ride: clip path + zone-colored rectangles for solid-color area fill
+  if (props.workout?.isFreeRide) {
+    const svgElement = d3.select(chartRef.value).select('svg');
+    svgElement.append('defs')
+      .append('clipPath')
+      .attr('id', 'power-area-clip')
+      .append('path')
+      .attr('class', 'power-area-clip-path');
+
+    svg.append('g')
+      .attr('class', 'power-area-group')
+      .attr('clip-path', 'url(#power-area-clip)');
+  }
+
   // Data paths
   svg.append("path").attr("class", "power-line").attr("fill", "none").attr("stroke", "#f59e0b").attr("stroke-width", 4);
   svg.append("path").attr("class", "hr-line").attr("fill", "none").attr("stroke", "#ef4444").attr("stroke-width", 3.5);
@@ -205,6 +219,30 @@ function initChart() {
       .attr("fill", "#999")
       .text(item.label);
   });
+}
+
+let zoneColorCache = null;
+
+function cacheZoneColors() {
+  const computedStyle = getComputedStyle(document.documentElement);
+  const zones = appState.powerZones.value;
+  zoneColorCache = [
+    { max: zones.z1.max, color: computedStyle.getPropertyValue('--zone-z1').trim() },
+    { max: zones.z2.max, color: computedStyle.getPropertyValue('--zone-z2').trim() },
+    { max: zones.z3.max, color: computedStyle.getPropertyValue('--zone-z3').trim() },
+    { max: zones.z4.max, color: computedStyle.getPropertyValue('--zone-z4').trim() },
+    { max: zones.z5.max, color: computedStyle.getPropertyValue('--zone-z5').trim() },
+    { max: zones.z6.max, color: computedStyle.getPropertyValue('--zone-z6').trim() },
+    { max: zones.z7.max, color: computedStyle.getPropertyValue('--zone-z7').trim() },
+  ];
+}
+
+function getZoneColor(powerWatts) {
+  const powerPercent = (powerWatts / props.ftp) * 100;
+  for (const zone of zoneColorCache) {
+    if (powerPercent <= zone.max) return zone.color;
+  }
+  return zoneColorCache[zoneColorCache.length - 1].color;
 }
 
 function drawWorkoutProfile() {
@@ -384,6 +422,52 @@ function updateChart(data) {
     .x((d) => xScale(d.timestamp))
     .y((d) => yScaleCadence(d.cadence))
     .curve(d3.curveMonotoneX);
+
+  // Update free ride power area (clip path + zone-colored rectangles)
+  const areaGroup = svg.select('.power-area-group');
+  if (!areaGroup.empty() && validPowerData.length > 0) {
+    // Update clip path shape (same curve as power line)
+    const areaGen = d3.area()
+      .defined(d => d.power >= 0)
+      .x(d => xScale(d.timestamp))
+      .y0(height)
+      .y1(d => yScalePower(transformPower(d.power)))
+      .curve(d3.curveMonotoneX);
+
+    d3.select(chartRef.value).select('.power-area-clip-path')
+      .datum(validPowerData)
+      .attr('d', areaGen);
+
+    // Build zone segments (consecutive points with same zone color)
+    cacheZoneColors();
+    const segments = [];
+    let currentColor = getZoneColor(validPowerData[0].power);
+    let segStart = 0;
+
+    for (let i = 1; i < validPowerData.length; i++) {
+      const color = getZoneColor(validPowerData[i].power);
+      if (color !== currentColor) {
+        segments.push({ color: currentColor, startIdx: segStart, endIdx: i });
+        segStart = i;
+        currentColor = color;
+      }
+    }
+    segments.push({ color: currentColor, startIdx: segStart, endIdx: validPowerData.length - 1 });
+
+    // Draw full-height rectangles for each segment (clipped by area shape)
+    areaGroup.selectAll('rect').remove();
+    segments.forEach(seg => {
+      const startX = xScale(validPowerData[seg.startIdx].timestamp);
+      const endX = xScale(validPowerData[seg.endIdx].timestamp);
+      areaGroup.append('rect')
+        .attr('x', startX)
+        .attr('y', 0)
+        .attr('width', Math.max(1, endX - startX))
+        .attr('height', height)
+        .attr('fill', seg.color)
+        .attr('opacity', 0.35);
+    });
+  }
 
   // Update lines without transition for smoother real-time updates
   if (validPowerData.length > 0) {
