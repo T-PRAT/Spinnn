@@ -20,6 +20,53 @@ const COOKIE_OPTIONS = {
   path: '/',
 };
 
+// OAuth state lives server-side: single use, short-lived, and bound to nothing else.
+const STATE_TTL_MS = 10 * 60 * 1000;
+const pendingStates = new Map<string, number>();
+
+const DEV_LOOPBACK = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024; // Strava accepts up to 25MB; stay below it.
+
+/**
+ * Origins the OAuth flow may redirect back to.
+ */
+function allowedRedirectOrigins(): Set<string> {
+  const origins = new Set<string>([new URL(config.frontendUrl).origin]);
+  origins.add('http://localhost:5173');
+  origins.add('http://localhost:5174');
+  origins.add('http://127.0.0.1:5173');
+  origins.add('http://127.0.0.1:5174');
+  return origins;
+}
+
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return true; // non-browser clients (curl, tests)
+  if (allowedRedirectOrigins().has(origin)) return true;
+  if (!config.isProduction && DEV_LOOPBACK.test(origin)) return true;
+  return false;
+}
+
+/**
+ * Tiny fixed-window rate limiter, keyed per client or per session.
+ * Returns true when the request is allowed.
+ */
+const buckets = new Map<string, number[]>();
+function allowRequest(key: string, max: number, windowMs: number): boolean {
+  const now = Date.now();
+  const hits = (buckets.get(key) ?? []).filter(t => now - t < windowMs);
+  hits.push(now);
+  buckets.set(key, hits);
+  return hits.length <= max;
+}
+
+function clientKey(c: any): string {
+  return c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
+}
+
+function tooManyRequests(c: any) {
+  return c.json({ error: 'Too many requests' }, 429);
+}
+
 /**
  * Helper: Get session from request
  */
@@ -30,23 +77,28 @@ function getSession(c: any): StravaSession | null {
 }
 
 /**
- * Helper: Ensure session is valid and token is fresh
+ * Helper: Ensure session is valid and token is fresh.
+ * A refresh rejection means the grant itself is gone: drop the session.
  */
-async function ensureValidToken(session: StravaSession): Promise<string> {
-  // Check if token needs refresh
+async function ensureValidToken(c: any, session: StravaSession): Promise<string> {
   if (stravaService.isTokenExpired(session.expiresAt)) {
-    console.log('[Strava] Token expired, refreshing...');
+    try {
+      const data = await stravaService.refreshAccessToken(session.refreshToken);
 
-    const data = await stravaService.refreshAccessToken(session.refreshToken);
+      sessionStorage.update(session.id, {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresAt: data.expires_at * 1000,
+      });
 
-    // Update session with new tokens
-    sessionStorage.update(session.id, {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresAt: data.expires_at * 1000,
-    });
-
-    return data.access_token;
+      return data.access_token;
+    } catch (error: any) {
+      if (error.statusCode === 400) {
+        sessionStorage.delete(session.id);
+        deleteCookie(c, COOKIE_NAME, { ...COOKIE_OPTIONS, maxAge: 0 });
+      }
+      throw error;
+    }
   }
 
   return session.accessToken;
@@ -77,16 +129,38 @@ app.get('/status', (c) => {
  * Generate Strava authorization URL (keeps client_id server-side)
  */
 app.get('/oauth/authorize', (c) => {
+  if (!allowRequest(`authorize:${clientKey(c)}`, 20, 60_000)) {
+    return tooManyRequests(c);
+  }
+
   const redirectUri = c.req.query('redirect_uri');
 
   if (!redirectUri) {
     return c.json({ error: 'Missing redirect_uri parameter' }, 400);
   }
 
+  // Only redirect back to origins we trust (frontend origin, or loopback in dev).
+  let redirectOrigin: string;
+  try {
+    redirectOrigin = new URL(redirectUri).origin;
+  } catch {
+    return c.json({ error: 'Invalid redirect_uri parameter' }, 400);
+  }
+  if (!isAllowedOrigin(redirectOrigin)) {
+    return c.json({ error: 'redirect_uri not allowed' }, 400);
+  }
+
+  // Drop expired states while we are here.
+  const now = Date.now();
+  for (const [state, expiresAt] of pendingStates) {
+    if (expiresAt <= now) pendingStates.delete(state);
+  }
+
   const state = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  pendingStates.set(state, now + STATE_TTL_MS);
 
   const params = new URLSearchParams({
-    client_id: config.stravaClientId,
+    client_id: config.stravaClientId ?? '',
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: 'activity:write',
@@ -101,15 +175,35 @@ app.get('/oauth/authorize', (c) => {
 
 /**
  * POST /api/strava/oauth/exchange
- * Exchange authorization code for access token
+ * Exchange authorization code for access token.
+ * The OAuth state must be one this server issued and not yet consumed.
  */
 app.post('/oauth/exchange', async (c) => {
   try {
-    const { code } = await c.req.json();
+    if (!allowRequest(`exchange:${clientKey(c)}`, 10, 15 * 60_000)) {
+      return tooManyRequests(c);
+    }
+
+    const contentType = c.req.header('content-type') ?? '';
+    if (!contentType.startsWith('application/json')) {
+      return c.json({ error: 'Content-Type must be application/json' }, 415);
+    }
+
+    const origin = c.req.header('origin');
+    if (!isAllowedOrigin(origin)) {
+      return c.json({ error: 'Origin not allowed' }, 403);
+    }
+
+    const { code, state } = await c.req.json();
 
     if (!code) {
       return c.json({ error: 'Missing authorization code' }, 400);
     }
+
+    if (!state || !pendingStates.has(state)) {
+      return c.json({ error: 'Invalid or expired OAuth state' }, 401);
+    }
+    pendingStates.delete(state); // single use
 
     // Exchange code for token
     const data = await stravaService.exchangeCodeForToken(code);
@@ -140,7 +234,7 @@ app.post('/oauth/exchange', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('[Strava OAuth] Error:', error);
+    console.error('[Strava OAuth] Error:', error.message);
 
     if (error.name === 'StravaError') {
       return c.json(
@@ -162,12 +256,16 @@ app.post('/deauthorize', async (c) => {
     const session = getSession(c);
 
     if (session) {
+      if (!allowRequest(`deauth:${session.id}`, 10, 60_000)) {
+        return tooManyRequests(c);
+      }
+
       // Try to revoke token on Strava (best effort)
       try {
         await stravaService.deauthorize(session.accessToken);
-      } catch (e) {
+      } catch (e: any) {
         // Token might already be invalid, continue with cleanup
-        console.warn('[Strava] Could not revoke token:', e);
+        console.warn('[Strava] Could not revoke token:', e.message);
       }
 
       // Delete session
@@ -179,7 +277,7 @@ app.post('/deauthorize', async (c) => {
 
     return c.json({ success: true });
   } catch (error: any) {
-    console.error('[Strava Deauthorize] Error:', error);
+    console.error('[Strava Deauthorize] Error:', error.message);
     return c.json({ error: 'Failed to disconnect' }, 500);
   }
 });
@@ -199,8 +297,12 @@ app.post('/upload', async (c) => {
       );
     }
 
+    if (!allowRequest(`upload:${session.id}`, 12, 60 * 60_000)) {
+      return tooManyRequests(c);
+    }
+
     // Ensure we have a valid token
-    const accessToken = await ensureValidToken(session);
+    const accessToken = await ensureValidToken(c, session);
 
     // Parse form data
     const formData = await c.req.formData();
@@ -208,6 +310,16 @@ app.post('/upload', async (c) => {
 
     if (!file) {
       return c.json({ error: 'No file provided' }, 400);
+    }
+
+    // Accept FIT payloads only, by name or content type.
+    const looksLikeFit = file.name?.toLowerCase().endsWith('.fit') ||
+      file.type === 'application/octet-stream' || file.type === '';
+    if (!looksLikeFit) {
+      return c.json({ error: 'Only FIT files can be uploaded' }, 400);
+    }
+    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+      return c.json({ error: 'Invalid file size' }, 400);
     }
 
     // Get optional metadata
@@ -232,7 +344,7 @@ app.post('/upload', async (c) => {
 
     return c.json(uploadData);
   } catch (error: any) {
-    console.error('[Strava Upload] Error:', error);
+    console.error('[Strava Upload] Error:', error.message);
 
     if (error.name === 'StravaError') {
       return c.json(
@@ -257,8 +369,12 @@ app.get('/upload/:uploadId', async (c) => {
       return c.json({ error: 'Not connected to Strava' }, 401);
     }
 
+    if (!allowRequest(`status:${session.id}`, 120, 60_000)) {
+      return tooManyRequests(c);
+    }
+
     // Ensure we have a valid token
-    const accessToken = await ensureValidToken(session);
+    const accessToken = await ensureValidToken(c, session);
 
     const uploadId = parseInt(c.req.param('uploadId'), 10);
 
@@ -270,7 +386,7 @@ app.get('/upload/:uploadId', async (c) => {
 
     return c.json(status);
   } catch (error: any) {
-    console.error('[Strava Upload Status] Error:', error);
+    console.error('[Strava Upload Status] Error:', error.message);
 
     if (error.name === 'StravaError') {
       return c.json(

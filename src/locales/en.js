@@ -5,8 +5,11 @@ import metrics from "./modules/metrics.js";
 import device from "./modules/device.en.js";
 import settings from "./modules/settings.js";
 import history from './modules/history.en.js';
+import { en as review } from './modules/review.js';
 
 export default {
+  review,
+  history,
 	common: {
 		buttons: {
 			save: "Save",

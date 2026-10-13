@@ -5,6 +5,15 @@
 
 import { DEFAULT_POWER_ZONES, DEFAULT_FTP } from '@/constants/zones';
 import { logger } from '@/utils/logger';
+import { ref } from 'vue';
+
+export const storageUnavailable = ref(false);
+// Storage may be disabled or full. Keep the UI usable and surface failed writes.
+const localStorage = {
+  getItem(key) { try { return window.localStorage.getItem(key); } catch { storageUnavailable.value = true; return null; } },
+  setItem(key, value) { try { window.localStorage.setItem(key, value); storageUnavailable.value = false; return true; } catch { storageUnavailable.value = true; return false; } },
+  removeItem(key) { try { window.localStorage.removeItem(key); return true; } catch { storageUnavailable.value = true; return false; } },
+};
 
 /**
  * Storage keys with 'spinnn_' prefix
@@ -45,12 +54,11 @@ export function useStorage() {
   }
 
   function setFtp(value) {
-    if (typeof value !== 'number' || value <= 0) {
+    if (!Number.isFinite(value) || value < 1 || value > 500) {
       logger.warn('Invalid FTP value:', value);
       return false;
     }
-    localStorage.setItem(STORAGE_KEYS.FTP, value.toString());
-    return true;
+    return localStorage.setItem(STORAGE_KEYS.FTP, value.toString());
   }
 
   // ============================================================================
@@ -239,8 +247,7 @@ export function useStorage() {
       logger.warn('Invalid workout session:', session);
       return false;
     }
-    localStorage.setItem(STORAGE_KEYS.WORKOUT_SESSION, JSON.stringify(session));
-    return true;
+    return localStorage.setItem(STORAGE_KEYS.WORKOUT_SESSION, JSON.stringify(session));
   }
 
   function clearWorkoutSession() {

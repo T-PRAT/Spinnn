@@ -85,7 +85,7 @@ function getIconComponent(iconName) {
 <template>
 	<!-- Mobile bottom bar -->
 	<nav
-		class="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 flex justify-around items-center h-16 px-2 safe-area-inset-bottom"
+		class="mobile-navigation md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40 flex justify-around items-center h-16 px-2 safe-area-inset-bottom"
 	>
 		<button
 			v-for="item in mobileNavItems"
@@ -143,7 +143,7 @@ function getIconComponent(iconName) {
 				</div>
 				<h1
 					v-if="!isCollapsed"
-					class="text-3xl font-bold text-primary-foreground tracking-tight font-heading"
+					class="text-3xl font-bold text-foreground tracking-tight font-heading"
 				>
 					Spinnn
 				</h1>

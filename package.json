@@ -15,19 +15,19 @@
     "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
-    "@garmin/fitsdk": "^21.178.0",
+    "@garmin/fitsdk": "^21.218.0",
     "@heroicons/vue": "^2.2.0",
-    "@tailwindcss/vite": "^4.1.18",
+    "@tailwindcss/vite": "^4.3.3",
     "d3": "^7.9.0",
-    "tailwindcss": "^4.1.18",
-    "vue": "^3.5.26",
-    "vue-i18n": "10",
-    "vue-router": "4"
+    "tailwindcss": "^4.3.3",
+    "vue": "^3.5.44",
+    "vue-i18n": "^10.0.8",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@playwright/test": "^1.50.1",
-    "@vitejs/plugin-vue": "^6.0.3",
-    "vite": "^7.3.0",
-    "vite-plugin-vue-devtools": "^8.0.5"
+    "@playwright/test": "^1.64.0",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "vite": "^7.3.7",
+    "vite-plugin-vue-devtools": "^8.2.1"
   }
 }

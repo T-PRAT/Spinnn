@@ -88,11 +88,12 @@ This application uses **singleton composables** for state management instead of 
   - Exports `STORAGE_KEYS` constant object
   - Enforced abstraction: all composables use this instead of direct localStorage calls
 
-- `useWorkoutSession()` - Active workout execution state
-  - Tracks timing, elapsed duration, and completion status
-  - Manages pause/resume functionality with automatic persistence
-  - Split in Phase 3 refactoring into useWorkoutSession, useWorkoutData, useWorkoutStats
-  - Auto-saves session every 10 data points via useStorage
+- `useWorkoutSession()` - Active workout execution state (v2)
+  - Tracks wall-clock elapsed time AND active training time separately (skipping an interval advances position without fabricating riding time)
+  - Monotonic clock (performance.now), no Date math on resume: reload/pause/reload can no longer corrupt the timer
+  - Auto-saves to localStorage on pause/resume/skip and every 10 data points
+  - Archives the finished session to IndexedDB (via workoutHistory) BEFORE clearing the recovery snapshot
+  - `loadCompleted(id)` restores an archived session for the summary/history views
 
 - `useWorkoutData()` - Data point recording
   - Records data points (power, HR, cadence, speed) every second
@@ -134,9 +135,19 @@ This application uses **singleton composables** for state management instead of 
   - Polls upload status until completion
   - CSRF protection via state parameter
 
-- `useMockDevices()` - Simulated device data
+- `useMockDevices()` - Simulated device data (singleton)
   - Generates mock power, HR, cadence, and speed data
+  - Follows the workout profile; `setTargetPower()` locks it to an ERG-style target
   - Essential for development without BLE hardware
+
+- `useWorkoutEngine()` - Application-level workout engine (mounted once in App.vue)
+  - Records data points and drives ERG/resistance control INDEPENDENTLY of the route
+  - Navigating to settings/history during a workout no longer stops recording
+  - Auto-pause after 5s without power; auto-resume when pedaling resumes
+  - Pauses the session on pagehide and suspends it when the tab was frozen
+  - Holds a screen wake lock while a workout is running
+  - Stops writing ERG targets after a write fails, when paused, or when the trainer goes stale (5s without power messages)
+  - Releases the trainer (FTMS Stop/Pause) when the session pauses or ends
 
 - `useAudioSettings()` - Audio cue configuration
   - Manages audio preferences for workout announcements
@@ -166,11 +177,11 @@ This application uses **singleton composables** for state management instead of 
    - Support pause/resume with automatic session recovery
    - Sidebar collapses during workout for focus mode
 
-3. **Summary View** (`/summary`) - Step 3
-   - Review completed workout statistics
-   - View normalized power, average/max values, energy expenditure
-   - Export session as FIT file for upload to training platforms
-   - Visualize session data and zone distribution
+3. **Summary View** (`/summary/:id?`) - Step 3
+   - Review completed workout statistics (restored from the archived session)
+   - View normalized power, average/max values, mechanical work in kJ
+   - Export session as FIT file (lazy-loaded chunk) for upload to training platforms
+   - Upload to Strava, retry the local archive if IndexedDB failed
 
 4. **Settings View** (`/settings`)
    - Configure FTP (Functional Threshold Power)
@@ -180,7 +191,8 @@ This application uses **singleton composables** for state management instead of 
    - Manage auto-upload preferences
 
 5. **History View** (`/history`)
-   - View past workout sessions (placeholder - coming soon)
+   - List of finished sessions archived in IndexedDB (spinnn/workouts store)
+   - Reopen any session summary; delete sessions
 
 6. **Strava Callback View** (`/strava-callback`)
    - OAuth callback handler for Strava integration
@@ -214,9 +226,10 @@ src/
 ├── composables/                 # Singleton state management
 │   ├── useAppState.js           # Global app state
 │   ├── useStorage.js           # NEW - Centralized localStorage
-│   ├── useWorkoutSession.js     # Workout execution & persistence
+│   ├── useWorkoutSession.js     # Workout execution & persistence (v2, IndexedDB archive)
 │   ├── useWorkoutData.js       # NEW - Data point recording
 │   ├── useWorkoutStats.js      # NEW - Statistics calculations
+│   ├── useWorkoutEngine.js     # NEW - Route-independent recording + trainer control
 │   ├── usePowerAdjustments.js  # NEW - Power offset adjustments
 │   ├── useBluetoothHRM.js       # HR monitor connectivity
 │   ├── useBluetoothTrainer.js   # Smart trainer connectivity
@@ -262,6 +275,10 @@ src/
 │   ├── EventDispatcher.js       # Event system for pub/sub
 │   ├── Connectable.js           # Bluetooth connection wrapper
 │   ├── fitExporter.js           # FIT file export for Garmin/Strava
+│   ├── workoutStats.js         # NEW - Shared stats math (NP, IF, TSS, kJ)
+│   ├── workoutHistory.js       # NEW - IndexedDB archive of finished sessions
+│   ├── zwoParser.js            # NEW - Strict .zwo import (repeats included)
+│   ├── ftmsQueue.js            # NEW - One FTMS procedure at a time, ack-gated
 │   └── logger.js               # NEW - Environment-aware logging
 └── data/
     └── sampleWorkouts.js        # Built-in workout templates

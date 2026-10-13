@@ -9,11 +9,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "hono": "^4.6.13"
+    "hono": "^4.13.13"
   },
   "devDependencies": {
-    "@types/node": "^22.10.5",
-    "typescript": "^5.7.2",
-    "bun-types": "^1.1.29"
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3",
+    "bun-types": "^1.4.3"
   }
 }

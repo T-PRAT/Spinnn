@@ -17,14 +17,17 @@ export function useWorkoutData() {
    * @param {number} elapsedSeconds - Current elapsed time in seconds
    * @param {boolean} isActive - Whether workout is currently active
    */
-  function recordDataPoint(data, elapsedSeconds, isActive) {
+  function recordDataPoint(data, elapsedSeconds, isActive, duration = 1, activeTime = 0) {
     if (!isActive) return;
 
-    const distanceIncrement = data.speed > 0 ? data.speed * 1 : 0;
+    const distanceIncrement = data.speed > 0 ? data.speed * duration : 0;
     lastDistance += distanceIncrement;
 
     dataPoints.value.push({
       timestamp: elapsedSeconds,
+      recordedAt: Date.now(),
+      activeTime,
+      duration,
       power: data.power || 0,
       heartRate: data.heartRate || 0,
       cadence: data.cadence || 0,

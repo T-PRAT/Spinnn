@@ -1,4 +1,6 @@
 <script setup>
+import { useI18n } from '@/composables/useI18n';
+const { t } = useI18n();
 const props = defineProps({
 	slotId: {
 		type: Number,
@@ -23,8 +25,8 @@ const emit = defineEmits(["configure"]);
 	>
 		<button
 			@click="emit('configure', slotId)"
-			class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-accent rounded"
-			title="Configurer"
+			class="absolute inset-0 rounded focus-visible:ring-2 focus-visible:ring-primary"
+			:aria-label="`${t('review.configure')} : ${label}`"
 		>
 			<svg
 				class="w-3 h-3 text-muted-foreground"

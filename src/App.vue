@@ -5,11 +5,16 @@ import Sidebar from './components/layout/Sidebar.vue';
 import { useAppState } from './composables/useAppState';
 import { useTheme } from './composables/useTheme';
 import { useWorkoutSession } from './composables/useWorkoutSession';
+import { mountWorkoutEngine } from './composables/useWorkoutEngine';
+import { storageUnavailable } from './composables/useStorage';
+import { useI18n } from './composables/useI18n';
 
 const appState = useAppState();
 const route = useRoute();
 const theme = useTheme();
 const session = useWorkoutSession();
+const { t } = useI18n();
+mountWorkoutEngine();
 
 const defaultTitle = 'Spinnn - Entraînement Cyclisme';
 
@@ -40,9 +45,10 @@ watch(() => session.isPaused.value, () => {
 </script>
 
 <template>
-  <div class="h-screen bg-background text-foreground font-sans flex overflow-x-hidden">
+  <div class="app-shell bg-background text-foreground font-sans flex overflow-x-hidden" :class="{ 'training': route.name === 'workout' }">
     <Sidebar />
-    <main class="flex-1 p-2 md:p-6 overflow-y-auto">
+    <main class="app-main flex-1 min-w-0 p-3 md:p-6 overflow-y-auto">
+      <p v-if="storageUnavailable" role="alert" class="text-destructive text-sm p-2">{{ t('review.storageError') }}</p>
       <router-view />
     </main>
   </div>

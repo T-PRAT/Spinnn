@@ -10,7 +10,7 @@ import { Encoder } from '@garmin/fitsdk';
 const DEVICE = {
   MANUFACTURER: 255, // Development (not registered with ANT+)
   PRODUCT: 1001,     // Unique ID for Spinnn
-  SERIAL_NUMBER: 0x5350494E4E, // "SPINN" in hex
+  SERIAL_NUMBER: 0x5350494E, // uint32, "SPIN"
 };
 
 // Message numbers from FIT profile
@@ -55,7 +55,8 @@ export function createFitFile(sessionData, stats) {
   const encoder = new Encoder();
 
   const startTime = new Date(sessionData.startTime);
-  const endTime = sessionData.endTime || new Date(startTime.getTime() + stats.durationSeconds * 1000);
+  const endTime = sessionData.endTime ? new Date(sessionData.endTime) : new Date(startTime.getTime() + stats.durationSeconds * 1000);
+  const elapsedTime = Math.max(stats.durationSeconds, (endTime - startTime) / 1000);
 
   // 1. File ID Message (required, must be first)
   encoder.writeMesg({
@@ -80,16 +81,25 @@ export function createFitFile(sessionData, stats) {
   });
 
   // 3. Record Messages (one per data point)
-  for (const point of sessionData.dataPoints) {
-    const recordTime = new Date(startTime.getTime() + point.timestamp * 1000);
+  const timeline = [
+    ...(sessionData.events || []).map(event => ({ at: event.at, event })),
+    ...sessionData.dataPoints.map((point, index) => ({ at: point.recordedAt || startTime.getTime() + (point.activeTime ?? index + 1) * 1000, point })),
+  ].sort((a, b) => a.at - b.at);
+  for (const entry of timeline) {
+    if (entry.event) {
+      encoder.writeMesg({ mesgNum: 21, timestamp: new Date(entry.at), event: 'timer', eventType: entry.event.type === 'start' ? 'start' : 'stopAll' });
+      continue;
+    }
+    const point = entry.point;
+    const recordTime = new Date(entry.at);
 
     encoder.writeMesg({
       mesgNum: MESG_NUM.RECORD,
       timestamp: recordTime,
       heartRate: point.heartRate > 0 ? point.heartRate : undefined,
       cadence: point.cadence > 0 ? point.cadence : undefined,
-      power: point.power > 0 ? point.power : undefined,
-      speed: point.speed > 0 ? point.speed : undefined,
+      power: Number.isFinite(point.power) ? point.power : undefined,
+      speed: Number.isFinite(point.speed) ? point.speed : undefined,
       distance: point.distance > 0 ? point.distance : undefined,
     });
   }
@@ -103,7 +113,7 @@ export function createFitFile(sessionData, stats) {
     eventType: EVENT_TYPE.STOP,
     sport: SPORT.CYCLING,
     subSport: SUB_SPORT.VIRTUAL_ACTIVITY,
-    totalElapsedTime: stats.durationSeconds,
+    totalElapsedTime: elapsedTime,
     totalTimerTime: stats.durationSeconds,
     totalDistance: stats.distanceMeters || 0,
     totalCalories: stats.totalCalories > 0 ? stats.totalCalories : undefined,
@@ -126,7 +136,7 @@ export function createFitFile(sessionData, stats) {
     eventType: EVENT_TYPE.STOP,
     sport: SPORT.CYCLING,
     subSport: SUB_SPORT.VIRTUAL_ACTIVITY,
-    totalElapsedTime: stats.durationSeconds,
+    totalElapsedTime: elapsedTime,
     totalTimerTime: stats.durationSeconds,
     totalDistance: stats.distanceMeters || 0,
     totalCalories: stats.totalCalories > 0 ? stats.totalCalories : undefined,

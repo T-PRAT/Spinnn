@@ -8,9 +8,12 @@ interface SessionStore {
   [sessionId: string]: StravaSession;
 }
 
+// Matches the cookie max-age set by the Strava routes (30 days).
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 /**
- * In-memory session storage with auto-expiration
- * Can be easily replaced with Redis or a database later
+ * In-memory session storage with idle expiration.
+ * Can be easily replaced with Redis or a database later.
  */
 class SessionStorage {
   private sessions: SessionStore = {};
@@ -19,8 +22,10 @@ class SessionStorage {
   constructor() {
     // Run cleanup every 5 minutes
     this.cleanupInterval = setInterval(() => {
-      this.cleanupExpiredSessions();
+      this.cleanupIdleSessions();
     }, 5 * 60 * 1000);
+    // Never keep the process alive just for cleanup.
+    this.cleanupInterval.unref?.();
   }
 
   /**
@@ -47,12 +52,13 @@ class SessionStorage {
       lastAccessedAt: now,
     };
 
-    console.log(`[Session] Created session: ${sessionId}`);
     return sessionId;
   }
 
   /**
-   * Get a session by ID
+   * Get a session by ID.
+   * A session outlives its access token: the Strava routes refresh the token
+   * with the refresh token, so expiry here is idle time, not token expiry.
    */
   get(sessionId: string): StravaSession | null {
     const session = this.sessions[sessionId];
@@ -61,13 +67,11 @@ class SessionStorage {
       return null;
     }
 
-    // Check if expired
-    if (Date.now() >= session.expiresAt) {
-      this.delete(sessionId);
+    if (Date.now() - session.lastAccessedAt > SESSION_TTL_MS) {
+      delete this.sessions[sessionId];
       return null;
     }
 
-    // Update last accessed time
     session.lastAccessedAt = Date.now();
 
     return session;
@@ -86,7 +90,6 @@ class SessionStorage {
     Object.assign(session, updates);
     session.lastAccessedAt = Date.now();
 
-    console.log(`[Session] Updated session: ${sessionId}`);
     return true;
   }
 
@@ -99,7 +102,6 @@ class SessionStorage {
     }
 
     delete this.sessions[sessionId];
-    console.log(`[Session] Deleted session: ${sessionId}`);
     return true;
   }
 
@@ -118,21 +120,21 @@ class SessionStorage {
   }
 
   /**
-   * Clean up expired sessions
+   * Remove sessions idle for longer than the TTL.
    */
-  private cleanupExpiredSessions(): void {
+  private cleanupIdleSessions(): void {
     const now = Date.now();
     let cleaned = 0;
 
     for (const sessionId in this.sessions) {
-      if (now >= this.sessions[sessionId].expiresAt) {
+      if (now - this.sessions[sessionId].lastAccessedAt > SESSION_TTL_MS) {
         delete this.sessions[sessionId];
         cleaned++;
       }
     }
 
     if (cleaned > 0) {
-      console.log(`[Session] Cleaned up ${cleaned} expired session(s)`);
+      console.log(`[Session] Cleaned up ${cleaned} idle session(s)`);
     }
   }
 

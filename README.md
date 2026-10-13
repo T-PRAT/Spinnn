@@ -51,9 +51,9 @@ The application will be available at `http://localhost:5173`
 ```bash
 bun dev              # Development server
 bun run build        # Production build
-bun test             # Unit tests
-bun test:e2e         # E2E tests
-bun test:coverage    # Code coverage
+bun run preview      # Preview production build
+bun test:e2e         # E2E tests (Playwright)
+bun test:e2e:ui      # E2E tests with UI
 ```
 
 ### Tech Stack
@@ -63,7 +63,7 @@ bun test:coverage    # Code coverage
 - Vue Router
 - Tailwind CSS v4
 - D3.js
-- Vitest + Playwright
+- Playwright (smoke tests)
 
 ### Important Note
 

@@ -1,10 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import SetupView from '../views/SetupView.vue';
-import WorkoutView from '../views/WorkoutView.vue';
-import SummaryView from '../views/SummaryView.vue';
-import SettingsView from '../views/SettingsView.vue';
-import HistoryView from '../views/HistoryView.vue';
-import StravaCallbackView from '../views/StravaCallbackView.vue';
+const WorkoutView = () => import('../views/WorkoutView.vue');
+const SummaryView = () => import('../views/SummaryView.vue');
+const SettingsView = () => import('../views/SettingsView.vue');
+const HistoryView = () => import('../views/HistoryView.vue');
+const StravaCallbackView = () => import('../views/StravaCallbackView.vue');
 
 const routes = [
   {
@@ -18,7 +18,7 @@ const routes = [
     component: WorkoutView
   },
   {
-    path: '/summary',
+    path: '/summary/:id?',
     name: 'summary',
     component: SummaryView
   },
@@ -43,5 +43,6 @@ const router = createRouter({
   history: createWebHistory(),
   routes
 });
+router.addRoute({ path: '/:pathMatch(.*)*', redirect: '/' });
 
 export default router;

@@ -1,6 +1,8 @@
 import { ref } from 'vue';
 
+let instance;
 export function useMockDevices() {
+  if (instance) return instance;
   const heartRate = ref(0);
   const power = ref(0);
   const cadence = ref(0);
@@ -17,6 +19,7 @@ export function useMockDevices() {
   let workout = null;
   let ftp = 200;
   let elapsedSeconds = 0;
+  let externalTarget = null;
 
   function setWorkout(workoutData, ftpValue) {
     workout = workoutData;
@@ -41,6 +44,7 @@ export function useMockDevices() {
   }
 
   function updateTargets() {
+    if (externalTarget !== null) { targetPower = externalTarget; targetHR = Math.round(110 + targetPower / 5); return; }
     const interval = getCurrentInterval();
 
     // Calculate target power based on current interval
@@ -74,6 +78,7 @@ export function useMockDevices() {
   }
 
   function start(workoutData = null, ftpValue = 200) {
+    if (intervalId) clearInterval(intervalId);
     if (workoutData) {
       setWorkout(workoutData, ftpValue);
     }
@@ -138,7 +143,7 @@ export function useMockDevices() {
     currentHR = 140;
   }
 
-  return {
+  instance = {
     heartRate,
     power,
     cadence,
@@ -146,6 +151,8 @@ export function useMockDevices() {
     isActive,
     start,
     stop,
-    setWorkout
+    setWorkout,
+    setTargetPower(watts) { externalTarget = watts; },
   };
+  return instance;
 }

@@ -18,12 +18,13 @@ if (credentials) {
 }
 
 export function useIntervalsIcu() {
-  function setCredentials(key, id) {
-    if (storage.setIntervalsCredentials(key, id)) {
-      apiKey.value = key;
-      athleteId.value = id;
-      isConnected.value = true;
-    }
+  // persist=false keeps the key in this tab's memory only (never written to localStorage).
+  function setCredentials(key, id, persist = true) {
+    apiKey.value = key;
+    athleteId.value = id;
+    isConnected.value = true;
+    if (persist) storage.setIntervalsCredentials(key, id);
+    else storage.clearIntervalsCredentials();
   }
 
   function disconnect() {

@@ -62,12 +62,12 @@ function createFreeRideWorkout() {
 		id: 'free-ride',
 		name: 'Sortie Libre',
 		description: 'Roulez librement sans intervalles structurés',
-		duration: Infinity,
+		duration: 0,
 		isFreeRide: true,
 		intervals: [
 			{
 				type: 'freeride',
-				duration: Infinity,
+				duration: 0,
 				power: 0, // Not used in free ride, controlled via targetPower
 			},
 		],

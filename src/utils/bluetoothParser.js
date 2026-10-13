@@ -1,6 +1,7 @@
 import { BLE_TIME_RESOLUTION, DEFAULT_WHEEL_CIRCUMFERENCE } from '@/constants/bluetooth';
 
 export function parseHeartRateMeasurement(dataView) {
+  if (dataView.byteLength < 2) return { heartRate: 0, isContactDetected: false, sensorContactSupported: false };
   const flags = dataView.getUint8(0);
   const heartRateFormat = flags & 0x01;
 
@@ -8,7 +9,7 @@ export function parseHeartRateMeasurement(dataView) {
   if (heartRateFormat === 0) {
     heartRate = dataView.getUint8(1);
   } else {
-    heartRate = dataView.getUint16(1, true);
+    heartRate = dataView.byteLength >= 3 ? dataView.getUint16(1, true) : 0;
   }
 
   // Bits 1-2: Sensor Contact Status
@@ -27,7 +28,10 @@ export function parseHeartRateMeasurement(dataView) {
 }
 
 export function parseCyclingPowerMeasurement(dataView) {
+  if (dataView.byteLength < 4) return { power: 0, crankRevolutions: null, lastCrankEventTime: null, wheelRevolutions: null, lastWheelEventTime: null };
   const flags = dataView.getUint16(0, true);
+  const required = 4 + ((flags & 1) ? 1 : 0) + ((flags & 4) ? 2 : 0) + ((flags & 16) ? 6 : 0) + ((flags & 32) ? 4 : 0);
+  if (dataView.byteLength < required) return { power: 0, crankRevolutions: null, lastCrankEventTime: null, wheelRevolutions: null, lastWheelEventTime: null };
   
   const hasPedalPowerBalance = (flags & 0x0001) !== 0;
   const hasTorque = (flags & 0x0004) !== 0;
@@ -80,7 +84,7 @@ export function parseCyclingPowerMeasurement(dataView) {
 export function calculateCadence(currentRevs, lastRevs, currentTime, lastTime) {
   if (lastRevs === null || lastTime === null) return 0;
   
-  const revDelta = currentRevs - lastRevs;
+  const revDelta = (currentRevs - lastRevs + 65536) % 65536;
   let timeDelta = currentTime - lastTime;
   
   if (timeDelta < 0) {
@@ -129,4 +133,15 @@ export function calculateSpeedFromPower(power, coefficient = 0.25) {
   const speedMps = Math.pow(power / coefficient, 1/3);
 
   return Math.max(0, speedMps);
+}
+
+export function parseCSCMeasurement(data) {
+  if (data.byteLength < 1) return null;
+  const flags = data.getUint8(0), wheel = Boolean(flags & 1), crank = Boolean(flags & 2);
+  if (data.byteLength < 1 + (wheel ? 6 : 0) + (crank ? 4 : 0)) return null;
+  let offset = 1;
+  const result = {};
+  if (wheel) { result.wheelRevolutions = data.getUint32(offset, true); result.wheelTime = data.getUint16(offset + 4, true); offset += 6; }
+  if (crank) { result.crankRevolutions = data.getUint16(offset, true); result.crankTime = data.getUint16(offset + 2, true); }
+  return result;
 }

@@ -1,353 +1,71 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
-import WorkoutSelector from "../components/workout/WorkoutSelector.vue";
-import DeviceConnector from "../components/device/DeviceConnector.vue";
-import WorkoutPreviewChart from "../components/workout/WorkoutPreviewChart.vue";
-import IntervalsTodayWorkout from "../components/layout/IntervalsTodayWorkout.vue";
-import { useAppState } from "../composables/useAppState";
-import { useWorkoutSession } from "../composables/useWorkoutSession";
-import { useIntervalsIcu } from "../composables/useIntervalsIcu";
-import { useI18n } from "@/composables/useI18n";
-import { useFreeRide } from "@/composables/useFreeRide";
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import WorkoutSelector from '@/components/workout/WorkoutSelector.vue';
+import DeviceConnector from '@/components/device/DeviceConnector.vue';
+import WorkoutPreviewChart from '@/components/workout/WorkoutPreviewChart.vue';
+import IntervalsTodayWorkout from '@/components/layout/IntervalsTodayWorkout.vue';
+import { useAppState } from '@/composables/useAppState';
+import { useWorkoutSession } from '@/composables/useWorkoutSession';
+import { useI18n } from '@/composables/useI18n';
+import { useFreeRide } from '@/composables/useFreeRide';
+import { parseZwoFile, MAX_ZWO_BYTES } from '@/utils/zwoParser';
 
-const router = useRouter();
-const appState = useAppState();
-const session = useWorkoutSession();
-const intervals = useIntervalsIcu();
-const freeRide = useFreeRide();
-const { t } = useI18n();
-
-const isDeviceReady = ref(false);
-const fileInput = ref(null);
-const hasPendingWorkout = ref(false);
-const deviceConnector = ref(null);
-const intervalsWorkoutRef = ref(null);
-
-// Check for existing workout on mount
-onMounted(() => {
-  hasPendingWorkout.value = session.isActive.value;
-});
-
-function handleWorkoutSelected(workout) {
-  appState.setWorkout(workout);
+const router = useRouter(), app = useAppState(), session = useWorkoutSession(), free = useFreeRide(), { t } = useI18n();
+const deviceConnector = ref(null), ready = ref(false), importError = ref(false);
+const canStart = computed(() => ready.value && app.selectedWorkout.value && !session.isActive.value);
+function statusChanged(status) {
+  ready.value = status.isConnected || status.isMockMode;
+  app.setDevicesConnected(status.isConnected); app.setMockModeActive(status.isMockMode);
 }
-
-function handleFileUpload(event) {
+async function importFile(event) {
   const file = event.target.files[0];
   if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const content = e.target.result;
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(content, "text/xml");
-
-      const workout = parseZwoFile(xmlDoc);
-      appState.setWorkout(workout);
-    } catch (error) {
-      alert("Failed to parse workout file. Please ensure it is a valid .zwo file.");
-      console.error(error);
-    }
-  };
-  reader.readAsText(file);
+  importError.value = false;
+  try {
+    if (file.size > MAX_ZWO_BYTES) throw new Error('oversized');
+    app.setWorkout(parseZwoFile(new DOMParser().parseFromString(await file.text(), 'text/xml')));
+  } catch { importError.value = true; }
+  event.target.value = '';
 }
-
-function parseZwoFile(xmlDoc) {
-  const workoutName = xmlDoc.querySelector("workout")?.getAttribute("name") || "Custom Workout";
-  const intervals = [];
-  let totalDuration = 0;
-
-  const elements = xmlDoc.querySelectorAll("SteadyState, Ramp, IntervalsT, FreeRide, Cooldown, Warmup");
-
-  elements.forEach((element) => {
-    const duration = parseInt(element.getAttribute("Duration") || 0);
-    totalDuration += duration;
-
-    if (element.tagName === "SteadyState") {
-      intervals.push({
-        type: "steady",
-        duration: duration,
-        power: parseFloat(element.getAttribute("Power") || 0.5),
-      });
-    } else if (element.tagName === "Ramp") {
-      intervals.push({
-        type: "ramp",
-        duration: duration,
-        powerStart: parseFloat(element.getAttribute("PowerLow") || 0.5),
-        powerEnd: parseFloat(element.getAttribute("PowerHigh") || 0.7),
-      });
-    } else if (element.tagName === "Warmup") {
-      intervals.push({
-        type: "warmup",
-        duration: duration,
-        powerStart: parseFloat(element.getAttribute("PowerLow") || 0.5),
-        powerEnd: parseFloat(element.getAttribute("PowerHigh") || 0.7),
-      });
-    } else if (element.tagName === "Cooldown") {
-      intervals.push({
-        type: "cooldown",
-        duration: duration,
-        powerStart: parseFloat(element.getAttribute("PowerLow") || 0.7),
-        powerEnd: parseFloat(element.getAttribute("PowerHigh") || 0.5),
-      });
-    }
-  });
-
-  return {
-    id: "custom",
-    name: workoutName,
-    description: "Uploaded workout file",
-    duration: totalDuration,
-    difficulty: "Custom",
-    intervals: intervals,
-  };
-}
-
-function handleDeviceStatusChange(status) {
-  isDeviceReady.value = status.isConnected || status.isMockMode;
-  appState.setDevicesConnected(status.isConnected);
-  appState.setMockModeActive(status.isMockMode);
-}
-
-function handleDataUpdate() {}
-
-const canStart = computed(() => {
-  // Can start if devices are ready AND (new workout selected OR pending workout exists)
-  const hasWorkout = appState.selectedWorkout.value !== null || hasPendingWorkout.value;
-  return hasWorkout && isDeviceReady.value;
-});
-
-const canResume = computed(() => {
-  // Can resume if there's a pending workout AND devices are ready
-  return hasPendingWorkout.value && isDeviceReady.value;
-});
-
-function startFreeRide() {
-  // Require devices to be ready
-  if (!isDeviceReady.value) return;
-
-  // Clear any saved workout state before starting free ride
-  session.clearWorkoutState();
-
-  // Create free ride workout
-  const freeRideWorkout = freeRide.createFreeRideWorkout();
-  appState.setWorkout(freeRideWorkout);
-
-  // Get saved power or default to 55% FTP
-  const savedPower = freeRide.getTargetPower();
-  const startPower = savedPower || Math.round(appState.ftp.value * 0.55);
-  freeRide.setTargetPower(startPower);
-
-  // Start free ride session
-  session.start(freeRideWorkout, appState.ftp.value);
-  appState.startWorkout();
-  router.push({ name: "workout" });
-}
-
-function enableMockMode() {
-  // Enable mock mode through device connector
-  if (deviceConnector.value) {
-    deviceConnector.value.enableMockMode();
-  }
-}
-
-function startWorkout() {
-  // If there's a pending workout, we can resume even if devices aren't "ready" yet
-  // because the workout was already in progress
-  if (hasPendingWorkout.value) {
-    // Restore the workout in appState
-    appState.setWorkout(session.workout.value);
-    appState.startWorkout();
-    router.push({ name: "workout" });
-    return;
-  }
-
-  // For new workouts, require devices to be ready
-  if (!isDeviceReady.value) return;
-
-  // Clear any saved workout state before starting a new workout
-  session.clearWorkoutState();
-
-  // Start new workout
-  session.start(appState.selectedWorkout.value, appState.ftp.value);
-  appState.startWorkout();
-  router.push({ name: "workout" });
-}
-
-function dismissPendingWorkout() {
-  session.reset();
-  hasPendingWorkout.value = false;
+function start(isFree = false) {
+  if (!ready.value || session.isActive.value) return;
+  if (isFree) { app.setWorkout(free.createFreeRideWorkout()); free.getTargetPower(); }
+  session.start(app.selectedWorkout.value, app.ftp.value, app.mockModeActive.value ? 'simulation' : 'bluetooth');
+  app.startWorkout(); router.push({ name: 'workout' });
 }
 </script>
-
 <template>
-  <div class="max-w-6xl mx-auto flex flex-col gap-3 md:gap-6 min-h-full">
-    <!-- Pending workout banner -->
-    <div v-if="hasPendingWorkout" class="bg-primary/10 border border-primary/30 rounded-lg p-3 md:p-4 space-y-2 md:space-y-3">
-      <div class="flex items-start justify-between">
-        <div class="flex-1">
-          <h3 class="text-lg font-semibold text-primary mb-1">{{ t('workout.inProgress') }}</h3>
-          <p class="text-sm text-foreground mb-2">
-            <strong>{{ session.workout.value?.name }}</strong>
-          </p>
-          <p class="text-sm text-muted-foreground">
-            {{ t('workout.progress') }}: {{ session.formattedElapsedTime.value }} / {{ session.formattedWorkoutDuration.value }} •
-            {{ Math.round((session.elapsedSeconds.value / session.workout.value.duration) * 100) }}% {{ t('workout.completed') }}
-          </p>
-        </div>
-        <button
-          @click="dismissPendingWorkout"
-          class="text-muted-foreground hover:text-destructive transition-colors p-1"
-          :title="t('workout.dismissButton') || undefined"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div class="flex gap-3">
-        <button
-          @click="startWorkout"
-          class="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-semibold transition-colors"
-        >
-          {{ t('workout.resumeButton') }}
-        </button>
-      </div>
+  <div class="max-w-6xl mx-auto space-y-5">
+    <header class="flex flex-wrap items-center justify-between gap-4">
+      <div><h1 class="text-2xl font-bold">{{ t('review.welcome') }}</h1><p class="text-muted-foreground text-sm mt-1">{{ t('review.setupHint') }}</p></div>
+      <button data-testid="simulation" class="touch-button border border-primary text-primary" :aria-pressed="app.mockModeActive.value" @click="deviceConnector && (app.mockModeActive.value ? deviceConnector.disableMockMode() : deviceConnector.enableMockMode())">{{ t(app.mockModeActive.value ? 'review.demoActive' : 'review.demo') }}</button>
+    </header>
+    <div v-if="session.isActive.value" class="bg-primary/10 border border-primary rounded-lg p-4 flex flex-wrap gap-3 items-center">
+      <p class="flex-1">{{ t('workout.inProgress') }} · {{ session.workout.value?.name }} · {{ session.formattedElapsedTime.value }}</p>
+      <button class="touch-button bg-primary text-primary-foreground" @click="router.push({ name: 'workout' })">{{ t('workout.resumeButton') }}</button>
     </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 flex-1">
-      <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border flex flex-col">
-        <WorkoutSelector @workout-selected="handleWorkoutSelected" class="flex-1 min-h-0" />
-      </div>
-      <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border space-y-4 md:space-y-6">
-        <div>
-          <h2 class="text-xl font-bold text-foreground mb-4">{{ t('workout.importFile') }}</h2>
-          <label class="block">
-            <input
-              ref="fileInput"
-              type="file"
-              accept=".zwo"
-              @change="handleFileUpload"
-              class="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer file:transition-colors"
-            />
-          </label>
-        </div>
-
-        <div class="border-t border-border pt-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-foreground flex items-center gap-2">
-              <img src="/intervals.png" alt="Intervals.icu" class="w-6 h-6 rounded-lg" />
-              {{ t('workout.intervalsIntegration') }} <span class="text-sm font-normal text-muted-foreground">{{ t('workout.intervalsToday') }}</span>
-            </h2>
-            <button
-              v-if="intervals.isConnected"
-              @click="intervalsWorkoutRef?.loadTodayWorkouts()"
-              :disabled="intervalsWorkoutRef?.isLoading"
-              class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-            >
-              <svg :class="['w-4 h-4', { 'animate-spin': intervalsWorkoutRef?.isLoading }]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              {{ t('common.buttons.refresh') }}
-            </button>
-          </div>
-          <IntervalsTodayWorkout ref="intervalsWorkoutRef" @workout-selected="handleWorkoutSelected" />
-        </div>
-
-      </div>
+    <div v-else-if="session.saveError.value && session.workout.value" class="p-4 border border-destructive rounded-lg">
+      <p role="alert">{{ t('review.storageError') }}</p><button class="touch-button" @click="router.push({ name: 'summary', params: { id: session.id.value } })">{{ t('review.open') }}</button>
     </div>
-
-    <div v-if="appState.selectedWorkout.value" class="bg-card rounded-lg p-3 md:p-4 shadow border border-border">
-      <h3 class="text-sm font-medium text-muted-foreground mb-2">{{ t('workout.preview') }}</h3>
-      <WorkoutPreviewChart :ftp="appState.ftp.value" :workout="appState.selectedWorkout.value" :tall="true" />
-    </div>
-
-    <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Left column: Device Connector -->
-        <div>
-          <DeviceConnector ref="deviceConnector" @device-status-change="handleDeviceStatusChange" @data-update="handleDataUpdate" />
-        </div>
-
-        <!-- Right column: Start buttons + Message -->
-        <div class="flex flex-col justify-center items-center space-y-4">
-          <!-- Simulation mode indicator -->
-          <div v-if="deviceConnector?.useMockMode?.value" class="text-center">
-            <span class="inline-flex items-center gap-1 text-xs text-muted-foreground bg-accent px-2 py-1 rounded">
-              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-              </svg>
-              {{ t('device.mockMode') }}
-            </span>
-          </div>
-
-          <!-- Start buttons -->
-          <div class="flex flex-col items-center gap-2">
-            <!-- Start workout button -->
-            <button
-              @click="startWorkout"
-              :disabled="!canStart"
-              :class="[
-                'px-8 py-3 rounded-lg text-base font-bold transition-all transform whitespace-nowrap',
-                canStart
-                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 shadow-lg'
-                  : 'bg-muted text-muted-foreground cursor-not-allowed',
-              ]"
-            >
-              <span class="flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                {{ t('workout.startButton') }}
-              </span>
-            </button>
-
-            <!-- Free ride button (smaller) -->
-            <button
-              @click="startFreeRide"
-              :disabled="!isDeviceReady"
-              :class="[
-                'px-4 py-1.5 rounded-md text-sm font-medium transition-all transform whitespace-nowrap',
-                isDeviceReady
-                  ? 'bg-chart-1 hover:bg-chart-1/90 text-primary-foreground hover:scale-105 shadow'
-                  : 'bg-muted text-muted-foreground cursor-not-allowed',
-              ]"
-            >
-              <span class="flex items-center justify-center gap-1.5">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                {{ t('workout.freeRide.startButton') }}
-              </span>
-            </button>
-
-          </div>
-
-          <!-- Connect sensors message + mock mode toggle -->
-          <p v-if="!isDeviceReady" class="text-xs font-medium text-chart-1">
-            {{ t('workout.connectSensorsOrSim') }}
-            <button
-              v-if="!deviceConnector?.useMockMode?.value"
-              @click="deviceConnector?.enableMockMode()"
-              class="text-muted-foreground/60 hover:text-muted-foreground underline transition-colors ml-1"
-            >
-              {{ t('device.mockMode') }}
-            </button>
-          </p>
-
+    <section aria-labelledby="choose-workout" class="bg-card border border-border rounded-lg p-4 md:p-5">
+      <h2 id="choose-workout" class="font-bold text-lg mb-4">{{ t('review.choose') }}</h2>
+      <div class="grid md:grid-cols-2 gap-5">
+        <WorkoutSelector @workout-selected="app.setWorkout" />
+        <div class="space-y-5">
+          <div><label for="zwo-file" class="font-semibold block mb-2">{{ t('workout.importFile') }} (.zwo)</label><input id="zwo-file" type="file" accept=".zwo" class="max-w-full text-sm" @change="importFile" /><p v-if="importError" role="alert" class="text-destructive text-sm mt-2">{{ t('review.importError') }}</p></div>
+          <div class="border-t border-border pt-4"><h3 class="font-semibold mb-2">Intervals.icu</h3><IntervalsTodayWorkout @workout-selected="app.setWorkout" /></div>
+          <WorkoutPreviewChart v-if="app.selectedWorkout.value" :ftp="app.ftp.value" :workout="app.selectedWorkout.value" :tall="true" />
         </div>
       </div>
-    </div>
+    </section>
+    <section aria-labelledby="connect-devices" class="bg-card border border-border rounded-lg p-4 md:p-5">
+      <h2 id="connect-devices" class="font-bold text-lg mb-4">{{ t('review.devices') }}</h2>
+      <DeviceConnector ref="deviceConnector" @device-status-change="statusChanged" />
+    </section>
+    <section class="setup-start bg-card border border-border rounded-lg p-4 flex flex-wrap items-center justify-between gap-3">
+      <div><h2 class="font-bold">{{ t('review.start') }}</h2><p class="text-sm text-muted-foreground">FTP {{ app.ftp.value }} W · {{ app.selectedWorkout.value?.name || t('common.messages.selectWorkout') }}</p></div>
+      <div class="flex flex-wrap gap-2"><button data-testid="start-workout" class="touch-button bg-primary text-primary-foreground" :disabled="!canStart" @click="start()">{{ t('workout.startButton') }}</button><button data-testid="start-free" class="touch-button bg-secondary text-secondary-foreground" :disabled="!ready || session.isActive.value" @click="start(true)">{{ t('review.free') }}</button></div>
+    </section>
   </div>
 </template>

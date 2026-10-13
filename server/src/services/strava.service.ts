@@ -13,6 +13,8 @@ const STRAVA_BASE_URL = 'https://www.strava.com/api/v3';
 const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
 const STRAVA_DEAUTH_URL = 'https://www.strava.com/oauth/deauthorize';
 
+const REQUEST_TIMEOUT_MS = 10_000;
+
 class StravaError extends Error {
   constructor(message: string, public statusCode?: number) {
     super(message);
@@ -20,17 +22,33 @@ class StravaError extends Error {
   }
 }
 
+function timeoutSignal(): AbortSignal {
+  return AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+}
+
 /**
  * Service for interacting with Strava API
  */
 export class StravaService {
   /**
+   * Reject requests early when the server has no Strava credentials.
+   * Also keeps client_id/client_secret as plain strings for the callers.
+   */
+  private assertConfigured(): { clientId: string; clientSecret: string } {
+    if (!config.stravaClientId || !config.stravaClientSecret) {
+      throw new StravaError('Strava is not configured on this server', 503);
+    }
+    return { clientId: config.stravaClientId, clientSecret: config.stravaClientSecret };
+  }
+
+  /**
    * Exchange authorization code for access token
    */
   async exchangeCodeForToken(code: string): Promise<StravaTokenResponse> {
+    const { clientId, clientSecret } = this.assertConfigured();
     const params = new URLSearchParams({
-      client_id: config.stravaClientId,
-      client_secret: config.stravaClientSecret,
+      client_id: clientId,
+      client_secret: clientSecret,
       code,
       grant_type: 'authorization_code',
     });
@@ -41,15 +59,15 @@ export class StravaService {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: params.toString(),
+      signal: timeoutSignal(),
     });
 
     if (!response.ok) {
-      const error = (await response.json()) as StravaErrorType;
+      const error = (await response.json().catch(() => ({}))) as StravaErrorType;
       throw new StravaError(error.message || 'Failed to exchange code for token', response.status);
     }
 
     const data = (await response.json()) as StravaTokenResponse;
-    console.log(`[Strava] Token exchanged for athlete: ${data.athlete.username || data.athlete.firstname}`);
 
     return data;
   }
@@ -58,9 +76,10 @@ export class StravaService {
    * Refresh access token using refresh token
    */
   async refreshAccessToken(refreshToken: string): Promise<StravaTokenResponse> {
+    const { clientId, clientSecret } = this.assertConfigured();
     const params = new URLSearchParams({
-      client_id: config.stravaClientId,
-      client_secret: config.stravaClientSecret,
+      client_id: clientId,
+      client_secret: clientSecret,
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
     });
@@ -71,10 +90,11 @@ export class StravaService {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: params.toString(),
+      signal: timeoutSignal(),
     });
 
     if (!response.ok) {
-      const error = (await response.json()) as StravaErrorType;
+      const error = (await response.json().catch(() => ({}))) as StravaErrorType;
       throw new StravaError(error.message || 'Failed to refresh token', response.status);
     }
 
@@ -96,7 +116,7 @@ export class StravaService {
     } = {}
   ): Promise<StravaUploadResponse> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file, 'workout.fit');
     formData.append('data_type', 'fit');
 
     if (metadata.name) formData.append('name', metadata.name);
@@ -111,15 +131,15 @@ export class StravaService {
         Authorization: `Bearer ${accessToken}`,
       },
       body: formData,
+      signal: timeoutSignal(),
     });
 
     if (!response.ok) {
-      const error = (await response.json()) as StravaErrorType;
+      const error = (await response.json().catch(() => ({}))) as StravaErrorType;
       throw new StravaError(error.message || 'Failed to upload FIT file', response.status);
     }
 
     const data = (await response.json()) as StravaUploadResponse;
-    console.log(`[Strava] Upload started: ${data.id} (${data.status})`);
 
     return data;
   }
@@ -132,6 +152,7 @@ export class StravaService {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+      signal: timeoutSignal(),
     });
 
     if (!response.ok) {
@@ -150,14 +171,13 @@ export class StravaService {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+      signal: timeoutSignal(),
     });
 
     if (!response.ok && response.status !== 401) {
       // 401 means token is already invalid, which is fine
       throw new StravaError('Failed to deauthorize', response.status);
     }
-
-    console.log('[Strava] Token deauthorized');
   }
 
   /**

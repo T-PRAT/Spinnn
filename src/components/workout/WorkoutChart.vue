@@ -3,8 +3,10 @@ import { ref, onMounted, watch, onBeforeUnmount } from "vue";
 import * as d3 from "d3";
 import { useAppState } from "../../composables/useAppState";
 import { getIntervalColor } from "@/utils/workoutHelpers";
+import { useI18n } from "@/composables/useI18n";
 
 const appState = useAppState();
+const { t } = useI18n();
 
 const props = defineProps({
   dataPoints: { type: Array, default: () => [] },
@@ -493,6 +495,6 @@ function updateCurrentPosition() {
 <template>
   <div class="h-full flex flex-col">
     <div ref="chartRef" class="w-full h-full"></div>
-    <div v-if="dataPoints.length === 0" class="text-center text-muted-foreground py-8">En attente des donnees...</div>
+    <div v-if="dataPoints.length === 0" class="text-center text-muted-foreground py-8">{{ t('review.waiting') }}</div>
   </div>
 </template>

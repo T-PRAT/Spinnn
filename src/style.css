@@ -1,5 +1,53 @@
 @import "tailwindcss";
 
+.app-shell { height: 100dvh; }
+.app-main { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
+.touch-button { min-height: 44px; min-width: 44px; padding: .55rem .85rem; border-radius: .5rem; font-weight: 600; cursor: pointer; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.app-dialog { margin: auto; width: min(94vw, 32rem); max-height: 90dvh; overflow-y: auto; color: var(--foreground); background: var(--card); border: 1px solid var(--border); border-radius: .8rem; }
+.app-dialog::backdrop { background: rgb(0 0 0 / .65); }
+.workout-screen { display: flex; flex-direction: column; gap: .5rem; height: 100%; min-height: 0; }
+.workout-heading { position: relative; display: flex; align-items: center; justify-content: space-between; padding: .65rem; gap: .5rem; flex-shrink: 0; }
+.workout-progress { position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; accent-color: var(--primary); }
+.workout-chart { flex: 1; min-height: 60px; overflow: hidden; }
+.workout-controls { padding: .5rem; flex-shrink: 0; }
+.workout-actions { display: flex; gap: .4rem; margin-top: .5rem; }
+.workout-actions > button { flex: 1; min-width: 0; padding-inline: .35rem; font-size: .8rem; }
+.training .app-main { padding: .5rem .5rem calc(4.5rem + env(safe-area-inset-bottom)); overflow: hidden; }
+.training #metrics-grid { padding: 0; }
+.training #metrics-grid > div { min-width: 0; }
+.training #metrics-grid > div:first-child, .training #metrics-grid > div:nth-child(4) { font-size: .75rem; }
+.setup-start { position: sticky; bottom: 0; z-index: 10; }
+@media (min-width: 768px) {
+  .app-main { padding-bottom: 1.5rem; }
+  .training .app-main { padding: 1rem; }
+  .workout-actions > button { font-size: .95rem; }
+}
+@media (max-width: 767px) {
+  .training #metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .training #metrics-grid > div:first-child, .training #metrics-grid > div:nth-child(4) { display: none; }
+  .training #metrics-grid > div:last-child { grid-column: span 4; }
+  .workout-actions > button:first-child span { display: none; }
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  .training .mobile-navigation { display: none; }
+  .training .app-main { padding: .35rem; }
+  .training .workout-heading { padding: .3rem .6rem; }
+  .training .workout-heading p { display: none; }
+  .training #metrics-grid > div:first-child, .training #metrics-grid > div:nth-child(4) { display: none; }
+  .training #metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .training #metrics-grid > div:last-child { grid-column: span 4; }
+  .training #metrics-grid > div > div { padding: .25rem; }
+  .training #metrics-grid .text-3xl { font-size: 2rem; margin: 0; }
+  .training #metrics-grid hr, .training #metrics-grid hr + div { display: none; }
+  .training #metrics-grid .mb-0\.5 { margin: 0; }
+  .workout-controls { display: flex; gap: 1rem; align-items: center; }
+  .workout-controls > div:first-child { flex: 1; }
+  .workout-controls > div:first-child > span:last-child { display: none; }
+  .workout-actions { flex: 2; margin: 0; }
+}
+
 :root {
   --background: oklch(0.9885 0.0057 84.5659);
   --foreground: oklch(0.366 0.0251 49.6085);

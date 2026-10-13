@@ -11,6 +11,7 @@ const apiKeyInput = ref('');
 const athleteIdInput = ref('');
 const error = ref('');
 const isTesting = ref(false);
+const remember = ref(true);
 
 function toggleForm() {
   showForm.value = !showForm.value;
@@ -28,7 +29,7 @@ async function testConnection() {
 
   try {
     // Save credentials temporarily to test
-    intervals.setCredentials(apiKeyInput.value, athleteIdInput.value);
+    intervals.setCredentials(apiKeyInput.value, athleteIdInput.value, remember.value);
 
     // Try to fetch today's workouts to verify connection
     await intervals.getTodayWorkouts();
@@ -106,6 +107,14 @@ function handleDisconnect() {
 
       <div v-if="error" class="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
         <p class="text-sm text-destructive">{{ error }}</p>
+      </div>
+
+      <div>
+        <label class="flex items-center gap-2 text-sm">
+          <input v-model="remember" type="checkbox" class="accent-primary" />
+          {{ t('review.remember') }}
+        </label>
+        <p class="mt-1 text-xs text-muted-foreground">{{ t('review.rememberHint') }}</p>
       </div>
 
       <div class="flex gap-2">

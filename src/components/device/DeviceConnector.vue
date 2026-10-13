@@ -5,6 +5,7 @@ import { useBluetoothTrainer } from '../../composables/useBluetoothTrainer';
 import { useMockDevices } from '../../composables/useMockDevices';
 import { useI18n } from '@/composables/useI18n';
 import { isBluetoothAvailable } from '../../utils/web-ble.js';
+import { useAppState } from '@/composables/useAppState';
 
 const hrm = useBluetoothHRM();
 const trainer = useBluetoothTrainer();
@@ -47,7 +48,7 @@ onUnmounted(() => {
 });
 
 const bluetoothSupported = ref(false);
-const useMockMode = ref(false);
+const useMockMode = ref(useAppState().mockModeActive.value);
 
 onMounted(() => {
   bluetoothSupported.value = isBluetoothAvailable();
@@ -96,7 +97,7 @@ defineExpose({
 });
 
 const isConnected = computed(() => {
-  return hrm.isConnected.value || trainer.isConnected.value;
+  return trainer.isConnected.value;
 });
 
 watch([() => hrm.isConnected.value, () => trainer.isConnected.value, useMockMode], () => {
@@ -124,7 +125,7 @@ function emitDataUpdate() {
   }
 }
 
-setInterval(emitDataUpdate, 100);
+// Live metrics are consumed directly by the application-level workout engine.
 </script>
 
 <template>

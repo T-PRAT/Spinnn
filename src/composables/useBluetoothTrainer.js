@@ -5,6 +5,8 @@ import { smartTrainerFilter, SERVICES, CHARACTERISTICS } from '../utils/web-ble.
 import { xf } from '../utils/EventDispatcher.js';
 import { parseCyclingPowerMeasurement, calculateCadence, calculateSpeed, calculateSpeedFromPower } from '../utils/bluetoothParser.js';
 import { logger } from '@/utils/logger';
+import { parseCSCMeasurement } from '@/utils/bluetoothParser';
+import { FtmsQueue } from '@/utils/ftmsQueue';
 
 /**
  * Smart Trainer Bluetooth Composable
@@ -72,6 +74,12 @@ let isInitialized = false;
 // FTMS control point characteristic
 let ftmsControlPoint = null;
 let ftmsServer = null;
+const commands = new FtmsQueue(buffer => {
+  if (!ftmsControlPoint) throw new Error('No trainer connection');
+  return ftmsControlPoint.writeValue(buffer);
+});
+let cscCrankRevs = null, cscCrankTime = null;
+const lastPowerAt = ref(0);
 
 // State for cadence calculations
 let lastCrankRevs = null;
@@ -121,6 +129,7 @@ export function useBluetoothTrainer() {
       },
 
       onDisconnected: () => {
+        commands.disconnect();
         isConnected.value = false;
         isConnecting.value = false;
         resetData();
@@ -168,12 +177,15 @@ export function useBluetoothTrainer() {
     speed.value = 0;
     lastCrankRevs = null;
     lastCrankTime = null;
+    cscCrankRevs = cscCrankTime = null;
+    lastPowerAt.value = 0;
   }
 
   /**
    * Handle cycling power measurement data
    */
   function handleCyclingPowerData(dataView) {
+    lastPowerAt.value = Date.now();
     const data = parseCyclingPowerMeasurement(dataView);
 
     power.value = data.power;
@@ -225,55 +237,12 @@ export function useBluetoothTrainer() {
    * Handle CSC (Cycling Speed and Cadence) measurement data
    */
   function handleCSCData(dataView) {
-    // CSC feature flag is at byte 0
-    const flags = dataView.getUint8(0);
-    let offset = 1;
-
-    // Check if crank revolution data is present (bit 0)
-    const hasCrankData = (flags & 0x01) !== 0;
-    // Check if wheel revolution data is present (bit 1)
-    const hasWheelData = (flags & 0x02) !== 0;
-
-    if (hasCrankData) {
-      const crankRevs = dataView.getUint16(offset, true);
-      offset += 2;
-      const crankTime = dataView.getUint16(offset, true);
-      offset += 2;
-
-      if (lastCrankRevs !== null && lastCrankTime !== null) {
-        const calculatedCadence = calculateCadence(crankRevs, lastCrankRevs, crankTime, lastCrankTime);
-        // Only update cadence if we got a valid value (> 0)
-        if (calculatedCadence > 0) {
-          cadence.value = calculatedCadence;
-        }
-      }
-
-      lastCrankRevs = crankRevs;
-      lastCrankTime = crankTime;
-
-      xf.dispatch('cadence', {
-        value: cadence.value,
-        timestamp: Date.now(),
-      });
-    }
-
-    if (hasWheelData) {
-      // Parse wheel data but don't use it for speed calculation
-      const wheelRevs = dataView.getUint32(offset, true);
-      offset += 4;
-      const wheelTime = dataView.getUint16(offset, true);
-      offset += 2;
-
-      // Calculate speed from power instead of wheel revolutions
-      // (Power value should be available from cycling power service)
-      if (power.value > 0) {
-        speed.value = calculateSpeedFromPower(power.value);
-
-        xf.dispatch('speed', {
-          value: speed.value,
-          timestamp: Date.now(),
-        });
-      }
+    const measurement = parseCSCMeasurement(dataView);
+    if (!measurement) return;
+    if (measurement.crankRevolutions !== undefined) {
+      cadence.value = calculateCadence(measurement.crankRevolutions, cscCrankRevs, measurement.crankTime, cscCrankTime);
+      cscCrankRevs = measurement.crankRevolutions;
+      cscCrankTime = measurement.crankTime;
     }
   }
 
@@ -309,6 +278,8 @@ export function useBluetoothTrainer() {
    */
   function handleFTMSResponse(event) {
     const data = event.target.value;
+    commands.receive(data);
+    if (data.byteLength < 3) return;
     const responseCode = data.getUint8(0);
 
     if (responseCode === FTMS_OPCODES.RESPONSE_CODE) {
@@ -342,7 +313,7 @@ export function useBluetoothTrainer() {
       const buffer = new ArrayBuffer(1);
       const view = new DataView(buffer);
       view.setUint8(0, FTMS_OPCODES.REQUEST_CONTROL);
-      await ftmsControlPoint.writeValue(buffer);
+      await commands.send(buffer);
       logger.debug('[Trainer] Requested control');
       return true;
     } catch (err) {
@@ -369,7 +340,7 @@ export function useBluetoothTrainer() {
       const view = new DataView(buffer);
       view.setUint8(0, FTMS_OPCODES.SET_TARGET_POWER);
       view.setInt16(1, clampedWatts, true); // Little-endian signed int16
-      await ftmsControlPoint.writeValue(buffer);
+      await commands.send(buffer);
 
       targetPower.value = clampedWatts;
       controlMode.value = ControlMode.ERG;
@@ -405,7 +376,7 @@ export function useBluetoothTrainer() {
       view.setInt16(3, Math.round(clampedGrade * 100), true); // Grade in 0.01%
       view.setUint8(5, Math.round(crr * 10000)); // CRR in 0.0001
       view.setUint8(6, Math.round(cw * 100)); // CW in 0.01 kg/m
-      await ftmsControlPoint.writeValue(buffer);
+      await commands.send(buffer);
 
       targetGrade.value = clampedGrade;
       controlMode.value = ControlMode.SIM;
@@ -431,11 +402,11 @@ export function useBluetoothTrainer() {
     const clampedLevel = Math.max(0, Math.min(100, level));
 
     try {
-      const buffer = new ArrayBuffer(2);
+      const buffer = new ArrayBuffer(3);
       const view = new DataView(buffer);
       view.setUint8(0, FTMS_OPCODES.SET_TARGET_RESISTANCE);
-      view.setUint8(1, Math.round(clampedLevel * 2)); // Resolution is 0.5%
-      await ftmsControlPoint.writeValue(buffer);
+      view.setInt16(1, Math.round(clampedLevel * 10), true); // FTMS resolution: 0.1
+      await commands.send(buffer);
 
       targetResistance.value = clampedLevel;
       controlMode.value = ControlMode.RESISTANCE;
@@ -456,6 +427,15 @@ export function useBluetoothTrainer() {
       controlMode.value = mode;
       logger.debug(`[Trainer] Control mode set to: ${mode}`);
     }
+  }
+
+  async function releaseResistance() {
+    if (!ftmsControlPoint || !hasControl.value) return true;
+    try {
+      // Stop/pause procedure releases the active training procedure.
+      await commands.send(new Uint8Array([0x08, 0x01]).buffer);
+      return true;
+    } catch (err) { logger.warn('Trainer stop was not acknowledged:', err.message); return false; }
   }
 
   /**
@@ -553,6 +533,7 @@ export function useBluetoothTrainer() {
   return {
     // State
     power,
+    lastPowerAt,
     cadence,
     speed,
     isConnected,
@@ -582,6 +563,7 @@ export function useBluetoothTrainer() {
     setResistance,
     setControlMode,
     requestControl,
+    releaseResistance,
 
     // Internal (for debugging)
     get connectable() {

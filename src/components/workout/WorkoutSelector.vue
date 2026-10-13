@@ -7,13 +7,11 @@ import WorkoutPreviewChart from "./WorkoutPreviewChart.vue";
 
 const appState = useAppState();
 const { t } = useI18n();
-const selectedWorkout = ref(null);
 const expandedCategories = ref(new Set(["endurance"])); // First category open by default
 
 const emit = defineEmits(["workout-selected"]);
 
 function selectWorkout(workout) {
-	selectedWorkout.value = workout;
 	emit("workout-selected", workout);
 }
 
@@ -42,6 +40,7 @@ function toggleCategory(categoryId) {
 			>
 				<!-- En-tête de catégorie (cliquable pour plier/déplier) -->
 				<button
+					:aria-expanded="expandedCategories.has(category.id)"
 					@click="toggleCategory(category.id)"
 					class="w-full flex items-center justify-between p-2 bg-muted/50 hover:bg-muted rounded transition-colors"
 				>
@@ -76,13 +75,15 @@ function toggleCategory(categoryId) {
 					v-if="expandedCategories.has(category.id)"
 					class="space-y-1.5 pl-1"
 				>
-					<div
+					<button
 						v-for="workout in category.workouts"
 						:key="workout.id"
+						:aria-label="workout.name"
+						:aria-pressed="appState.selectedWorkout.value?.id === workout.id"
 						@click="selectWorkout(workout)"
 						:class="[
-							'p-2 border-2 rounded cursor-pointer transition-all',
-							selectedWorkout?.id === workout.id
+							'w-full text-left p-2 border-2 rounded cursor-pointer transition-all',
+							appState.selectedWorkout.value?.id === workout.id
 								? 'border-primary bg-primary/5'
 								: 'border-border hover:border-primary/50 hover:bg-accent/50',
 						]"
@@ -92,7 +93,7 @@ function toggleCategory(categoryId) {
 							:workout="workout"
 							:compact="true"
 						/>
-					</div>
+					</button>
 				</div>
 			</div>
 		</div>
