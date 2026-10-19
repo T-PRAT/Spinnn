@@ -10,6 +10,7 @@ export default {
     integrations: 'Intégrations',
     language: 'Langue',
     appearance: 'Apparence',
+    workoutLayout: 'Vue d\'entraînement',
     audio: 'Audio',
     ftp: 'FTP',
     zones: 'Zones',
@@ -19,7 +20,7 @@ export default {
   // Preferences
   preferences: {
     title: 'Préférences',
-    description: 'Langue, apparence et sons'
+    description: 'Langue, apparence, vue d\'entraînement et sons'
   },
   // Language
   language: {
@@ -31,6 +32,11 @@ export default {
     title: 'Apparence',
     darkMode: 'Mode sombre',
     darkModeDescription: 'Basculer entre le mode clair et sombre'
+  },
+  // Workout view
+  workoutLayout: {
+    title: 'Vue d\'entraînement',
+    description: 'Choisissez l\'affichage utilisé pendant une séance. Vous pouvez aussi en changer en pleine séance.'
   },
   // Audio
   audio: {

@@ -8,6 +8,7 @@ import { useWorkoutSession } from '../composables/useWorkoutSession';
 import { useI18n } from '../composables/useI18n';
 import IntervalsSettings from '../components/settings/IntervalsSettings.vue';
 import StravaSettings from '../components/settings/StravaSettings.vue';
+import WorkoutLayoutSettings from '../components/settings/WorkoutLayoutSettings.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -33,6 +34,7 @@ const settingsSections = [
     children: [
       { id: 'language', label: 'settings.navigation.language' },
       { id: 'appearance', label: 'settings.navigation.appearance' },
+      { id: 'workout-layout', label: 'settings.navigation.workoutLayout' },
       { id: 'audio', label: 'settings.navigation.audio' }
     ]
   },
@@ -262,6 +264,12 @@ function testSound(soundId) {
               />
             </button>
           </div>
+        </div>
+
+        <!-- Workout layout -->
+        <div id="workout-layout" class="p-6 border-b border-border scroll-mt-20">
+          <h4 class="text-base font-medium text-foreground mb-4">{{ t('settings.workoutLayout.title') }}</h4>
+          <WorkoutLayoutSettings />
         </div>
 
         <!-- Audio -->

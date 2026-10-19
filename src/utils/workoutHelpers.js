@@ -4,6 +4,24 @@
  */
 
 /**
+ * Get the power zone (1 to 7) matching a power
+ * @param {number} power - Power as decimal (e.g., 0.67 = 67% FTP); missing power counts as 70%
+ * @param {object} powerZones - Power zones configuration
+ * @returns {number} Zone index, from 1 (z1) to 7 (z7)
+ */
+export function getZoneIndex(power, powerZones) {
+  // Convert power to percentage (power is in decimal, e.g., 0.67 = 67%)
+  const powerPercent = (power || 0.7) * 100;
+
+  for (let zone = 1; zone <= 6; zone++) {
+    if (powerPercent <= powerZones[`z${zone}`].max) {
+      return zone;
+    }
+  }
+  return 7;
+}
+
+/**
  * Get the color for an interval based on its power zone
  * @param {string} type - The interval type (warmup, cooldown, etc.)
  * @param {number} power - Power as decimal (e.g., 0.67 = 67% FTP)
@@ -11,31 +29,11 @@
  * @returns {string} CSS color value
  */
 export function getIntervalColor(type, power, powerZones) {
-  // Convert power to percentage (power is in decimal, e.g., 0.67 = 67%)
-  const powerPercent = (power || 0.7) * 100;
+  const zone = getZoneIndex(power, powerZones);
 
   // Get CSS variable values from computed style
   const computedStyle = getComputedStyle(document.documentElement);
-
-  if (powerPercent <= powerZones.z1.max) {
-    return computedStyle.getPropertyValue("--zone-z1").trim();
-  }
-  if (powerPercent <= powerZones.z2.max) {
-    return computedStyle.getPropertyValue("--zone-z2").trim();
-  }
-  if (powerPercent <= powerZones.z3.max) {
-    return computedStyle.getPropertyValue("--zone-z3").trim();
-  }
-  if (powerPercent <= powerZones.z4.max) {
-    return computedStyle.getPropertyValue("--zone-z4").trim();
-  }
-  if (powerPercent <= powerZones.z5.max) {
-    return computedStyle.getPropertyValue("--zone-z5").trim();
-  }
-  if (powerPercent <= powerZones.z6.max) {
-    return computedStyle.getPropertyValue("--zone-z6").trim();
-  }
-  return computedStyle.getPropertyValue("--zone-z7").trim();
+  return computedStyle.getPropertyValue(`--zone-z${zone}`).trim();
 }
 
 /**

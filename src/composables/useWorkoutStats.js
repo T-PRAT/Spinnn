@@ -77,6 +77,16 @@ export function useWorkoutStats(dataPoints, workout, elapsedSeconds) {
     return Math.round(totalWorkKJ * 0.239);
   });
 
+  /**
+   * Mechanical work in kJ (sum of power readings, one per second)
+   */
+  const energyKJ = computed(() => {
+    if (!dataPoints.value || dataPoints.value.length === 0) return 0;
+
+    const totalWorkJoules = dataPoints.value.reduce((sum, point) => sum + (point.power || 0), 0);
+    return Math.round(totalWorkJoules / 1000);
+  });
+
   // ============================================================================
   // Interval-specific statistics
   // ============================================================================
@@ -167,6 +177,7 @@ export function useWorkoutStats(dataPoints, workout, elapsedSeconds) {
     maxPower,
     maxHeartRate,
     energy,
+    energyKJ,
 
     // Interval-specific stats
     intervalPower,

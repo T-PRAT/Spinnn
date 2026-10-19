@@ -2,7 +2,9 @@ import { createApp } from 'vue'
 import { createI18n } from 'vue-i18n'
 import App from './App.vue'
 import router from './router'
+import './utils/legacyStyle' // ?style=ancien : retour à l'ancien style
 import './style.css'
+import './theme-maquette.css'
 import { fr, en } from './locales'
 
 // Create i18n instance

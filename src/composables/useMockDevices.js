@@ -107,10 +107,15 @@ export function useMockDevices() {
       power.value = Math.max(0, Math.round(currentPower + powerVariation));
       heartRate.value = Math.max(60, Math.round(currentHR + hrVariation));
 
-      // Cadence stays relatively stable around 85-90 rpm with small variation
-      const baseCadence = 87;
+      // Every 30 seconds, ramp up to 110 rpm, hold briefly, then ease back down.
+      const cadencePhase = elapsedSeconds % 30;
+      const cadenceBoost = Math.max(0, Math.min(1,
+        (cadencePhase - 15) / 5,
+        (28 - cadencePhase) / 5
+      ));
+      const baseCadence = 87 + cadenceBoost * 23;
       const cadenceVariation = (Math.random() - 0.5) * 6; // ±3 rpm
-      cadence.value = Math.round(baseCadence + cadenceVariation);
+      cadence.value = Math.min(110, Math.round(baseCadence + cadenceVariation));
 
       // Speed correlates with power (realistic flat-road approximation for average cyclist)
       // Physics-based: Power = (Crr + CdA * v^2) * v

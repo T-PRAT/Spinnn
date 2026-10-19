@@ -181,4 +181,68 @@ export default {
     transitioned: '🚴 Mode Libre activé',
     infinity: '∞',
   },
+  // Workout views (view switcher)
+  layouts: {
+    switch: 'Changer de vue',
+    classic: {
+      label: 'Classique',
+      description: 'Graphique de la séance, métriques configurables et barre de contrôle'
+    },
+    ring: {
+      label: 'Anneau',
+      description: 'Un grand compte à rebours dans un anneau de progression, sur un fond à la couleur de la zone'
+    }
+  },
+  // Ring view
+  ring: {
+    freeRide: 'Sortie libre',
+    paused: 'En pause',
+    mock: 'MOCK',
+    connecting: 'Connexion…',
+    offline: 'Hors ligne',
+    sessionRemaining: 'Séance · reste',
+    timerRemaining: 'Reste dans le bloc : {time}',
+    timerElapsed: 'Temps roulé : {time}',
+    blocks: {
+      recovery: 'Récup',
+      warmup: 'Échauffement',
+      cooldown: 'Retour au calme',
+      ramp: 'Rampe',
+      sweet: 'Sweet spot',
+      z1: 'Récup active',
+      z2: 'Endurance',
+      z3: 'Tempo',
+      z4: 'Seuil',
+      z5: 'VO2 max',
+      z6: 'Anaérobie',
+      z7: 'Sprint'
+    },
+    seriesWork: 'Répétition {rep} sur {total}',
+    seriesRecovery: 'Récupération après la répétition {rep} sur {total}',
+    nextEnd: 'sortie libre',
+    nextLabel: 'suivant :',
+    nextSteady: '{duration} à {power} W',
+    nextRamp: '{duration} de {from} à {to} W',
+    actual: 'réel {value}',
+    target: 'cible {value}',
+    average: 'moy. {value}',
+    controls: 'Commandes de la séance',
+    adjustBlock: 'Bloc',
+    adjustSession: 'Séance',
+    targetLabel: 'Cible',
+    freeRideTarget: 'Cible {value} W',
+    freeRideDown: 'Baisser la cible de {step} W',
+    freeRideUp: 'Monter la cible de {step} W',
+    watts: '{value} W',
+    nextBlock: 'Bloc suivant',
+    devices: {
+      title: 'Appareils',
+      mode: 'Mode de pilotage',
+      simulated: 'Simulé',
+      awaitingControl: 'Contrôle en attente',
+      trainer: 'Home trainer',
+      hrm: 'Cardio',
+      mockNote: 'Mode simulation : aucun appareil réel n\'est utilisé.'
+    }
+  },
 };

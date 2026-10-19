@@ -20,6 +20,7 @@ export const STORAGE_KEYS = {
   AUDIO_ENABLED: 'spinnn_audio_enabled',
   AUDIO_SELECTED: 'spinnn_audio_selected',
   METRICS_CONFIG: 'spinnn_metrics_config',
+  WORKOUT_LAYOUT: 'spinnn_workout_layout',
   WORKOUT_SESSION: 'spinnn_active_workout',
   FREE_RIDE_TARGET_POWER: 'spinnn_freeride_target_power'
 };
@@ -219,6 +220,23 @@ export function useStorage() {
   }
 
   // ============================================================================
+  // Workout Layout (vue d'entraînement choisie)
+  // ============================================================================
+
+  function getWorkoutLayout() {
+    return localStorage.getItem(STORAGE_KEYS.WORKOUT_LAYOUT);
+  }
+
+  function setWorkoutLayout(layoutId) {
+    if (!layoutId || typeof layoutId !== 'string') {
+      logger.warn('Invalid workout layout:', layoutId);
+      return false;
+    }
+    localStorage.setItem(STORAGE_KEYS.WORKOUT_LAYOUT, layoutId);
+    return true;
+  }
+
+  // ============================================================================
   // Workout Session
   // ============================================================================
 
@@ -314,6 +332,10 @@ export function useStorage() {
     // Metrics
     getMetricsConfig,
     setMetricsConfig,
+
+    // Workout Layout
+    getWorkoutLayout,
+    setWorkoutLayout,
 
     // Workout Session
     getWorkoutSession,
