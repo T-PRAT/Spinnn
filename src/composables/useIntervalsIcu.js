@@ -1,8 +1,12 @@
 import { ref, readonly } from 'vue';
 import { useStorage } from './useStorage';
+import { PreparationError } from '@/utils/preparationMessages';
+import { extractDayWorkouts, localDateString } from '@/utils/intervalsWorkout';
+import { DEFAULT_FTP } from '@/constants/zones';
 
 const storage = useStorage();
 const API_BASE_URL = 'https://intervals.icu/api/v1';
+const REQUEST_TIMEOUT_MS = 15000;
 
 // Singleton state
 const apiKey = ref(null);
@@ -15,6 +19,63 @@ if (credentials) {
   apiKey.value = credentials.apiKey;
   athleteId.value = credentials.athleteId;
   isConnected.value = true;
+}
+
+/**
+ * Appelle l'API Intervals.icu et traduit chaque échec en PreparationError :
+ * identifiants refusés, limite de débit, serveur en panne, réseau, délai, réponse illisible.
+ */
+async function request(endpoint, { key, id }) {
+  if (!key || !id) {
+    throw new PreparationError('intervals.notConfigured');
+  }
+
+  let authorization;
+  try {
+    authorization = `Basic ${btoa(`API_KEY:${key}`)}`;
+  } catch {
+    // btoa refuse les caractères hors Latin-1 : une clé collée avec un caractère parasite
+    throw new PreparationError('intervals.auth');
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      headers: { Authorization: authorization, Accept: 'application/json' },
+      signal: controller.signal
+    });
+  } catch (error) {
+    throw new PreparationError(error?.name === 'AbortError' ? 'intervals.timeout' : 'intervals.network');
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (!response.ok) {
+    const { status } = response;
+    // 404 : identifiant athlète inconnu pour cette clé
+    if (status === 401 || status === 403 || status === 404) throw new PreparationError('intervals.auth');
+    if (status === 429) throw new PreparationError('intervals.rateLimit');
+    if (status >= 500) throw new PreparationError('intervals.server', { status });
+    throw new PreparationError('intervals.http', { status });
+  }
+
+  try {
+    return await response.json();
+  } catch {
+    throw new PreparationError('intervals.badResponse');
+  }
+}
+
+async function fetchDayWorkouts({ key, id }, ftp) {
+  const date = localDateString();
+  const events = await request(
+    `/athlete/${encodeURIComponent(id)}/events?oldest=${date}&newest=${date}`,
+    { key, id }
+  );
+  return { date, ...extractDayWorkouts(events, { date, ftp }) };
 }
 
 export function useIntervalsIcu() {
@@ -33,169 +94,29 @@ export function useIntervalsIcu() {
     isConnected.value = false;
   }
 
-  async function makeRequest(endpoint) {
-    if (!apiKey.value) {
-      throw new Error('API key not configured');
-    }
+  /**
+   * Vérifie une clé API et un identifiant athlète auprès d'Intervals.icu, puis ne les
+   * enregistre qu'en cas de succès : un échec (réseau compris) laisse la connexion
+   * existante intacte et permet de réessayer sans tout ressaisir.
+   * @throws {PreparationError}
+   */
+  async function connect(key, id, ftp = DEFAULT_FTP) {
+    const cleanKey = String(key ?? '').trim();
+    const cleanId = String(id ?? '').trim();
 
-    const auth = btoa(`API_KEY:${apiKey.value}`);
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        throw new Error('Authentication failed. Please check your API key.');
-      }
-      throw new Error(`API request failed: ${response.status}`);
-    }
-
-    return response.json();
+    const result = await fetchDayWorkouts({ key: cleanKey, id: cleanId }, ftp);
+    setCredentials(cleanKey, cleanId);
+    return result;
   }
 
-  async function getTodayWorkouts() {
-    if (!athleteId.value) {
-      throw new Error('Athlete ID not configured');
-    }
-
-    const today = new Date().toISOString().split('T')[0];
-    const events = await makeRequest(`/athlete/${athleteId.value}/events?oldest=${today}&newest=${today}`);
-
-    // Filter WORKOUT events with steps
-    const workoutEvents = events.filter(event =>
-      event.category === 'WORKOUT' &&
-      event.start_date_local?.startsWith(today) &&
-      event.workout_doc?.steps?.length > 0
-    );
-
-    if (workoutEvents.length === 0) {
-      return [];
-    }
-
-    // Use workout_doc directly (already embedded)
-    const validWorkouts = workoutEvents.map(event => ({
-      ...event,
-      workout: event.workout_doc
-    }));
-
-    // Convert all workouts to our format
-    return validWorkouts.map(workout => convertIntervalsWorkout(workout));
-  }
-
-  function convertIntervalsWorkout(intervalsWorkout) {
-    const intervals = [];
-    let totalDuration = 0;
-
-    // Parse workout steps if available
-    if (intervalsWorkout.workout?.steps) {
-      intervalsWorkout.workout.steps.forEach((step, index) => {
-        // Handle repeat steps (contains sub-steps)
-        if (step.steps && Array.isArray(step.steps)) {
-          const repeat = step.reps || step.repeat || 1;
-
-          for (let r = 0; r < repeat; r++) {
-            step.steps.forEach(subStep => {
-              const processedInterval = processStep(subStep);
-              if (processedInterval) {
-                intervals.push(processedInterval);
-                totalDuration += processedInterval.duration;
-              }
-            });
-          }
-        } else {
-          // Regular step
-          const processedInterval = processStep(step);
-          if (processedInterval) {
-            intervals.push(processedInterval);
-            totalDuration += processedInterval.duration;
-          }
-        }
-      });
-    }
-
-    return {
-      id: `intervals-${intervalsWorkout.id}`,
-      name: intervalsWorkout.name || 'Workout from Intervals.icu',
-      description: intervalsWorkout.description || 'Imported from Intervals.icu',
-      duration: totalDuration,
-      difficulty: 'Custom',
-      intervals: [...intervals], // Ensure it's a real array
-      source: 'intervals.icu'
-    };
-  }
-
-  function processStep(step) {
-    const duration = step.duration || 0;
-    if (duration === 0) return null;
-
-    let intervalData = {
-      duration: duration
-    };
-
-    // Extract power from step (can be in power, watts, or power_low/high)
-    // Handle both object format {value: X, units: "%"} and direct numbers
-    const extractPower = (val) => {
-      if (typeof val === 'object' && val !== null) {
-        return val.value;
-      }
-      return val;
-    };
-
-    let power = extractPower(step.power) || extractPower(step.watts);
-    let powerLow = extractPower(step.power_low) || power;
-    let powerHigh = extractPower(step.power_high) || power;
-
-    // For ramps, extract from power.low and power.high
-    if (step.ramp && step.power && typeof step.power === 'object') {
-      powerLow = extractPower(step.power.low) || powerLow;
-      powerHigh = extractPower(step.power.high) || powerHigh;
-      if (!power) power = (powerLow + powerHigh) / 2;
-    }
-
-    // Convert percentage values (like 67) to decimal (like 0.67)
-    if (power && power > 2) power = power / 100;
-    if (powerLow && powerLow > 2) powerLow = powerLow / 100;
-    if (powerHigh && powerHigh > 2) powerHigh = powerHigh / 100;
-
-    // Determine interval type
-    const stepType = step.type || (step.ramp ? 'RAMP' : 'STEADY');
-
-    if (stepType === 'WARMUP') {
-      intervalData.type = 'warmup';
-      intervalData.powerStart = powerLow || 0.5;
-      intervalData.powerEnd = powerHigh || 0.7;
-    } else if (stepType === 'COOLDOWN') {
-      intervalData.type = 'cooldown';
-      intervalData.powerStart = powerHigh || 0.7;
-      intervalData.powerEnd = powerLow || 0.5;
-    } else if (stepType === 'RAMP') {
-      intervalData.type = 'ramp';
-      intervalData.powerStart = powerLow || 0.5;
-      intervalData.powerEnd = powerHigh || 0.7;
-    } else if (stepType === 'REST' || stepType === 'RECOVERY') {
-      intervalData.type = 'recovery';
-      intervalData.power = power || 0.4;
-    } else if (stepType === 'WORK') {
-      intervalData.type = 'work';
-      intervalData.power = power || 1.0;
-    } else if (stepType === 'INTERVAL') {
-      intervalData.type = power && power > 0.85 ? 'work' : 'steady';
-      intervalData.power = power || 0.9;
-    } else {
-      // STEADY or no type specified
-      intervalData.type = 'steady';
-      intervalData.power = power || 0.7;
-    }
-
-    // Ensure we always have some power value
-    if (!intervalData.power && !intervalData.powerStart) {
-      intervalData.power = 0.7;
-    }
-
-    return intervalData;
+  /**
+   * Séances planifiées aujourd'hui (date locale) pour l'athlète connecté.
+   * @param {number} ftp - FTP de Spinnn, pour convertir les cibles en watts absolus
+   * @returns {Promise<{date: string, workouts: Array, skipped: Array}>}
+   * @throws {PreparationError}
+   */
+  function getTodayWorkouts(ftp = DEFAULT_FTP) {
+    return fetchDayWorkouts({ key: apiKey.value, id: athleteId.value }, ftp);
   }
 
   return {
@@ -204,6 +125,7 @@ export function useIntervalsIcu() {
     athleteId: readonly(athleteId),
     setCredentials,
     disconnect,
+    connect,
     getTodayWorkouts
   };
 }

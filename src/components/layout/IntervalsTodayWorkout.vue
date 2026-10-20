@@ -1,36 +1,63 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useIntervalsIcu } from "../../composables/useIntervalsIcu";
 import { useAppState } from "../../composables/useAppState";
 import { useI18n } from "@/composables/useI18n";
-import { formatDuration } from "../../data/sampleWorkouts";
+import { describePreparationError, preparationText } from "@/utils/preparationMessages";
 import WorkoutPreviewChart from "../workout/WorkoutPreviewChart.vue";
 
 const emit = defineEmits(["workout-selected"]);
 const intervals = useIntervalsIcu();
 const appState = useAppState();
-const { t } = useI18n();
+const { t, currentLocale } = useI18n();
 
 const todayWorkouts = ref([]);
+const skippedWorkouts = ref([]);
 const isLoading = ref(false);
-const error = ref("");
+const loadError = ref(null);
+
+// Une réponse tardive d'un chargement ancien ne doit pas écraser le plus récent
+let latestRequest = 0;
+
+const errorMessage = computed(() => (loadError.value ? describePreparationError(loadError.value, currentLocale.value) : ""));
+
+const skippedSummary = computed(() =>
+  skippedWorkouts.value.map((skipped) => ({
+    id: skipped.id,
+    text: `${skipped.name} : ${preparationText(skipped.reason, skipped.params, currentLocale.value)}`,
+  }))
+);
+
+// Les cibles en % sont calculées avec la FTP de Spinnn : prévenir si celle d'Intervals.icu diffère
+const ftpDifference = computed(() => {
+  const sourceFtp = todayWorkouts.value.find((workout) => workout.sourceFtp && workout.sourceFtp !== appState.ftp.value)?.sourceFtp;
+  return sourceFtp ? preparationText("intervals.ftpDiffers", { sourceFtp, ftp: appState.ftp.value }, currentLocale.value) : "";
+});
 
 async function loadTodayWorkouts() {
   if (!intervals.isConnected.value) {
     todayWorkouts.value = [];
+    skippedWorkouts.value = [];
     return;
   }
 
+  const requestId = ++latestRequest;
   isLoading.value = true;
-  error.value = "";
+  loadError.value = null;
 
   try {
-    todayWorkouts.value = await intervals.getTodayWorkouts();
+    const result = await intervals.getTodayWorkouts(appState.ftp.value);
+    if (requestId !== latestRequest) return;
+    todayWorkouts.value = result.workouts;
+    skippedWorkouts.value = result.skipped;
   } catch (err) {
-    error.value = err.message;
+    if (requestId !== latestRequest) return;
+    todayWorkouts.value = [];
+    skippedWorkouts.value = [];
+    loadError.value = err;
     console.error("Failed to load today workouts:", err);
   } finally {
-    isLoading.value = false;
+    if (requestId === latestRequest) isLoading.value = false;
   }
 }
 
@@ -63,7 +90,7 @@ defineExpose({
       </p>
     </div>
 
-    <div v-else-if="isLoading" class="p-4 bg-muted/50 rounded-lg border border-border">
+    <div v-else-if="isLoading" class="p-4 bg-muted/50 rounded-lg border border-border" role="status">
       <div class="flex items-center justify-center gap-2">
         <svg class="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -77,24 +104,35 @@ defineExpose({
       </div>
     </div>
 
-    <div v-else-if="error" class="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-      <p class="text-sm text-destructive">{{ error }}</p>
+    <div v-else-if="loadError" class="p-4 bg-destructive/10 rounded-lg border border-destructive/20" role="alert" data-testid="intervals-error">
+      <p class="text-sm text-destructive">{{ errorMessage }}</p>
       <button @click="loadTodayWorkouts" class="mt-2 text-sm text-primary hover:underline">{{ t('workout.retry') }}</button>
     </div>
 
-    <div v-else-if="todayWorkouts.length === 0" class="p-4 bg-muted/50 rounded-lg border border-border flex items-center justify-center">
-      <span class="text-sm text-muted-foreground text-center">{{ t('workout.noWorkoutToday') }}</span>
-    </div>
-
-    <div v-else class="space-y-2">
-      <div
-        v-for="workout in todayWorkouts"
-        :key="workout.id"
-        @click="selectWorkout(workout)"
-        class="p-3 border-2 border-border hover:border-primary bg-card hover:bg-primary/5 rounded-lg cursor-pointer transition-all"
-      >
-        <WorkoutPreviewChart :ftp="appState.ftp.value" :workout="workout" :compact="true" />
+    <template v-else>
+      <div v-if="todayWorkouts.length === 0" class="p-4 bg-muted/50 rounded-lg border border-border flex items-center justify-center" data-testid="intervals-empty">
+        <span class="text-sm text-muted-foreground text-center">{{ t('workout.noWorkoutToday') }}</span>
       </div>
-    </div>
+
+      <div v-else class="space-y-2">
+        <p v-if="ftpDifference" class="text-xs text-muted-foreground" data-testid="intervals-ftp-difference">{{ ftpDifference }}</p>
+        <div
+          v-for="workout in todayWorkouts"
+          :key="workout.id"
+          @click="selectWorkout(workout)"
+          class="p-3 border-2 border-border hover:border-primary bg-card hover:bg-primary/5 rounded-lg cursor-pointer transition-all"
+          data-testid="intervals-workout"
+        >
+          <WorkoutPreviewChart :ftp="appState.ftp.value" :workout="workout" :compact="true" />
+        </div>
+      </div>
+
+      <div v-if="skippedSummary.length > 0" class="p-3 bg-muted/50 rounded-lg border border-border space-y-1" data-testid="intervals-skipped">
+        <p class="text-xs font-medium text-foreground">{{ preparationText('intervals.skippedTitle', { count: skippedSummary.length }, currentLocale) }}</p>
+        <ul class="text-xs text-muted-foreground list-disc pl-4">
+          <li v-for="skipped in skippedSummary" :key="skipped.id">{{ skipped.text }}</li>
+        </ul>
+      </div>
+    </template>
   </div>
 </template>

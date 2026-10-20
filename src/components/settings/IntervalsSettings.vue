@@ -1,10 +1,13 @@
 <script setup>
 import { ref } from 'vue';
 import { useIntervalsIcu } from '../../composables/useIntervalsIcu';
+import { useAppState } from '../../composables/useAppState';
 import { useI18n } from '@/composables/useI18n';
+import { describePreparationError } from '@/utils/preparationMessages';
 
 const intervals = useIntervalsIcu();
-const { t } = useI18n();
+const appState = useAppState();
+const { t, currentLocale } = useI18n();
 
 const showForm = ref(!intervals.isConnected.value);
 const apiKeyInput = ref('');
@@ -27,18 +30,15 @@ async function testConnection() {
   error.value = '';
 
   try {
-    // Save credentials temporarily to test
-    intervals.setCredentials(apiKeyInput.value, athleteIdInput.value);
-
-    // Try to fetch today's workouts to verify connection
-    await intervals.getTodayWorkouts();
+    // Les identifiants ne sont enregistrés qu'une fois acceptés par Intervals.icu :
+    // en cas d'échec, la saisie et la connexion existante restent en place pour réessayer
+    await intervals.connect(apiKeyInput.value, athleteIdInput.value, appState.ftp.value);
 
     showForm.value = false;
     apiKeyInput.value = '';
     athleteIdInput.value = '';
   } catch (err) {
-    error.value = err.message;
-    intervals.disconnect();
+    error.value = describePreparationError(err, currentLocale.value);
   } finally {
     isTesting.value = false;
   }
