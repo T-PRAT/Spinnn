@@ -5,6 +5,7 @@
 
 import { DEFAULT_POWER_ZONES, DEFAULT_FTP } from '@/constants/zones';
 import { logger } from '@/utils/logger';
+import { parseFtp } from '@/utils/ftp';
 
 /**
  * Storage keys with 'spinnn_' prefix
@@ -35,23 +36,27 @@ export function useStorage() {
   // ============================================================================
 
   function getFtp() {
-    const stored = localStorage.getItem(STORAGE_KEYS.FTP);
-    if (stored) {
-      const value = parseInt(stored, 10);
-      if (!isNaN(value) && value > 0) {
-        return value;
-      }
-    }
-    return DEFAULT_FTP;
+    const stored = parseFtp(localStorage.getItem(STORAGE_KEYS.FTP));
+    return stored ?? DEFAULT_FTP;
   }
 
+  /**
+   * Enregistre la FTP (watts entiers, bornes dans utils/ftp.js).
+   * Renvoie false, sans rien écrire, si la valeur est invalide ou si le stockage refuse l'écriture.
+   */
   function setFtp(value) {
-    if (typeof value !== 'number' || value <= 0) {
+    const ftp = parseFtp(value);
+    if (ftp === null) {
       logger.warn('Invalid FTP value:', value);
       return false;
     }
-    localStorage.setItem(STORAGE_KEYS.FTP, value.toString());
-    return true;
+    try {
+      localStorage.setItem(STORAGE_KEYS.FTP, String(ftp));
+      return true;
+    } catch (e) {
+      logger.error('Failed to save FTP:', e);
+      return false;
+    }
   }
 
   // ============================================================================

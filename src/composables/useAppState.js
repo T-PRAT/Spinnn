@@ -1,6 +1,7 @@
 import { ref, computed, readonly } from 'vue';
 import { DEFAULT_POWER_ZONES, DEFAULT_FTP } from '@/constants/zones';
 import { useStorage } from './useStorage';
+import { parseFtp } from '@/utils/ftp';
 
 const storage = useStorage();
 
@@ -31,10 +32,17 @@ export function useAppState() {
     mockModeActive.value = active;
   }
 
+  /**
+   * Enregistre la FTP et la rend active pour toute l'application.
+   * @returns {boolean} false si la valeur est invalide ou n'a pas pu être enregistrée
+   */
   function setFtp(value) {
-    if (storage.setFtp(value)) {
-      ftp.value = value;
+    const normalized = parseFtp(value);
+    if (normalized !== null && storage.setFtp(normalized)) {
+      ftp.value = normalized;
+      return true;
     }
+    return false;
   }
 
   function setPowerZones(zones) {

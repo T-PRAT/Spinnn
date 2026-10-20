@@ -8,6 +8,7 @@ import { useWorkoutSession } from '../composables/useWorkoutSession';
 import { useI18n } from '../composables/useI18n';
 import IntervalsSettings from '../components/settings/IntervalsSettings.vue';
 import StravaSettings from '../components/settings/StravaSettings.vue';
+import FtpSettings from '../components/settings/FtpSettings.vue';
 import WorkoutLayoutSettings from '../components/settings/WorkoutLayoutSettings.vue';
 
 const route = useRoute();
@@ -18,8 +19,6 @@ const theme = useTheme();
 const audioSettings = useAudioSettings();
 const { currentLocale, setLocale, t } = useI18n();
 
-const localFtp = ref(200);
-const showTooltip = ref(false);
 const localZones = ref({});
 const activeSection = ref('');
 
@@ -60,7 +59,6 @@ function isSectionActive(section) {
 }
 
 onMounted(() => {
-  localFtp.value = appState.ftp.value;
   localZones.value = JSON.parse(JSON.stringify(appState.powerZones.value));
 
   // Scroll to section if hash is present
@@ -113,12 +111,6 @@ function setupIntersectionObserver() {
       }
     });
   });
-}
-
-function saveFtp() {
-  if (localFtp.value > 0) {
-    appState.setFtp(localFtp.value);
-  }
 }
 
 function saveZones() {
@@ -320,47 +312,7 @@ function testSound(soundId) {
 
         <!-- FTP -->
         <div id="ftp" class="p-6 border-b border-border scroll-mt-20">
-          <h4 class="text-base font-medium text-foreground mb-4">{{ t('settings.athlete.ftp') }}</h4>
-          <div class="flex items-center gap-2 mb-2">
-            <label for="ftp" class="text-sm font-medium text-foreground"></label>
-            <button
-              @mouseenter="showTooltip = true"
-              @mouseleave="showTooltip = false"
-              type="button"
-              class="text-muted-foreground hover:text-foreground relative"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div
-                v-if="showTooltip"
-                class="absolute left-6 top-0 w-64 p-3 bg-popover text-popover-foreground text-xs rounded-lg shadow-lg border border-border z-10"
-              >
-                {{ t('settings.athlete.ftpTooltip') }}
-              </div>
-            </button>
-          </div>
-          <div class="flex items-center gap-3">
-            <input
-              id="ftp"
-              type="number"
-              v-model.number="localFtp"
-              min="1"
-              max="500"
-              class="w-32 px-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-lg text-foreground"
-            />
-            <span class="text-muted-foreground">{{ t('settings.athlete.ftpUnit') }}</span>
-            <button
-              @click="saveFtp"
-              class="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
-            >
-              {{ t('common.buttons.save') }}
-            </button>
-          </div>
-          <p class="text-xs text-muted-foreground mt-2">
-            {{ t('settings.athlete.ftpSaved') }} : {{ appState.ftp.value }}W
-          </p>
+          <FtpSettings />
         </div>
 
         <!-- Power Zones -->
