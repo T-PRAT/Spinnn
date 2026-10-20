@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import WorkoutSelector from "../components/workout/WorkoutSelector.vue";
 import DeviceConnector from "../components/device/DeviceConnector.vue";
 import WorkoutPreviewChart from "../components/workout/WorkoutPreviewChart.vue";
+import ZwoImport from "../components/workout/ZwoImport.vue";
 import IntervalsTodayWorkout from "../components/layout/IntervalsTodayWorkout.vue";
 import { useAppState } from "../composables/useAppState";
 import { useWorkoutSession } from "../composables/useWorkoutSession";
@@ -19,7 +20,6 @@ const freeRide = useFreeRide();
 const { t } = useI18n();
 
 const isDeviceReady = ref(false);
-const fileInput = ref(null);
 const hasPendingWorkout = ref(false);
 const deviceConnector = ref(null);
 const intervalsWorkoutRef = ref(null);
@@ -31,78 +31,6 @@ onMounted(() => {
 
 function handleWorkoutSelected(workout) {
   appState.setWorkout(workout);
-}
-
-function handleFileUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const content = e.target.result;
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(content, "text/xml");
-
-      const workout = parseZwoFile(xmlDoc);
-      appState.setWorkout(workout);
-    } catch (error) {
-      alert("Failed to parse workout file. Please ensure it is a valid .zwo file.");
-      console.error(error);
-    }
-  };
-  reader.readAsText(file);
-}
-
-function parseZwoFile(xmlDoc) {
-  const workoutName = xmlDoc.querySelector("workout")?.getAttribute("name") || "Custom Workout";
-  const intervals = [];
-  let totalDuration = 0;
-
-  const elements = xmlDoc.querySelectorAll("SteadyState, Ramp, IntervalsT, FreeRide, Cooldown, Warmup");
-
-  elements.forEach((element) => {
-    const duration = parseInt(element.getAttribute("Duration") || 0);
-    totalDuration += duration;
-
-    if (element.tagName === "SteadyState") {
-      intervals.push({
-        type: "steady",
-        duration: duration,
-        power: parseFloat(element.getAttribute("Power") || 0.5),
-      });
-    } else if (element.tagName === "Ramp") {
-      intervals.push({
-        type: "ramp",
-        duration: duration,
-        powerStart: parseFloat(element.getAttribute("PowerLow") || 0.5),
-        powerEnd: parseFloat(element.getAttribute("PowerHigh") || 0.7),
-      });
-    } else if (element.tagName === "Warmup") {
-      intervals.push({
-        type: "warmup",
-        duration: duration,
-        powerStart: parseFloat(element.getAttribute("PowerLow") || 0.5),
-        powerEnd: parseFloat(element.getAttribute("PowerHigh") || 0.7),
-      });
-    } else if (element.tagName === "Cooldown") {
-      intervals.push({
-        type: "cooldown",
-        duration: duration,
-        powerStart: parseFloat(element.getAttribute("PowerLow") || 0.7),
-        powerEnd: parseFloat(element.getAttribute("PowerHigh") || 0.5),
-      });
-    }
-  });
-
-  return {
-    id: "custom",
-    name: workoutName,
-    description: "Uploaded workout file",
-    duration: totalDuration,
-    difficulty: "Custom",
-    intervals: intervals,
-  };
 }
 
 function handleDeviceStatusChange(status) {
@@ -224,15 +152,7 @@ function dismissPendingWorkout() {
       <div class="bg-card rounded-lg p-4 md:p-6 shadow border border-border space-y-4 md:space-y-6">
         <div>
           <h2 class="text-xl font-bold text-foreground mb-4">{{ t('workout.importFile') }}</h2>
-          <label class="block">
-            <input
-              ref="fileInput"
-              type="file"
-              accept=".zwo"
-              @change="handleFileUpload"
-              class="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer file:transition-colors"
-            />
-          </label>
+          <ZwoImport @workout-selected="handleWorkoutSelected" />
         </div>
 
         <div class="border-t border-border pt-6">
@@ -242,7 +162,7 @@ function dismissPendingWorkout() {
               {{ t('workout.intervalsIntegration') }} <span class="text-sm font-normal text-muted-foreground">{{ t('workout.intervalsToday') }}</span>
             </h2>
             <button
-              v-if="intervals.isConnected"
+              v-if="intervals.isConnected.value"
               @click="intervalsWorkoutRef?.loadTodayWorkouts()"
               :disabled="intervalsWorkoutRef?.isLoading"
               class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
