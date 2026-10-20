@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useWorkoutSession } from "@/composables/useWorkoutSession";
+import { useTheme } from "@/composables/useTheme";
 import { useI18n as useVueI18n } from "vue-i18n";
 import {
 	HomeIcon,
@@ -13,6 +14,12 @@ import {
 const router = useRouter();
 const route = useRoute();
 const session = useWorkoutSession();
+const { isDark } = useTheme();
+
+// Wordmark master files live in design/logo/svg; the dark one has a light "spi"
+const wordmarkSrc = computed(() =>
+	isDark.value ? "/spinnn-wordmark-dark.svg" : "/spinnn-wordmark.svg",
+);
 
 // Get i18n translation function (fallback to key if not available)
 const i18n = useVueI18n();
@@ -123,29 +130,19 @@ function getIconComponent(iconName) {
 		>
 			<button
 				@click="navigate('setup')"
-				:class="[
-					'hover:opacity-80 transition-opacity flex items-center',
-					isCollapsed ? '' : 'gap-5',
-				]"
-				:title="isCollapsed ? 'Spin' : undefined"
+				class="hover:opacity-80 transition-opacity flex items-center"
+				:title="isCollapsed ? 'Spinnn' : undefined"
 			>
-				<div
-					:class="[
-						'rounded-xl bg-secondary',
-						isCollapsed ? 'p-2.5' : 'p-3',
-					]"
-				>
-					<img
-						src="/Logo.png"
-						alt="Logo"
-						:class="isCollapsed ? 'w-5 h-5' : 'w-6 h-6'"
-					/>
-				</div>
-				<h1
-					v-if="!isCollapsed"
-					class="text-3xl font-bold text-primary-foreground tracking-tight font-heading"
-				>
-					Spinnn
+				<!-- Symbol is drawn on a 16 px grid: keep it at 16/32/48 px to stay crisp -->
+				<img
+					v-if="isCollapsed"
+					src="/spinnn-symbol.svg"
+					alt="Spinnn"
+					class="w-8 h-8"
+				/>
+				<h1 v-else>
+					<img :src="wordmarkSrc" alt="" class="h-12 w-auto" />
+					<span class="sr-only">Spinnn</span>
 				</h1>
 			</button>
 		</div>

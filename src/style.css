@@ -69,7 +69,7 @@
   --card-foreground: oklch(0.9699 0.0013 106.4238);
   --popover: oklch(0.2685 0.0063 34.2976);
   --popover-foreground: oklch(0.9699 0.0013 106.4238);
-  --primary: oklch(0.7049 0.1867 47.6044);
+  --primary: oklch(0.6461 0.1943 41.1158); /* #EA580C, brand orange */
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.4444 0.0096 73.639);
   --secondary-foreground: oklch(0.9232 0.0026 48.7171);
@@ -81,7 +81,7 @@
   --destructive-foreground: oklch(1 0 0);
   --border: oklch(0.3741 0.0087 67.5582);
   --input: oklch(0.3741 0.0087 67.5582);
-  --ring: oklch(0.7049 0.1867 47.6044);
+  --ring: oklch(0.6461 0.1943 41.1158);
   --chart-1: oklch(0.7049 0.1867 47.6044);
   --chart-2: oklch(0.6847 0.1479 237.3225);
   --chart-3: oklch(0.7952 0.1617 86.0468);
@@ -89,12 +89,12 @@
   --chart-5: oklch(0.5534 0.0116 58.0708);
   --sidebar: oklch(0.2685 0.0063 34.2976);
   --sidebar-foreground: oklch(0.9699 0.0013 106.4238);
-  --sidebar-primary: oklch(0.7049 0.1867 47.6044);
+  --sidebar-primary: oklch(0.6461 0.1943 41.1158);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.6847 0.1479 237.3225);
   --sidebar-accent-foreground: oklch(0.2839 0.0734 254.5378);
   --sidebar-border: oklch(0.3741 0.0087 67.5582);
-  --sidebar-ring: oklch(0.7049 0.1867 47.6044);
+  --sidebar-ring: oklch(0.6461 0.1943 41.1158);
   --zone-z1: oklch(0.65 0.15 220);
   --zone-z2: oklch(0.7 0.18 145);
   --zone-z3: oklch(0.7 0.22 70);
