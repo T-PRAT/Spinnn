@@ -1,0 +1,9 @@
+<workout_file>
+  <name>Avec roue libre</name>
+  <sportType>bike</sportType>
+  <workout>
+    <Warmup Duration="300" PowerLow="0.50" PowerHigh="0.70"/>
+    <FreeRide Duration="600" FlatRoad="1"/>
+    <SteadyState Duration="300" Power="0.80"/>
+  </workout>
+</workout_file>

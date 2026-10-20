@@ -1,0 +1,17 @@
+<workout_file>
+  <author>Spinnn tests</author>
+  <name>Séance représentative</name>
+  <description>Échauffement, palier, 3 x (4 min / 2 min), rampe, palier, retour au calme</description>
+  <sportType>bike</sportType>
+  <tags/>
+  <workout>
+    <Warmup Duration="600" PowerLow="0.40" PowerHigh="0.75"/>
+    <SteadyState Duration="300" Power="0.65" Cadence="90"/>
+    <IntervalsT Repeat="3" OnDuration="240" OffDuration="120" OnPower="1.05" OffPower="0.50" Cadence="95" CadenceResting="85"/>
+    <Ramp Duration="300" PowerLow="0.60" PowerHigh="0.90"/>
+    <SteadyState Duration="180" Power="0.55">
+      <textevent timeoffset="0" message="Souplesse"/>
+    </SteadyState>
+    <Cooldown Duration="300" PowerLow="0.70" PowerHigh="0.35"/>
+  </workout>
+</workout_file>

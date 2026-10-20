@@ -1,0 +1,52 @@
+[
+  {
+    "id": 46696127,
+    "start_date_local": "__TODAY__T00:00:00",
+    "type": "Ride",
+    "category": "WORKOUT",
+    "name": "Sweet Spot 2x10",
+    "workout_doc": {
+      "description": "Deux blocs au seuil bas",
+      "target": "POWER",
+      "ftp": 240,
+      "duration": 3000,
+      "steps": [
+        { "text": "Échauffement", "duration": 600, "warmup": true, "ramp": true, "power": { "start": 45, "end": 70, "units": "%ftp" }, "cadence": { "value": 90, "units": "rpm" } },
+        {
+          "reps": 2,
+          "text": "Sweet spot 2x",
+          "steps": [
+            { "duration": 600, "power": { "value": 90, "units": "%ftp" } },
+            { "duration": 300, "intensity": "rest", "power": { "value": 55, "units": "%ftp" } }
+          ]
+        },
+        { "duration": 600, "cooldown": true, "ramp": true, "power": { "start": 65, "end": 40, "units": "%ftp" } }
+      ]
+    }
+  },
+  {
+    "id": 46696128,
+    "start_date_local": "__TODAY__T00:00:00",
+    "type": "Ride",
+    "category": "WORKOUT",
+    "name": "Sortie roue libre",
+    "workout_doc": {
+      "target": "POWER",
+      "steps": [{ "duration": 3600, "freeride": true, "text": "Roue libre" }]
+    }
+  },
+  {
+    "id": 46696129,
+    "start_date_local": "__TOMORROW__T00:00:00",
+    "type": "Ride",
+    "category": "WORKOUT",
+    "name": "Séance de demain",
+    "workout_doc": { "steps": [{ "duration": 600, "power": { "value": 70, "units": "%ftp" } }] }
+  },
+  {
+    "id": 46696130,
+    "start_date_local": "__TODAY__T00:00:00",
+    "category": "NOTE",
+    "name": "Rappel : pression des pneus"
+  }
+]
